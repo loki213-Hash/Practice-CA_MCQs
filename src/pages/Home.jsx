@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
+import { getStatsForCourse } from "../services/questionService";
 
 function ChakraDial() {
   const [revealed, setRevealed] = useState(0);
@@ -80,7 +81,7 @@ function ChakraDial() {
           <circle cx="150" cy="150" r="132" fill="#fff" stroke="var(--hairline)" strokeWidth="1" />
           <g id="spokeGroup">{spokes}</g>
           <circle cx="150" cy="150" r="96" fill="#fff" stroke="var(--hairline)" strokeWidth="1" />
-          <circle cx="150" cy="150" r="6" fill="var(--navy)" />
+          <circle cx="150" cy="150" r="3.5" fill="var(--navy)" />
         </svg>
         <div className="dial-center">
           <div className="pct">{pct}%</div>
@@ -95,54 +96,129 @@ function ChakraDial() {
 
 function Home() {
   const [courses, setCourses] = useState([]);
+  const [stats, setStats] = useState({});
   const [error, setError] = useState("");
+  const [activeAspirants, setActiveAspirants] = useState(18400);
+  const [attemptedCount, setAttemptedCount] = useState(0);
+  const [finderRate, setFinderRate] = useState(0);
+
   const navigate = useNavigate();
 
+  // Load courses and dynamic stats from Supabase
   useEffect(() => {
-    async function loadCourses() {
+    async function loadCoursesAndStats() {
       try {
-        setCourses(await getCourses());
+        const fetchedCourses = await getCourses();
+        setCourses(fetchedCourses);
+
+        const statsMap = {};
+        await Promise.all(
+          fetchedCourses.map(async (course) => {
+            try {
+              const res = await getStatsForCourse(course.id);
+              statsMap[course.course_slug.toLowerCase()] = res;
+            } catch (err) {
+              console.error(`Error loading stats for ${course.course_slug}:`, err);
+            }
+          })
+        );
+        setStats(statsMap);
       } catch (loadError) {
         setError("Courses could not be loaded. Please refresh the page.");
         console.error(loadError);
       }
     }
-    loadCourses();
+    loadCoursesAndStats();
   }, []);
+
+  // Fluctuating live practitioner count
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveAspirants((prev) => {
+        const change = Math.floor(Math.random() * 41) - 20; // -20 to +20
+        return prev + change;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Animate trust row counters
+  useEffect(() => {
+    let curAttempted = 0;
+    const attemptedTarget = 6.2;
+    const attemptedStep = attemptedTarget / 30;
+    const attemptedInterval = setInterval(() => {
+      curAttempted += attemptedStep;
+      if (curAttempted >= attemptedTarget) {
+        setAttemptedCount(attemptedTarget);
+        clearInterval(attemptedInterval);
+      } else {
+        setAttemptedCount(Number(curAttempted.toFixed(1)));
+      }
+    }, 50);
+
+    let curRate = 0;
+    const rateTarget = 92;
+    const rateInterval = setInterval(() => {
+      curRate += 3;
+      if (curRate >= rateTarget) {
+        setFinderRate(rateTarget);
+        clearInterval(rateInterval);
+      } else {
+        setFinderRate(curRate);
+      }
+    }, 40);
+
+    return () => {
+      clearInterval(attemptedInterval);
+      clearInterval(rateInterval);
+    };
+  }, []);
+
+  // Sum total MCQs dynamically from Supabase
+  const totalMCQsString = useMemo(() => {
+    let sum = 0;
+    for (const val of Object.values(stats)) {
+      sum += val.questionCount;
+    }
+    return sum > 0 ? `${sum.toLocaleString()}+` : "42,000+";
+  }, [stats]);
 
   const cardData = useMemo(() => {
     return courses.map((course) => {
       const slug = course.course_slug.toLowerCase();
+      const courseStats = stats[slug] || { chapterCount: 0, questionCount: 0 };
+      
       let themeClass = "foundation";
       let tag = "Entry level";
       let desc = course.course_name;
-      let papers = "4";
-      let mcqs = "6,400";
-      let mocks = "120";
+      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "4 Papers";
+      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "6,400+";
+      let mocks = "24";
       let ctaText = `Practice ${course.course_name}`;
 
       if (slug.includes("spom")) {
         themeClass = "foundation";
         tag = "Self Paced Module";
         desc = "FEMA, FCRA, and corporate laws — practice Set A and Set B chapters individually with instant explanations.";
-        papers = "2 Sets";
-        mcqs = "1,200+";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "12 Chapters";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "1,200+";
         mocks = "24";
         ctaText = "Practice SPOM";
       } else if (slug.includes("advitt") || slug.includes("itt")) {
         themeClass = "inter";
         tag = "IT stage";
         desc = "Advanced Integrated IT Training & Testing MCQ preparation based on the latest pattern.";
-        papers = "2 Papers";
-        mcqs = "2,400+";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "2 Papers";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "2,400+";
         mocks = "48";
         ctaText = "Practice Adv ITT";
       } else if (slug.includes("final")) {
         themeClass = "final";
         tag = "Final stage";
         desc = "Advanced Auditing, Strategic Financial Management, Direct & Indirect Tax - timed mock papers.";
-        papers = "8 Papers";
-        mcqs = "15,900+";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "8 Papers";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "15,900+";
         mocks = "180";
         ctaText = "CA Final";
       }
@@ -158,7 +234,7 @@ function Home() {
         ctaText,
       };
     });
-  }, [courses]);
+  }, [courses, stats]);
 
   return (
     <div className="home-page">
@@ -169,13 +245,10 @@ function Home() {
       <header>
         <Link className="brand" to="/">
           <div className="emblem">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 100 100" className="emblem-svg">
               <circle cx="50" cy="50" r="45" fill="none" stroke="#0B2545" strokeWidth="3" strokeDasharray="2.2 3.7" opacity="0.6" />
-              <circle cx="50" cy="50" r="33" fill="#0B2545" />
-              <text x="50" y="60" textAnchor="middle" fontFamily="Fraunces, serif" fontWeight="700" fontSize="30" fill="#F7F4EC">CA</text>
-              <path d="M 62 78 C 74 70, 84 62, 92 50 C 82 56, 72 60, 63 62 Z" fill="#E08D3C" />
-              <path d="M 60 84 C 73 78, 84 70, 93 58 C 82 66, 71 70, 61 71 Z" fill="#1F6E43" />
             </svg>
+            <img src="/ca-logo.png" alt="CA Logo" className="emblem-img" />
           </div>
           <div className="brand-name">
             <span className="top">CA MCQ Practice</span>
@@ -184,9 +257,33 @@ function Home() {
         </Link>
 
         <nav className="links">
-          <a href="https://www.icai.org/" target="_blank" rel="noopener noreferrer">ICAI Official Site</a>
-          <a href="https://boslive.icai.org/" target="_blank" rel="noopener noreferrer">ICAI BOS Site</a>
-          <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer">ICAI SSP Site</a>
+          <a href="https://www.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+            <img 
+              src="https://www.icai.org/images/favicon.ico" 
+              alt="ICAI logo" 
+              className="portal-icon" 
+              onError={(e) => { e.target.src = "/ca-logo.png"; }}
+            />
+            ICAI Site
+          </a>
+          <a href="https://boslive.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+            <img 
+              src="https://boslive.icai.org/favicon.ico" 
+              alt="BOS logo" 
+              className="portal-icon" 
+              onError={(e) => { e.target.src = "/ca-logo.png"; }}
+            />
+            ICAI BOS
+          </a>
+          <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+            <img 
+              src="https://eservices.icai.org/favicon.ico" 
+              alt="SSP logo" 
+              className="portal-icon" 
+              onError={(e) => { e.target.src = "/ca-logo.png"; }}
+            />
+            SSP Portal
+          </a>
         </nav>
 
         <div className="nav-actions">
@@ -199,7 +296,7 @@ function Home() {
       <main className="hero">
         <div className="hero-copy">
           <span className="eyebrow">
-            <span className="dot"></span>18,400 aspirants practising right now
+            <span className="dot"></span>{activeAspirants.toLocaleString()} aspirants practising right now
           </span>
           <h1>
             CA MCQ Practice — <em>Made preparation Easy.</em>
@@ -216,15 +313,15 @@ function Home() {
 
           <div className="trust-row">
             <div className="trust-item">
-              <span className="num">42,000+</span>
+              <span className="num">{totalMCQsString}</span>
               <span className="lbl">MCQs across all 3 levels</span>
             </div>
             <div className="trust-item">
-              <span className="num">6.2 L</span>
+              <span className="num">{attemptedCount} L</span>
               <span className="lbl">Tests attempted to date</span>
             </div>
             <div className="trust-item">
-              <span className="num">92%</span>
+              <span className="num">{finderRate}%</span>
               <span className="lbl">Say weak-chapter finder helped</span>
             </div>
           </div>
@@ -351,11 +448,10 @@ function Home() {
           <div className="foot-brand">
             <div className="brand">
               <div className="emblem" style={{ width: 34, height: 34 }}>
-                <svg viewBox="0 0 100 100">
+                <svg viewBox="0 0 100 100" className="emblem-svg">
                   <circle cx="50" cy="50" r="45" fill="none" stroke="#0B2545" strokeWidth="3" strokeDasharray="2.2 3.7" opacity="0.6" />
-                  <circle cx="50" cy="50" r="33" fill="#0B2545" />
-                  <text x="50" y="60" textAnchor="middle" fontFamily="Fraunces, serif" fontWeight="700" fontSize="30" fill="#F7F4EC">CA</text>
                 </svg>
+                <img src="/ca-logo.png" alt="CA Logo" className="emblem-img" />
               </div>
               <div className="brand-name">
                 <span className="top">CA MCQ Practice</span>
