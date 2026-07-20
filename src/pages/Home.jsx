@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
 import { getStatsForCourse } from "../services/questionService";
@@ -6,6 +6,7 @@ import { getStatsForCourse } from "../services/questionService";
 function ChakraDial() {
   const [revealed, setRevealed] = useState(0);
   const [pct, setPct] = useState(0);
+  const dialRef = useRef(null);
 
   const total = 24;
   const mastered = 15; // Demo master value
@@ -39,6 +40,28 @@ function ChakraDial() {
 
     return () => clearInterval(interval);
   }, [targetPct]);
+
+  const handleMouseMove = (e) => {
+    const svgEl = dialRef.current;
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const angleRad = Math.atan2(dy, dx);
+    const angleDeg = angleRad * (180 / Math.PI);
+    
+    svgEl.style.animation = "none";
+    svgEl.style.transform = `rotate(${angleDeg + 90}deg)`;
+  };
+
+  const handleMouseLeave = () => {
+    const svgEl = dialRef.current;
+    if (!svgEl) return;
+    svgEl.style.transform = "";
+    svgEl.style.animation = "spinChakra 100s linear infinite";
+  };
 
   const cx = 150, cy = 150, rInner = 98, rOuter = 130;
 
@@ -75,9 +98,17 @@ function ChakraDial() {
   }, [revealed]);
 
   return (
-    <div className="dial-wrap">
+    <div 
+      className="dial-wrap"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="dial-card">
-        <svg id="chakraDial" viewBox="0 0 300 300">
+        <svg 
+          id="chakraDial" 
+          viewBox="0 0 300 300"
+          ref={dialRef}
+        >
           <circle cx="150" cy="150" r="132" fill="#fff" stroke="var(--hairline)" strokeWidth="1" />
           <g id="spokeGroup">{spokes}</g>
           <circle cx="150" cy="150" r="96" fill="#fff" stroke="var(--hairline)" strokeWidth="1" />
@@ -192,8 +223,8 @@ function Home() {
       let themeClass = "foundation";
       let tag = "Entry level";
       let desc = course.course_name;
-      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "4 Papers";
-      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "6,400+";
+      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
+      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
       let mocks = "24";
       let ctaText = `Practice ${course.course_name}`;
 
@@ -201,25 +232,25 @@ function Home() {
         themeClass = "foundation";
         tag = "Self Paced Module";
         desc = "FEMA, FCRA, and corporate laws — practice Set A and Set B chapters individually with instant explanations.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "12 Chapters";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "1,200+";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
         mocks = "24";
         ctaText = "Practice SPOM";
       } else if (slug.includes("advitt") || slug.includes("itt")) {
         themeClass = "inter";
         tag = "IT stage";
         desc = "Advanced Integrated IT Training & Testing MCQ preparation based on the latest pattern.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "2 Papers";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "2,400+";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "...";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
         mocks = "48";
         ctaText = "Practice Adv ITT";
       } else if (slug.includes("final")) {
         themeClass = "final";
         tag = "Final stage";
         desc = "Advanced Auditing, Strategic Financial Management, Direct & Indirect Tax - timed mock papers.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "8 Papers";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "15,900+";
-        mocks = "180";
+        papers = "6";
+        mcqs = "";
+        mocks = "";
         ctaText = "CA Final";
       }
 
@@ -355,14 +386,18 @@ function Home() {
                     <span className="n">{course.papers}</span>
                     <span className="l">Papers</span>
                   </div>
-                  <div>
-                    <span className="n">{course.mcqs}</span>
-                    <span className="l">MCQs</span>
-                  </div>
-                  <div>
-                    <span className="n">{course.mocks}</span>
-                    <span className="l">Mock sets</span>
-                  </div>
+                  {course.mcqs && (
+                    <div>
+                      <span className="n">{course.mcqs}</span>
+                      <span className="l">MCQs</span>
+                    </div>
+                  )}
+                  {course.mocks && (
+                    <div>
+                      <span className="n">{course.mocks}</span>
+                      <span className="l">Mock sets</span>
+                    </div>
+                  )}
                 </div>
 
                 {isAvailable ? (
