@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA MCQ Practice — Make Practice Easy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B2545;
+    --navy-deep:#071a33;
+    --saffron:#E08D3C;
+    --saffron-soft: rgba(224,141,60,0.16);
+    --green:#1F6E43;
+    --green-soft: rgba(31,110,67,0.16);
+    --ivory:#F7F4EC;
+    --gold:#C9A227;
+    --ink:#16202B;
+    --ink-soft: rgba(22,32,43,0.62);
+    --hairline: rgba(11,37,69,0.12);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background: var(--ivory);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+  a{color:inherit; text-decoration:none;}
+  .serif{font-family:'Fraunces', serif;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+
+  /* ---------- Ambient tricolor wash (the "flag" atmosphere, abstracted) ---------- */
+  .ambient{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(60% 50% at 15% 8%, var(--saffron-soft), transparent 60%),
+      radial-gradient(55% 45% at 85% 92%, var(--green-soft), transparent 60%),
+      linear-gradient(180deg, #FBF9F4 0%, var(--ivory) 40%);
+    animation: driftWash 22s ease-in-out infinite alternate;
+  }
+  @keyframes driftWash{
+    0%{ background-position: 0% 0%, 0% 0%, 0% 0%; }
+    100%{ background-position: 4% 6%, -4% -6%, 0% 0%; }
+  }
+  .hairline-strip{
+    position:fixed; top:0; left:0; right:0; height:3px; z-index:50;
+    background:linear-gradient(90deg, var(--saffron) 0 33.3%, var(--ivory) 33.3% 66.6%, var(--green) 66.6% 100%);
+  }
+
+  /* ---------- Nav ---------- */
+  header{
+    position:relative; z-index:10;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px clamp(20px,5vw,64px) 18px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .emblem{
+    width:44px; height:44px; position:relative; flex:none;
+  }
+  .emblem svg{width:100%; height:100%; display:block;}
+  .brand-name{ display:flex; flex-direction:column; line-height:1.05; }
+  .brand-name .top{ font-family:'Fraunces', serif; font-weight:600; font-size:19px; letter-spacing:0.2px; color:var(--navy);}
+  .brand-name .bottom{ font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink-soft); margin-top:2px;}
+
+  nav.links{ display:flex; gap:34px; align-items:center; }
+  nav.links a{ font-size:14.5px; font-weight:500; color:var(--ink); opacity:0.8; position:relative; padding:6px 0;}
+  nav.links a:hover{ opacity:1; }
+  nav.links a::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+    background:var(--saffron); transform:scaleX(0); transform-origin:left; transition:transform .25s ease;
+  }
+  nav.links a:hover::after{ transform:scaleX(1); }
+
+  .nav-actions{ display:flex; align-items:center; gap:16px; }
+  .btn-ghost{
+    font-size:14px; font-weight:600; color:var(--navy); padding:10px 18px;
+    border:1.5px solid var(--hairline); border-radius:999px; transition:border-color .2s, background .2s;
+  }
+  .btn-ghost:hover{ border-color:var(--navy); background:#fff; }
+  .btn-solid{
+    font-size:14px; font-weight:700; color:#fff; background:var(--navy);
+    padding:11px 22px; border-radius:999px; border:1.5px solid var(--navy);
+    transition:background .2s, transform .2s;
+  }
+  .btn-solid:hover{ background:var(--navy-deep); transform:translateY(-1px); }
+
+  .menu-toggle{ display:none; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative; z-index:2;
+    display:grid; grid-template-columns: 1.1fr 0.9fr; gap:48px; align-items:center;
+    padding: 28px clamp(20px,5vw,64px) 70px;
+    max-width:1400px; margin:0 auto;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase;
+    color:var(--green); background:var(--green-soft); padding:7px 14px 7px 10px; border-radius:999px;
+    margin-bottom:22px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.4; transform:scale(0.7);} }
+
+  .hero h1{
+    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(38px, 4.6vw, 64px);
+    line-height:1.04; color:var(--navy); letter-spacing:-0.5px;
+  }
+  .hero h1 em{ font-style:italic; color:var(--saffron); font-weight:500; }
+  .hero p.lede{
+    margin-top:22px; font-size:17px; line-height:1.65; color:var(--ink-soft); max-width:520px;
+  }
+  .hero-ctas{ display:flex; gap:16px; margin-top:34px; flex-wrap:wrap; align-items:center;}
+  .btn-primary{
+    background:var(--gold); color:var(--navy-deep); font-weight:700; font-size:15.5px;
+    padding:15px 28px; border-radius:10px; display:inline-flex; align-items:center; gap:10px;
+    box-shadow: 0 10px 24px -10px rgba(201,162,39,0.55);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 14px 30px -10px rgba(201,162,39,0.65); }
+  .btn-secondary{
+    display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:14.5px; color:var(--navy);
+    padding:15px 6px; border-bottom:1.5px solid var(--hairline);
+  }
+  .btn-secondary:hover{ border-color:var(--navy); }
+
+  .trust-row{
+    display:flex; gap:28px; margin-top:44px; flex-wrap:wrap;
+  }
+  .trust-item{ display:flex; flex-direction:column; gap:2px; }
+  .trust-item .num{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:22px; color:var(--navy); }
+  .trust-item .lbl{ font-size:12px; color:var(--ink-soft); letter-spacing:0.3px; }
+
+  /* ---------- Chakra progress dial (signature element) ---------- */
+  .dial-wrap{ position:relative; display:flex; align-items:center; justify-content:center; }
+  .dial-card{
+    position:relative; width:min(420px, 92%); aspect-ratio:1/1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .dial-card svg{ width:100%; height:100%; }
+  .spoke{ transform-origin:center; }
+  .dial-center{ text-align:center; }
+  .dial-center .score{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:15px; color: var(--navy);}
+  .dial-center .pct{ font-family:'Fraunces', serif; font-weight:600; font-size:46px; color:var(--navy); line-height:1; }
+  .dial-center .sub{ font-size:11.5px; color:var(--ink-soft); letter-spacing:0.6px; text-transform:uppercase; margin-top:6px; }
+
+  .dial-caption{
+    position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+    background:#fff; border:1px solid var(--hairline); border-radius:999px;
+    padding:9px 18px; font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    box-shadow:0 8px 20px -12px rgba(11,37,69,0.3);
+    white-space:nowrap;
+  }
+
+  /* ---------- Section shell ---------- */
+  section{ position:relative; z-index:2; padding: 90px clamp(20px,5vw,64px); max-width:1400px; margin:0 auto; }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:48px; flex-wrap:wrap; }
+  .section-head h2{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(28px,3vw,40px); color:var(--navy); max-width:600px; }
+  .section-head p{ color:var(--ink-soft); font-size:15px; max-width:360px; }
+  .kicker{ font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--saffron); margin-bottom:12px; display:block;}
+
+  /* ---------- Level cards (Foundation / Inter / Final) ---------- */
+  .levels{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
+  .level-card{
+    background:#fff; border:1px solid var(--hairline); border-radius:var(--radius);
+    padding:32px 28px; position:relative; overflow:hidden;
+    transition:transform .3s ease, box-shadow .3s ease;
+  }
+  .level-card:hover{ transform:translateY(-6px); box-shadow:0 24px 48px -24px rgba(11,37,69,0.25); }
+  .level-card .stripe{ position:absolute; top:0; left:0; right:0; height:5px; }
+  .level-card.foundation .stripe{ background:var(--saffron); }
+  .level-card.inter .stripe{ background:var(--navy); }
+  .level-card.final .stripe{ background:var(--green); }
+  .level-card .tag{ font-size:11.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .level-card h3{ font-family:'Fraunces', serif; font-size:26px; font-weight:600; color:var(--navy); margin:10px 0 12px; }
+  .level-card p{ font-size:14.5px; color:var(--ink-soft); line-height:1.6; margin-bottom:22px; }
+  .level-meta{ display:flex; gap:18px; margin-bottom:24px; }
+  .level-meta div{ display:flex; flex-direction:column; }
+  .level-meta .n{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:17px; color:var(--navy); }
+  .level-meta .l{ font-size:11px; color:var(--ink-soft); }
+  .level-card a.cta{
+    display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--navy);
+  }
+  .level-card a.cta .arrow{ transition:transform .2s ease; }
+  .level-card:hover a.cta .arrow{ transform:translateX(4px); }
+
+  /* ---------- How it works ---------- */
+  .how{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+  .how-step{ padding:26px 22px; border-radius:var(--radius); background:#fff; border:1px solid var(--hairline); }
+  .how-step .idx{ font-family:'IBM Plex Mono', monospace; color:var(--gold); font-weight:600; font-size:13px; }
+  .how-step h4{ font-family:'Fraunces', serif; font-size:19px; font-weight:600; color:var(--navy); margin:12px 0 8px; }
+  .how-step p{ font-size:13.8px; color:var(--ink-soft); line-height:1.55; }
+
+  /* ---------- Subject grid ---------- */
+  .subjects{ display:grid; grid-template-columns:repeat(6,1fr); gap:14px; }
+  .subj-chip{
+    padding:20px 16px; border-radius:12px; background:#fff; border:1px solid var(--hairline);
+    text-align:center; transition:border-color .2s ease, transform .2s ease;
+  }
+  .subj-chip:hover{ border-color:var(--navy); transform:translateY(-3px); }
+  .subj-chip .n{ font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color:var(--navy); }
+  .subj-chip .t{ font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4; }
+
+  /* ---------- CTA banner ---------- */
+  .cta-banner{
+    background:var(--navy); border-radius:20px; padding:60px clamp(28px,5vw,72px);
+    display:flex; justify-content:space-between; align-items:center; gap:32px; flex-wrap:wrap;
+    position:relative; overflow:hidden;
+  }
+  .cta-banner::before{
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(50% 80% at 90% 100%, rgba(224,141,60,0.25), transparent 60%),
+                radial-gradient(40% 60% at 5% 0%, rgba(31,110,67,0.28), transparent 60%);
+  }
+  .cta-banner h3{ font-family:'Fraunces', serif; color:#fff; font-size:clamp(24px,2.6vw,34px); font-weight:600; max-width:480px; position:relative; z-index:1;}
+  .cta-banner p{ color:rgba(255,255,255,0.7); margin-top:10px; font-size:14.5px; position:relative; z-index:1; max-width:440px;}
+  .cta-banner .btn-primary{ position:relative; z-index:1; }
+
+  /* ---------- Footer ---------- */
+  footer{ position:relative; z-index:2; padding:50px clamp(20px,5vw,64px) 36px; border-top:1px solid var(--hairline); }
+  .foot-grid{ display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; max-width:1400px; margin:0 auto;}
+  .foot-brand p{ font-size:13px; color:var(--ink-soft); max-width:280px; margin-top:14px; line-height:1.6;}
+  .foot-cols{ display:flex; gap:64px; flex-wrap:wrap; }
+  .foot-col h5{ font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-soft); margin-bottom:14px; }
+  .foot-col a{ display:block; font-size:14px; color:var(--navy); margin-bottom:10px; opacity:0.85; }
+  .foot-col a:hover{ opacity:1; }
+  .foot-bottom{ max-width:1400px; margin:40px auto 0; padding-top:22px; border-top:1px solid var(--hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--ink-soft); }
+
+  @media (max-width: 980px){
+    .hero{ grid-template-columns:1fr; }
+    .dial-wrap{ order:-1; }
+    nav.links{ display:none; }
+    .levels{ grid-template-columns:1fr; }
+    .how{ grid-template-columns:repeat(2,1fr); }
+    .subjects{ grid-template-columns:repeat(3,1fr); }
+    .cta-banner{ flex-direction:column; align-items:flex-start; }
+  }
+  @media (max-width:560px){
+    .subjects{ grid-template-columns:repeat(2,1fr); }
+    .how{ grid-template-columns:1fr; }
+    .trust-row{ gap:20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="hairline-strip"></div>
+
+<header>
+  <div class="brand">
+    <div class="emblem">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- 24 chakra ticks ring the mark, echoing the progress dial -->
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#0B2545" stroke-width="3"
+          stroke-dasharray="2.2 3.7" opacity="0.6"/>
+        <circle cx="50" cy="50" r="33" fill="#0B2545"/>
+        <text x="50" y="60" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="30" fill="#F7F4EC">CA</text>
+        <!-- original tricolor swoosh accent, distinct silhouette from any institutional mark -->
+        <path d="M 62 78 C 74 70, 84 62, 92 50 C 82 56, 72 60, 63 62 Z" fill="#E08D3C"/>
+        <path d="M 60 84 C 73 78, 84 70, 93 58 C 82 66, 71 70, 61 71 Z" fill="#1F6E43"/>
+      </svg>
+    </div>
+    <div class="brand-name">
+      <span class="top">CA MCQ Practice</span>
+      <span class="bottom">Make Practice Easy</span>
+    </div>
+  </div>
+
+  <nav class="links">
+    <a href="#levels">Levels</a>
+    <a href="#subjects">Subjects</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+  </nav>
+
+  <div class="nav-actions">
+    <a href="#" class="btn-ghost">Log in</a>
+    <a href="#" class="btn-solid">Start free test</a>
+  </div>
+</header>
+
+<main class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow"><span class="dot"></span>18,400 aspirants practising right now</span>
+    <h1>CA MCQ Practice — <em>make practice easy.</em></h1>
+    <p class="lede">
+      Chapter-wise and full-length MCQ tests for Foundation, Intermediate and Final — built on the
+      latest ICAI pattern, with instant explanations and a dashboard that tells you exactly
+      which chapter is costing you marks.
+    </p>
+    <div class="hero-ctas">
+      <a href="#levels" class="btn-primary">
+        Begin a free mock test
+        <span>→</span>
+      </a>
+      <a href="#how" class="btn-secondary">See how scoring works</a>
+    </div>
+
+    <div class="trust-row">
+      <div class="trust-item"><span class="num">42,000+</span><span class="lbl">MCQs across all 3 levels</span></div>
+      <div class="trust-item"><span class="num">6.2 L</span><span class="lbl">Tests attempted to date</span></div>
+      <div class="trust-item"><span class="num">92%</span><span class="lbl">Say weak-chapter finder helped</span></div>
+    </div>
+  </div>
+
+  <div class="dial-wrap">
+    <div class="dial-card">
+      <svg id="chakraDial" viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="132" fill="#fff" stroke="var(--hairline)" stroke-width="1"/>
+        <g id="spokeGroup"></g>
+        <circle cx="150" cy="150" r="96" fill="#fff" stroke="var(--hairline)" stroke-width="1"/>
+        <circle cx="150" cy="150" r="6" fill="var(--navy)"/>
+      </svg>
+      <div class="dial-center">
+        <div class="pct" id="pctText">0%</div>
+        <div class="sub">Accuracy this week</div>
+        <div class="score" id="scoreText">0 / 24 chapters mastered</div>
+      </div>
+      <div class="dial-caption">Live progress — 24 chapters, 24 spokes</div>
+    </div>
+  </div>
+</main>
+
+<section id="levels">
+  <div class="section-head">
+    <div>
+      <span class="kicker">Choose your level</span>
+      <h2>One platform, all three stages of the CA journey.</h2>
+    </div>
+    <p>Every level is mapped chapter-by-chapter to the current ICAI syllabus, updated after each amendment.</p>
+  </div>
+  <div class="levels">
+    <div class="level-card foundation">
+      <div class="stripe"></div>
+      <span class="tag">Entry level</span>
+      <h3>Foundation</h3>
+      <p>Accounting, Law, Quant and Economics — build your base with topic tests before attempting full papers.</p>
+      <div class="level-meta">
+        <div><span class="n">4</span><span class="l">Papers</span></div>
+        <div><span class="n">6,400</span><span class="l">MCQs</span></div>
+        <div><span class="n">120</span><span class="l">Mock sets</span></div>
+      </div>
+      <a href="#" class="cta">Practice Foundation <span class="arrow">→</span></a>
+    </div>
+    <div class="level-card inter">
+      <div class="stripe"></div>
+      <span class="tag">Core stage</span>
+      <h3>Intermediate</h3>
+      <p>Both groups covered — Costing, Tax, Law and Accounting standards with case-study style MCQs.</p>
+      <div class="level-meta">
+        <div><span class="n">6</span><span class="l">Papers</span></div>
+        <div><span class="n">19,800</span><span class="l">MCQs</span></div>
+        <div><span class="n">240</span><span class="l">Mock sets</span></div>
+      </div>
+      <a href="#" class="cta">Practice Intermediate <span class="arrow">→</span></a>
+    </div>
+    <div class="level-card final">
+      <div class="stripe"></div>
+      <span class="tag">Final stage</span>
+      <h3>Final</h3>
+      <p>Advanced Auditing, Strategic FM, direct and indirect tax — exam-day timed papers with rank analysis.</p>
+      <div class="level-meta">
+        <div><span class="n">8</span><span class="l">Papers</span></div>
+        <div><span class="n">15,900</span><span class="l">MCQs</span></div>
+        <div><span class="n">180</span><span class="l">Mock sets</span></div>
+      </div>
+      <a href="#" class="cta">Practice Final <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="section-head">
+    <div>
+      <span class="kicker">How it works</span>
+      <h2>From first MCQ to exam-day confidence.</h2>
+    </div>
+  </div>
+  <div class="how">
+    <div class="how-step">
+      <span class="idx">01</span>
+      <h4>Pick a chapter</h4>
+      <p>Jump into any chapter across Foundation, Inter or Final, or let us suggest one from your weak list.</p>
+    </div>
+    <div class="how-step">
+      <span class="idx">02</span>
+      <h4>Attempt timed sets</h4>
+      <p>Sets of 20–100 MCQs, timed to match actual paper pacing, with negative-marking toggle.</p>
+    </div>
+    <div class="how-step">
+      <span class="idx">03</span>
+      <h4>Read the explanation</h4>
+      <p>Every question links back to the exact ICAI module page and standard/section it tests.</p>
+    </div>
+    <div class="how-step">
+      <span class="idx">04</span>
+      <h4>Track the dial</h4>
+      <p>Your chapter-mastery dial fills in as your accuracy holds above 80% across three attempts.</p>
+    </div>
+  </div>
+</section>
+
+<section id="subjects">
+  <div class="section-head">
+    <div>
+      <span class="kicker">Popular right now</span>
+      <h2>Subjects being practised most this week.</h2>
+    </div>
+  </div>
+  <div class="subjects">
+    <div class="subj-chip"><div class="n">2,140</div><div class="t">Accounting Standards</div></div>
+    <div class="subj-chip"><div class="n">1,870</div><div class="t">Costing & FM</div></div>
+    <div class="subj-chip"><div class="n">1,690</div><div class="t">Direct Tax</div></div>
+    <div class="subj-chip"><div class="n">1,510</div><div class="t">Company Law</div></div>
+    <div class="subj-chip"><div class="n">1,340</div><div class="t">Auditing</div></div>
+    <div class="subj-chip"><div class="n">1,120</div><div class="t">GST</div></div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="cta-banner">
+    <div>
+      <h3>Your next mock test is two taps away.</h3>
+      <p>Free chapter tests forever. Unlock full-length timed papers and rank analysis with the Plus plan.</p>
+    </div>
+    <a href="#" class="btn-primary">Start practising free →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="brand">
+        <div class="emblem" style="width:34px;height:34px;">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#0B2545" stroke-width="3" stroke-dasharray="2.2 3.7" opacity="0.6"/>
+            <circle cx="50" cy="50" r="33" fill="#0B2545"/>
+            <text x="50" y="60" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="30" fill="#F7F4EC">CA</text>
+          </svg>
+        </div>
+        <div class="brand-name"><span class="top">CA MCQ Practice</span></div>
+      </div>
+      <p>An independent MCQ practice platform for CA aspirants. Not affiliated with or endorsed by ICAI.</p>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h5>Practice</h5>
+        <a href="#">Foundation</a>
+        <a href="#">Intermediate</a>
+        <a href="#">Final</a>
+      </div>
+      <div class="foot-col">
+        <h5>Platform</h5>
+        <a href="#">Mock tests</a>
+        <a href="#">Progress dashboard</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div class="foot-col">
+        <h5>Company</h5>
+        <a href="#">About</a>
+        <a href="#">Support</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 CA MCQ Practice.</span>
+    <span>Made for aspirants, chapter by chapter.</span>
+  </div>
+</footer>
+
+<script>
+  // Build 24 chakra spokes (one per CA chapter-group), animate fill on load
+  const NS = "http://www.w3.org/2000/svg";
+  const group = document.getElementById('spokeGroup');
+  const total = 24;
+  const mastered = 15; // demo value
+  const cx = 150, cy = 150, rInner = 98, rOuter = 130;
+
+  for(let i=0;i<total;i++){
+    const angle = (i / total) * 2 * Math.PI - Math.PI/2;
+    const x1 = cx + rInner * Math.cos(angle);
+    const y1 = cy + rInner * Math.sin(angle);
+    const x2 = cx + rOuter * Math.cos(angle);
+    const y2 = cy + rOuter * Math.sin(angle);
+    const line = document.createElementNS(NS, "line");
+    line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+    line.setAttribute("stroke-width", "5");
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("class", "spoke");
+    line.setAttribute("stroke", i < mastered ? "#1F6E43" : "rgba(11,37,69,0.14)");
+    line.setAttribute("stroke-dasharray", (rOuter-rInner));
+    line.setAttribute("stroke-dashoffset", (rOuter-rInner));
+    group.appendChild(line);
+  }
+
+  const spokes = group.querySelectorAll('.spoke');
+  const pctText = document.getElementById('pctText');
+  const scoreText = document.getElementById('scoreText');
+  const targetPct = Math.round((mastered/total)*100);
+
+  let revealed = 0;
+  function reveal(){
+    if(revealed >= spokes.length) return;
+    spokes[revealed].style.transition = "stroke-dashoffset .5s cubic-bezier(.4,0,.2,1)";
+    spokes[revealed].style.strokeDashoffset = "0";
+    revealed++;
+    setTimeout(reveal, 55);
+  }
+  setTimeout(reveal, 300);
+
+  // count-up percentage
+  let cur = 0;
+  const countInterval = setInterval(()=>{
+    cur++;
+    pctText.textContent = cur + "%";
+    if(cur >= targetPct){ clearInterval(countInterval); }
+  }, 1400/targetPct);
+
+  scoreText.textContent = mastered + " / " + total + " chapters mastered";
+</script>
+
+</body>
+</html>
