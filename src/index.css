@@ -156,26 +156,23 @@ img { max-width: 100%; display: block; }
 .home-page .brand-name .top { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; letter-spacing: 0.2px; color: var(--navy); }
 .home-page .brand-name .bottom { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink-soft); margin-top: 2px; }
 
-.home-page nav.links { display: flex; gap: 34px; align-items: center; }
 .home-page nav.links a {
-  font-size: 14.5px; font-weight: 600; color: var(--ink); opacity: 0.8;
-  position: relative; padding: 6px 0; transition: opacity 0.2s, color 0.2s;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 700;
+  position: relative; padding: 6px 0; transition: opacity 0.2s, color 0.2s, transform 0.2s;
   display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: underline;
 }
-.home-page nav.links a:hover { opacity: 1; color: var(--navy); }
-.home-page nav.links a::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  background: var(--saffron); transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
-}
-.home-page nav.links a:hover::after { transform: scaleX(1); }
+.home-page nav.links a.link-icai { color: var(--navy); }
+.home-page nav.links a.link-bos { color: #005cfa; }
+.home-page nav.links a.link-ssp { color: #DC2626; }
+.home-page nav.links a:hover { opacity: 0.85; transform: translateY(-1px); }
 .home-page .portal-icon {
-  width: 16px; height: 16px; border-radius: 4px; object-fit: contain;
-  filter: grayscale(0.15) contrast(1.1);
-  transition: transform 0.2s ease, filter 0.2s ease;
+  width: 16px; height: 16px; border-radius: 50%; object-fit: contain;
+  transition: transform 0.2s ease;
 }
 .home-page nav.links a:hover .portal-icon {
   transform: scale(1.15);
-  filter: grayscale(0) contrast(1.2);
 }
 
 .home-page .nav-actions { display: flex; align-items: center; gap: 16px; }
@@ -246,8 +243,23 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: center;
 }
 .home-page .dial-card svg { width: 100%; height: 100%; }
+.home-page #chakraDial {
+  animation: spinChakra 100s linear infinite;
+  transform-origin: center;
+}
+@keyframes spinChakra {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .home-page .spoke { transform-origin: center; }
-.home-page .dial-center { position: absolute; text-align: center; }
+.home-page .dial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 5;
+}
 .home-page .dial-center .score { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13.5px; color: var(--navy); margin-top: 4px; }
 .home-page .dial-center .pct { font-family: 'Fraunces', serif; font-weight: 600; font-size: 46px; color: var(--navy); line-height: 1; }
 .home-page .dial-center .sub { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.6px; text-transform: uppercase; margin-top: 6px; font-weight: 600; }
@@ -272,10 +284,13 @@ img { max-width: 100%; display: block; }
 .home-page .level-card {
   background: #fff; border: 1px solid var(--hairline); border-radius: var(--radius);
   padding: 32px 28px; position: relative; overflow: hidden;
-  transition: transform .3s ease, box-shadow .3s ease;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 12px rgba(11, 37, 69, 0.03);
 }
-.home-page .level-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px -24px rgba(11, 37, 69, 0.25); }
+.home-page .level-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 24px 48px -12px rgba(11, 37, 69, 0.16);
+}
 .home-page .level-card .stripe { position: absolute; top: 0; left: 0; right: 0; height: 5px; }
 .home-page .level-card.foundation .stripe { background: var(--saffron); }
 .home-page .level-card.inter .stripe { background: var(--navy); }
