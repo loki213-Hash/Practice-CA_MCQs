@@ -1,0 +1,3 @@
+export default function QuestionPalette({ questions, currentIndex, answers, onSelect }) {
+  return <aside className="question-palette"><div className="palette-heading"><strong>Question palette</strong><span>{Object.keys(answers).length}/{questions.length}</span></div><div className="palette-grid">{questions.map((question, index) => { const selected = answers[question.id]; const status = selected ? (selected === question.correct_option ? "palette-correct" : "palette-wrong") : ""; return <button className={`palette-item ${status} ${index === currentIndex ? "palette-current" : ""}`} key={question.id} onClick={() => onSelect(index)} type="button">{index + 1}</button>; })}</div><p className="palette-help">Green: correct · Red: incorrect</p></aside>;
+}

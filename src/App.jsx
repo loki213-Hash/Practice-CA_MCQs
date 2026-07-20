@@ -1,48 +1,19 @@
-import { useEffect, useState } from "react";
-import { getCourses } from "./services/courseService";
+import { Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import Course from "./pages/Course";
+import ChapterList from "./pages/ChapterList";
+import ComingSoon from "./pages/ComingSoon";
+import Quiz from "./pages/Quiz";
 
 function App() {
-  const [courses, setCourses] = useState([]);
-
-  useEffect(() => {
-    async function loadCourses() {
-      const data = await getCourses();
-      setCourses(data);
-    }
-
-    loadCourses();
-  }, []);
-
   return (
-    <div
-      style={{
-        maxWidth: "900px",
-        margin: "40px auto",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>CA Quiz Platform</h1>
-
-      {courses.map((course) => (
-        <div
-          key={course.id}
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: "10px",
-            padding: "20px",
-            marginBottom: "20px",
-          }}
-        >
-          <h2>{course.course_name}</h2>
-
-          {course.available ? (
-            <button>Start</button>
-          ) : (
-            <button disabled>Coming Soon</button>
-          )}
-        </div>
-      ))}
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/course/:courseSlug" element={<Course />} />
+      <Route path="/course/:courseSlug/:setType" element={<ChapterList />} />
+      <Route path="/quiz/:chapterId" element={<Quiz />} />
+      <Route path="/coming-soon" element={<ComingSoon />} />
+    </Routes>
   );
 }
 
