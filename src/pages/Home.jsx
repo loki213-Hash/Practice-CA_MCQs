@@ -257,32 +257,32 @@ function Home() {
         </Link>
 
         <nav className="links">
-          <a href="https://www.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+          <a href="https://www.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-icai">
             <img 
               src="https://www.icai.org/images/favicon.ico" 
-              alt="ICAI logo" 
+              alt="ICAI Site" 
               className="portal-icon" 
               onError={(e) => { e.target.src = "/ca-logo.png"; }}
             />
             ICAI Site
           </a>
-          <a href="https://boslive.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+          <a href="https://boslive.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-bos">
             <img 
-              src="https://boslive.icai.org/favicon.ico" 
-              alt="BOS logo" 
+              src="https://www.icai.org/images/favicon.ico" 
+              alt="ICAI BOS" 
               className="portal-icon" 
               onError={(e) => { e.target.src = "/ca-logo.png"; }}
             />
             ICAI BOS
           </a>
-          <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link">
+          <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-ssp">
             <img 
-              src="https://eservices.icai.org/favicon.ico" 
-              alt="SSP logo" 
+              src="https://www.icai.org/images/favicon.ico" 
+              alt="ICAI SSP" 
               className="portal-icon" 
               onError={(e) => { e.target.src = "/ca-logo.png"; }}
             />
-            SSP Portal
+            ICAI SSP
           </a>
         </nav>
 
@@ -295,9 +295,6 @@ function Home() {
       {/* ---------- Hero ---------- */}
       <main className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">
-            <span className="dot"></span>{activeAspirants.toLocaleString()} aspirants practising right now
-          </span>
           <h1>
             CA MCQ Practice — <em>Made preparation Easy.</em>
           </h1>
