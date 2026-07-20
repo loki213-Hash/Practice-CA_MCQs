@@ -90,8 +90,8 @@ function ChapterList() {
         </Link>
       </nav>
       <div className="page-shell">
-        <Link className="back-link" to={`/course/${courseSlug}`}>
-          ← Back to {course.course_name}
+        <Link className="back-link" to={setType === "chapters" ? "/" : `/course/${courseSlug}`}>
+          ← {setType === "chapters" ? "Back to Home" : `Back to ${course.course_name}`}
         </Link>
 
         <header className="hero-copy compact-copy">
