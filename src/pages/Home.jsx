@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
-import { getStatsForCourse } from "../services/questionService";
 import { useAuth } from "../context/AuthContext";
 import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
+import { supabase } from "../supabase/supabase";
 
 function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
   const [revealed, setRevealed] = useState(0);
@@ -220,17 +220,44 @@ function Home() {
         const fetchedCourses = await getCourses();
         setCourses(fetchedCourses);
 
-        const statsMap = {};
-        await Promise.all(
-          fetchedCourses.map(async (course) => {
-            try {
-              const res = await getStatsForCourse(course.id);
-              statsMap[course.course_slug.toLowerCase()] = res;
-            } catch (err) {
-              console.error(`Error loading stats for ${course.course_slug}:`, err);
+        // Fetch all chapters and question counts in bulk (only 2 network requests total!)
+        const { data: allChapters } = await supabase
+          .from("chapters")
+          .select("id, course_id");
+
+        const { data: allQuestions } = await supabase
+          .from("questions")
+          .select("chapter_id");
+
+        const chaptersByCourse = {};
+        if (allChapters) {
+          allChapters.forEach((ch) => {
+            if (!chaptersByCourse[ch.course_id]) {
+              chaptersByCourse[ch.course_id] = [];
             }
-          })
-        );
+            chaptersByCourse[ch.course_id].push(String(ch.id));
+          });
+        }
+
+        const questionCountByChapter = {};
+        if (allQuestions) {
+          allQuestions.forEach((q) => {
+            questionCountByChapter[q.chapter_id] = (questionCountByChapter[q.chapter_id] || 0) + 1;
+          });
+        }
+
+        const statsMap = {};
+        fetchedCourses.forEach((course) => {
+          const chapterIds = chaptersByCourse[course.id] || [];
+          let questionCount = 0;
+          chapterIds.forEach((cid) => {
+            questionCount += (questionCountByChapter[cid] || 0);
+          });
+          statsMap[course.course_slug.toLowerCase()] = {
+            chapterCount: chapterIds.length,
+            questionCount: questionCount
+          };
+        });
         setStats(statsMap);
       } catch (loadError) {
         setError("Courses could not be loaded. Please refresh the page.");
@@ -726,15 +753,24 @@ function Home() {
               <a href="#pricing">Pricing</a>
             </div>
             <div className="foot-col">
-              <h5>Company</h5>
-              <a href="#levels">About</a>
-              <a href="#levels">Support</a>
+              <h5>Support</h5>
+              <a
+                href="https://t.me/IsAidangerous"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style={{ verticalAlign: "middle" }}>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.53-1.39.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.46-.42-1.4-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.66-2.88 7.99-3.43 3.8-1.57 4.59-1.85 5.1-.11v-.01z"/>
+                </svg>
+                Support Chat
+              </a>
             </div>
           </div>
         </div>
         <div className="foot-bottom">
           <span>© 2026 CA MCQ Practice.</span>
-          <span>Made for aspirants, chapter by chapter.</span>
+          <span>Made by an &quot;Aspirant, for Aspirants&quot;</span>
         </div>
       </footer>
     </div>
