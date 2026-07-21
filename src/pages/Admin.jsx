@@ -45,35 +45,9 @@ export default function Admin() {
   // Real student feedbacks from Supabase
   const [feedbacks, setFeedbacks] = useState([]);
 
-  // Mock data for questions filed by students from Google Form
-  const [formSubmissions, setFormSubmissions] = useState([
-    {
-      id: "sub-1",
-      studentEmail: "harish.ca@gmail.com",
-      chapterId: "2",
-      topic: "FEMA Limits",
-      question: "What is the maximum limit of foreign exchange a person can draw for foreign travel in a financial year without RBI approval?",
-      option_a: "USD 10,000",
-      option_b: "USD 50,000",
-      option_c: "USD 250,000",
-      option_d: "USD 500,000",
-      correct_option: "C",
-      explanation: "Under Liberalised Remittance Scheme (LRS), resident individuals can remit up to USD 2,500,000 per financial year for permissible transactions."
-    },
-    {
-      id: "sub-2",
-      studentEmail: "priya.kapoor@outlook.com",
-      chapterId: "3",
-      topic: "Insolvency & Bankruptcy",
-      question: "Under IBC 2016, what is the maximum time limit prescribed for completion of the Fast Track Corporate Insolvency Resolution Process?",
-      option_a: "90 days",
-      option_b: "135 days",
-      option_c: "180 days",
-      option_d: "270 days",
-      correct_option: "A",
-      explanation: "Fast track insolvency resolution process shall be completed within a period of 90 days from the insolvency commencement date."
-    }
-  ]);
+  // Real Google Form suggested questions list from Supabase
+  const [formSubmissions, setFormSubmissions] = useState([]);
+  const [activeFeedbackDetails, setActiveFeedbackDetails] = useState(null);
   const [subSearch, setSubSearch] = useState("");
 
   const isAdmin = username === "admin";
@@ -111,6 +85,7 @@ export default function Admin() {
     loadFlags();
     loadRegisteredUsers();
     loadFeedbacks();
+    loadFormSubmissions();
     setSuccess("Database statistics refreshed successfully!");
   };
 
@@ -323,6 +298,33 @@ export default function Admin() {
     }
   };
 
+  const loadFormSubmissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("google_form_submissions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        const mapped = data.map((sub) => ({
+          id: sub.id,
+          studentEmail: sub.student_email,
+          chapterId: String(sub.chapter_id),
+          topic: sub.topic,
+          question: sub.question,
+          option_a: sub.option_a,
+          option_b: sub.option_b,
+          option_c: sub.option_c,
+          option_d: sub.option_d,
+          correct_option: sub.correct_option,
+          explanation: sub.explanation
+        }));
+        setFormSubmissions(mapped);
+      }
+    } catch (err) {
+      console.warn("Failed to load Google Form submissions:", err);
+    }
+  };
+
   // Load chapters & initial data
   useEffect(() => {
     if (!isAdmin) return;
@@ -331,6 +333,7 @@ export default function Admin() {
     loadFlags();
     loadRegisteredUsers();
     loadFeedbacks();
+    loadFormSubmissions();
 
     // Poll platform database statistics every 5 minutes (300,000ms) to avoid rate limits
     const pollInterval = setInterval(() => {
@@ -338,6 +341,7 @@ export default function Admin() {
       loadFlags();
       loadRegisteredUsers();
       loadFeedbacks();
+      loadFormSubmissions();
     }, 300000);
 
     return () => clearInterval(pollInterval);
@@ -428,9 +432,23 @@ export default function Admin() {
     setSuccess("Feedback resolved.");
   };
 
-  const handleDismissSubmission = (id) => {
-    setFormSubmissions((prev) => prev.filter((s) => s.id !== id));
-    setSuccess("Google Form suggestion dismissed.");
+  const handleDismissSubmission = async (id) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const { error: delError } = await supabase
+        .from("google_form_submissions")
+        .delete()
+        .eq("id", id);
+      
+      if (delError) throw delError;
+
+      setFormSubmissions((prev) => prev.filter((s) => s.id !== id));
+      setSuccess("Google Form suggestion dismissed and removed from database.");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to dismiss suggestion from database.");
+    }
   };
 
   // Send Appreciation Notification (Strict preset message only)
@@ -763,30 +781,58 @@ export default function Admin() {
                       <p style={{ fontSize: "13px" }}>All student feedback resolved!</p>
                     </div>
                   ) : (
-                    feedbacks.map((f) => (
-                      <div key={f.id} className="flagged-card" style={{ padding: "16px", border: "1px solid #e1e4eb", borderRadius: "8px", background: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                        <div>
-                          <div className="fc-top" style={{ marginBottom: "8px" }}>
-                            <span className="fc-chap" style={{ color: "#111622", fontWeight: "600", fontSize: "12px" }}>{f.student}</span>
-                            <span className="fc-flag-count" style={{ background: "#fbf6ec", color: "#8a7544", border: "1px solid rgba(138,117,68,0.15)", fontSize: "10.5px", padding: "2px 6px" }}>{f.type}</span>
+                    feedbacks.map((f) => {
+                      const isLong = f.comment && f.comment.length > 50;
+                      const truncated = isLong ? f.comment.substring(0, 50) + "..." : f.comment;
+                      return (
+                        <div
+                          key={f.id}
+                          className="flagged-card"
+                          onClick={() => setActiveFeedbackDetails(f)}
+                          style={{
+                            padding: "16px",
+                            border: "1px solid #e1e4eb",
+                            borderRadius: "8px",
+                            background: "#fff",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            cursor: "pointer",
+                            transition: "box-shadow 0.2s",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.02)"; }}
+                        >
+                          <div>
+                            <div className="fc-top" style={{ marginBottom: "8px" }}>
+                              <span className="fc-chap" style={{ color: "#111622", fontWeight: "600", fontSize: "12px" }}>{f.student}</span>
+                              <span className="fc-flag-count" style={{ background: "#fbf6ec", color: "#8a7544", border: "1px solid rgba(138,117,68,0.15)", fontSize: "10.5px", padding: "2px 6px" }}>{f.type}</span>
+                            </div>
+                            <p style={{ fontSize: "12.5px", color: "#4b5563", lineHeight: "1.5", margin: "6px 0", wordBreak: "break-all" }}>
+                              "{truncated}"
+                              {isLong && <span style={{ color: "var(--brass)", fontSize: "11px", marginLeft: "4px", fontWeight: "600" }}>Read More</span>}
+                            </p>
                           </div>
-                          <p style={{ fontSize: "12.5px", color: "#4b5563", lineHeight: "1.5", margin: "6px 0" }}>
-                            "{f.comment}"
-                          </p>
+                          <div style={{ borderTop: "1px solid #e1e4eb", paddingTop: "10px", marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "10.5px", color: "#8a94a6" }}>Submitted: {f.date}</span>
+                            <button
+                              type="button"
+                              className="btn-admin remove"
+                              style={{ padding: "4px 10px", fontSize: "11px", height: "26px", border: "1px solid #fecaca", color: "#dc2626", background: "#fef2f2", cursor: "pointer" }}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent opening the details modal
+                                if (window.confirm("Are you sure you want to permanently delete this feedback?")) {
+                                  handleResolveFeedback(f.id);
+                                }
+                              }}
+                            >
+                              Delete from DB
+                            </button>
+                          </div>
                         </div>
-                        <div style={{ borderTop: "1px solid #e1e4eb", paddingTop: "10px", marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "10.5px", color: "#8a94a6" }}>Submitted: {f.date}</span>
-                          <button
-                            type="button"
-                            className="btn-admin keep"
-                            style={{ padding: "4px 10px", fontSize: "11px", height: "26px", border: "1px solid #e1e4eb" }}
-                            onClick={() => handleResolveFeedback(f.id)}
-                          >
-                            Resolve &amp; Archive
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1145,6 +1191,85 @@ CREATE POLICY "users_read_own_or_admin" ON public.registered_users FOR SELECT US
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Feedback Detail Popover Modal */}
+            {activeFeedbackDetails && (
+              <div style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0,0,0,0.55)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10000,
+                padding: "20px"
+              }}>
+                <div style={{
+                  background: "#fff",
+                  borderRadius: "12px",
+                  padding: "28px",
+                  maxWidth: "520px",
+                  width: "100%",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #e1e4eb", paddingBottom: "12px" }}>
+                    <h3 style={{ fontSize: "16px", color: "var(--navy)", fontWeight: 700, margin: 0 }}>
+                      📝 Student Feedback Details
+                    </h3>
+                    <span style={{ fontSize: "11px", background: "#fbf6ec", color: "#8a7544", padding: "3px 8px", borderRadius: "4px", fontWeight: "600" }}>
+                      {activeFeedbackDetails.type}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: "20px", textAlign: "left" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                      <span>Student: <b>{activeFeedbackDetails.student}</b></span>
+                      <span>Submitted: {activeFeedbackDetails.date}</span>
+                    </div>
+                    <div style={{
+                      padding: "16px",
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      fontSize: "13.5px",
+                      color: "#1f2937",
+                      lineHeight: "1.6",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word"
+                    }}>
+                      "{activeFeedbackDetails.comment}"
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                    <button
+                      type="button"
+                      className="btn-admin remove"
+                      style={{ padding: "8px 14px", fontSize: "12.5px", height: "36px", border: "1px solid #fecaca", color: "#dc2626", background: "#fef2f2", cursor: "pointer", borderRadius: "6px" }}
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to permanently delete this feedback from the database?")) {
+                          handleResolveFeedback(activeFeedbackDetails.id);
+                          setActiveFeedbackDetails(null);
+                        }
+                      }}
+                    >
+                      Delete from DB
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-admin keep"
+                      style={{ padding: "8px 14px", fontSize: "12.5px", height: "36px", border: "1px solid #e1e4eb", cursor: "pointer", borderRadius: "6px" }}
+                      onClick={() => setActiveFeedbackDetails(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
