@@ -28,6 +28,7 @@ export default function Quiz() {
   const [hasConfirmedOvertime, setHasConfirmedOvertime] = useState(false);
 
   const [showConfirm, setShowConfirm] = useState(false);
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
   const [reviewFilter, setReviewFilter] = useState("all");
   const [flaggedQuestions, setFlaggedQuestions] = useState({});
   const [selectedTopics, setSelectedTopics] = useState({});
@@ -124,12 +125,20 @@ export default function Quiz() {
       return;
     }
 
-    setActiveQuestions(filteredQuestions);
-    setCurrent(0);
-    setAnswers(new Array(filteredQuestions.length).fill(null));
-    setMarked(new Array(filteredQuestions.length).fill(false));
+    let finalQuestions = [...filteredQuestions];
+    if (shuffleQuestions) {
+      for (let i = finalQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [finalQuestions[i], finalQuestions[j]] = [finalQuestions[j], finalQuestions[i]];
+      }
+    }
 
-    const initialVisited = new Array(filteredQuestions.length).fill(false);
+    setActiveQuestions(finalQuestions);
+    setCurrent(0);
+    setAnswers(new Array(finalQuestions.length).fill(null));
+    setMarked(new Array(finalQuestions.length).fill(false));
+
+    const initialVisited = new Array(finalQuestions.length).fill(false);
     initialVisited[0] = true;
     setVisited(initialVisited);
 
@@ -445,6 +454,22 @@ export default function Quiz() {
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Shuffle Switch Toggle */}
+                    <div className="shuffle-row" style={{ marginTop: "20px" }}>
+                      <div>
+                        <h4 style={{ margin: "0 0 2px", fontWeight: "600" }}>Shuffle Questions</h4>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--ink-soft)" }}>Randomize question sequence for this practice attempt</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={shuffleQuestions}
+                          onChange={(e) => setShuffleQuestions(e.target.checked)}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
                     </div>
 
                     <button

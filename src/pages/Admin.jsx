@@ -154,18 +154,29 @@ export default function Admin() {
 
   const loadKpisAndStats = async () => {
     try {
-      // 1. Fetch exactly how many students have registered progress attempts (excluding admin)
-      const { data: progressRows } = await supabase
-        .from("user_progress")
-        .select("user_id");
-
-      const uniqueUserIds = Array.from(new Set(progressRows?.map((r) => r.user_id) || []));
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      const adminId = user?.id;
-      const studentUserIds = uniqueUserIds.filter((id) => id !== adminId);
-
-      const exactRegisteredStudents = studentUserIds.length;
+      // 1. Fetch exactly how many students are registered in the registered_users table (excluding admin)
+      let exactRegisteredStudents = 0;
+      try {
+        const { count, error: countErr } = await supabase
+          .from("registered_users")
+          .select("*", { count: "exact", head: true });
+        
+        if (!countErr) {
+          exactRegisteredStudents = count || 0;
+        } else {
+          // Fallback to reading unique user progress attempts
+          const { data: progressRows } = await supabase
+            .from("user_progress")
+            .select("user_id");
+          const uniqueUserIds = Array.from(new Set(progressRows?.map((r) => r.user_id) || []));
+          const { data: { user: curUser } } = await supabase.auth.getUser();
+          const adminId = curUser?.id;
+          const studentUserIds = uniqueUserIds.filter((id) => id !== adminId);
+          exactRegisteredStudents = studentUserIds.length;
+        }
+      } catch {
+        exactRegisteredStudents = 0;
+      }
 
       // 2. Fetch total questions count
       const { count: qCount } = await supabase
