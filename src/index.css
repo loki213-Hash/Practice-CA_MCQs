@@ -2583,3 +2583,181 @@ img { max-width: 100%; display: block; }
 @keyframes blinker {
   50% { opacity: 0; }
 }
+
+/* ===================================================================
+   CHAPTER THEME SYSTEM
+   =================================================================== */
+
+.quiz-theme-wrapper {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* ---- Theme: FCRA — "Foreign Currency" ---- */
+.quiz-theme-wrapper[data-theme="fcra"] {
+  --paper: #F1E9D2;
+  --ink: #221D12;
+  --navy: #123B2E;        /* deep banknote green */
+  --navy-2: #0C2E23;
+  --navy-3: #1B5746;
+  --brass: #B98A2C;
+  --brass-light: #E4C377;
+  --red: #8C2F39;         /* stamp / rupee-note red */
+  --thread: #1F6F78;      /* security-thread teal */
+  --line: rgba(34,29,18,0.12);
+  --green: #3E7A52;
+}
+
+/* ---- Theme: SEBI — "Digital Stock Market" ---- */
+.quiz-theme-wrapper[data-theme="sebi"] {
+  --paper: #090d16;       /* dark financial dashboard background */
+  --ink: #f8fafc;         /* white text */
+  --navy: #0d1e3d;        /* stock chart dark blue panel */
+  --navy-2: #071226;      /* deeper blue-black */
+  --navy-3: #0f2d5c;
+  --brass: #10b981;       /* glowing transaction green */
+  --brass-light: #34d399; /* light green */
+  --red: #f43f5e;         /* market red */
+  --thread: #0284c7;      /* stock line blue */
+  --line: rgba(255,255,255,0.08);
+  --green: #10b981;
+  --card: #0d1527;
+  --ink-soft: #94a3b8;
+}
+
+/* ---- Theme: Companies Act — "Corporate Seal" ---- */
+.quiz-theme-wrapper[data-theme="companies"] {
+  --paper: #EFEEE9;
+  --ink: #1B1F2A;
+  --navy: #16223B;
+  --navy-2: #101A2C;
+  --navy-3: #22355A;
+  --brass: #5C6E91;
+  --brass-light: #8FA3C8;
+  --red: #B5473A;
+  --thread: #2E4A6B;
+  --line: rgba(27,31,42,0.10);
+  --green: #3E7A52;
+}
+
+/* ---- Theme: Income Tax Act — "Ledger & Stamp" ---- */
+.quiz-theme-wrapper[data-theme="incometax"] {
+  --paper: #F4EFE4;
+  --ink: #241C14;
+  --navy: #3B2418;
+  --navy-2: #2B1911;
+  --navy-3: #4A2E1F;
+  --brass: #A9762C;
+  --brass-light: #D9A94E;
+  --red: #7A2E2E;
+  --thread: #6B4A2E;
+  --line: rgba(36,28,20,0.12);
+  --green: #3E7A52;
+}
+
+/* Masthead Guilloche Pattern styles */
+.masthead-guilloche {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.quiz-theme-wrapper[data-theme="fcra"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="sebi"] .masthead-guilloche {
+  display: block;
+}
+
+/* Banknote themes Guilloche pattern styling */
+.quiz-theme-wrapper[data-theme="fcra"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche {
+  opacity: .16;
+  background-image:
+    repeating-linear-gradient(115deg, var(--brass-light) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(65deg, var(--brass-light) 0 1px, transparent 1px 9px);
+  mix-blend-mode: screen;
+}
+
+/* SEBI Stock Theme Grid/Graph pattern styling */
+.quiz-theme-wrapper[data-theme="sebi"] .masthead-guilloche {
+  background-image:
+    radial-gradient(var(--thread) 1px, transparent 1px),
+    linear-gradient(to right, rgba(2, 132, 199, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(2, 132, 199, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.55;
+}
+
+/* Banknote borders on the header */
+.quiz-theme-wrapper[data-theme="fcra"] .masthead::before,
+.quiz-theme-wrapper[data-theme="fcra"] .masthead::after,
+.quiz-theme-wrapper[data-theme="companies"] .masthead::before,
+.quiz-theme-wrapper[data-theme="companies"] .masthead::after,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::before,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::after {
+  content: "";
+  position: absolute; left: 0; right: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, var(--brass) 0 10px, transparent 10px 16px);
+  opacity: .45;
+  z-index: 2;
+}
+.quiz-theme-wrapper[data-theme="fcra"] .masthead::before,
+.quiz-theme-wrapper[data-theme="companies"] .masthead::before,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::before { top: 6px; }
+.quiz-theme-wrapper[data-theme="fcra"] .masthead::after,
+.quiz-theme-wrapper[data-theme="companies"] .masthead::after,
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::after { bottom: 6px; }
+
+/* SEBI Digital Graph lines (grid background or a chart line drawing) */
+.quiz-theme-wrapper[data-theme="sebi"] .masthead::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  box-shadow: 0 0 10px var(--brass);
+  z-index: 2;
+}
+
+/* Overrides for specific themes to ensure high text contrast */
+.quiz-theme-wrapper[data-theme="fcra"] .option:hover { background: #faf8f2; }
+.quiz-theme-wrapper[data-theme="incometax"] .option:hover { background: #fdfbf7; }
+.quiz-theme-wrapper[data-theme="companies"] .option:hover { background: #f8f8f6; }
+.quiz-theme-wrapper[data-theme="sebi"] .option:hover { background: #0c1424; }
+
+.quiz-theme-wrapper[data-theme="sebi"] .cover,
+.quiz-theme-wrapper[data-theme="sebi"] .q-card,
+.quiz-theme-wrapper[data-theme="sebi"] .results-head,
+.quiz-theme-wrapper[data-theme="sebi"] .focus-panel,
+.quiz-theme-wrapper[data-theme="sebi"] .ledger-panel,
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay-content {
+  border-color: var(--line) !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .btn-primary,
+.quiz-theme-wrapper[data-theme="sebi"] .btn-admin {
+  color: #090d16 !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .option {
+  background: #090e1a;
+  border-color: rgba(255,255,255,0.12);
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .option.selected {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: var(--brass) !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .q-card,
+.quiz-theme-wrapper[data-theme="sebi"] .focus-panel,
+.quiz-theme-wrapper[data-theme="sebi"] .ledger-panel,
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay-content {
+  background: #0d1527 !important;
+  color: #fff !important;
+}
