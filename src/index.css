@@ -3136,6 +3136,39 @@ img { max-width: 100%; display: block; }
   color: #1a1108 !important;
 }
 
+/* Force dark text for masthead subtitle and seal in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .brand .title-block p {
+  color: #5a483a !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .brand .seal {
+  border-color: #B5875E !important;
+  color: #1a1108 !important;
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Force dark text for shuffle row header in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .shuffle-row h4 {
+  color: #1a1108 !important;
+}
+
+/* Force dark text for active quiz header stats chips in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .status .chip {
+  border-color: rgba(26, 17, 8, 0.22) !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  color: #5a483a !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .status .chip b {
+  color: #1a1108 !important;
+}
+
+/* Force dark text for results panel headings in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .panel-title {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .panel-title .rule {
+  background: rgba(240, 201, 163, 0.6) !important;
+}
+
 /* Results Screen Header in IBC theme */
 .quiz-theme-wrapper[data-theme="ibc"] .results-head {
   color: #1a1108 !important;
