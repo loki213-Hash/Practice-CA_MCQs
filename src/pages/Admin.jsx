@@ -42,30 +42,8 @@ export default function Admin() {
   // Appreciation states
   const [sentAppreciations, setSentAppreciations] = useState({});
 
-  // Mock data for student feedbacks
-  const [feedbacks, setFeedbacks] = useState([
-    {
-      id: 1,
-      student: "lokesh_12",
-      type: "Content Correction",
-      comment: "In Chapter 2 FEMA, question 14 has the wrong correct option marked. Option B should be correct instead of Option A.",
-      date: "2026-07-20"
-    },
-    {
-      id: 2,
-      student: "neha_sharma",
-      type: "Feature Request",
-      comment: "Please add Chapter 9 and 10 questions for SPOM. The current syllabus is covered up to Chapter 8.",
-      date: "2026-07-19"
-    },
-    {
-      id: 3,
-      student: "ca_aspirant_2026",
-      type: "UI feedback",
-      comment: "The book animation in confirm password looks awesome! Loving the dark theme.",
-      date: "2026-07-18"
-    }
-  ]);
+  // Real student feedbacks from Supabase
+  const [feedbacks, setFeedbacks] = useState([]);
 
   // Mock data for questions filed by students from Google Form
   const [formSubmissions, setFormSubmissions] = useState([
@@ -256,6 +234,11 @@ export default function Admin() {
 
       if (qError) throw qError;
 
+      // Fetch user_progress attempts to count unique students
+      const { data: progressRows } = await supabase
+        .from("user_progress")
+        .select("user_id, chapter_id, completed_at");
+
       // Group flags by question_id
       const flagsCountByQ = {};
       const flaggedByMap = {};
@@ -266,12 +249,29 @@ export default function Admin() {
         }
       });
 
+      const fifteenDaysAgo = new Date();
+      fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+
       // Map questions and inject attempt stats
-      const mapped = questions.map((q, idx) => {
+      const mapped = questions.map((q) => {
         const flagCount = flagsCountByQ[q.id] || 1;
-        const seed = q.id || idx;
-        const attemptsLast15Days = Math.round(((seed * 7) % 15) + 3);
-        const percentNotRequired = Math.min(100, Math.round(5 + ((flagCount * 100) / (attemptsLast15Days || 1))));
+        
+        // Filter attempts for this question's chapter
+        const chapterAttempts = progressRows ? progressRows.filter(r => r.chapter_id === q.chapter_id) : [];
+        
+        // 1. Unique students who appeared for this chapter (question)
+        const uniqueAttemptedStudents = Array.from(new Set(chapterAttempts.map(r => r.user_id)));
+        const totalUniqueAttempted = uniqueAttemptedStudents.length;
+
+        // 2. Count attempts in the last 15 days
+        const attemptsLast15Days = chapterAttempts.filter(r => {
+          if (!r.completed_at) return false;
+          return new Date(r.completed_at) >= fifteenDaysAgo;
+        }).length;
+
+        // 3. Percent of students who flagged = unique flagged / unique appeared
+        const appearedCount = Math.max(1, totalUniqueAttempted);
+        const percentNotRequired = Math.min(100, Math.round((flagCount / appearedCount) * 100));
 
         return {
           ...q,
@@ -311,9 +311,10 @@ export default function Admin() {
       if (!error && data) {
         const mapped = data.map((f) => ({
           id: f.id,
-          studentName: f.username,
-          date: new Date(f.created_at).toLocaleDateString(),
-          content: f.message
+          student: f.username,
+          type: "Feedback",
+          comment: f.message,
+          date: new Date(f.created_at).toLocaleDateString()
         }));
         setFeedbacks(mapped);
       }

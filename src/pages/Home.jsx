@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
 import { getStatsForCourse } from "../services/questionService";
 import { useAuth } from "../context/AuthContext";
-import { getUserProgressStats, initializeUserProgress } from "../services/progressService";
+import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 
 function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
@@ -137,10 +137,27 @@ function Home() {
   const [stats, setStats] = useState({});
   const [error, setError] = useState("");
   const [attemptedCount, setAttemptedCount] = useState(0);
+  const [realTarget, setRealTarget] = useState(0);
   const [finderRate, setFinderRate] = useState(0);
   const [userStats, setUserStats] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifInbox, setShowNotifInbox] = useState(false);
+
+  const formatAttemptedCount = (val) => {
+    if (val >= 100000) {
+      return `${(val / 100000).toFixed(1)} L`;
+    }
+    return val.toLocaleString();
+  };
+
+  // Fetch real attempts count from database
+  useEffect(() => {
+    async function fetchRealCount() {
+      const count = await getTotalAttemptsCount();
+      setRealTarget(count);
+    }
+    fetchRealCount();
+  }, []);
 
   const { user, username, logout } = useAuth();
   const navigate = useNavigate();
@@ -226,17 +243,17 @@ function Home() {
   // Animate trust row counters
   useEffect(() => {
     let curAttempted = 0;
-    const attemptedTarget = 6.2;
-    const attemptedStep = attemptedTarget / 30;
+    const attemptedTarget = realTarget;
+    const attemptedStep = Math.max(1, Math.round(attemptedTarget / 20));
     const attemptedInterval = setInterval(() => {
       curAttempted += attemptedStep;
       if (curAttempted >= attemptedTarget) {
         setAttemptedCount(attemptedTarget);
         clearInterval(attemptedInterval);
       } else {
-        setAttemptedCount(Number(curAttempted.toFixed(1)));
+        setAttemptedCount(curAttempted);
       }
-    }, 50);
+    }, 40);
 
     let curRate = 0;
     const rateTarget = 92;
@@ -254,7 +271,7 @@ function Home() {
       clearInterval(attemptedInterval);
       clearInterval(rateInterval);
     };
-  }, []);
+  }, [realTarget]);
 
   // Sum total MCQs dynamically from Supabase
   const totalMCQsString = useMemo(() => {
@@ -519,7 +536,7 @@ function Home() {
               <span className="lbl">MCQs across all 3 levels</span>
             </div>
             <div className="trust-item">
-              <span className="num">{attemptedCount} L</span>
+              <span className="num">{formatAttemptedCount(attemptedCount)}</span>
               <span className="lbl">Tests attempted to date</span>
             </div>
             <div className="trust-item">
@@ -648,6 +665,27 @@ function Home() {
           </div>
           <a href="#levels" className="btn-primary">
             Start practising free →
+          </a>
+        </div>
+      </section>
+
+      {/* ---------- Share Remembered Questions Banner ---------- */}
+      <section className="share-banner" style={{ background: "#FAFAF8", border: "1px solid var(--line)", padding: "36px 24px", textAlign: "center", borderRadius: "16px", margin: "32px auto 60px", maxWidth: "1200px", width: "92%" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "var(--navy)", margin: 0, fontWeight: "600" }}>
+            💡 Remembered Questions? Share!
+          </h3>
+          <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-soft)", maxWidth: "600px", lineHeight: "1.5" }}>
+            Help fellow aspirants expand their practice! If you remember any questions from your CA Final, SPOM, or Adv ITT exams, submit them via our Google Form.
+          </p>
+          <a
+            href="https://forms.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+            style={{ textDecoration: "none", padding: "10px 24px", background: "var(--champagne)", color: "#111", borderRadius: "8px", fontWeight: "600", marginTop: "8px", fontSize: "13.5px", display: "inline-block" }}
+          >
+            Share Questions Now →
           </a>
         </div>
       </section>

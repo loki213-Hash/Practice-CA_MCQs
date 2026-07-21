@@ -105,3 +105,21 @@ export async function initializeUserProgress() {
     console.warn("Failed to initialize user progress placeholder:", err);
   }
 }
+
+export async function getTotalAttemptsCount() {
+  try {
+    // Exclude dummy user registration placeholders where chapter_id is null or 0
+    const { count, error } = await supabase
+      .from("user_progress")
+      .select("*", { count: "exact", head: true })
+      .not("chapter_id", "is", null)
+      .neq("chapter_id", 0);
+    
+    if (!error) {
+      return count || 0;
+    }
+  } catch (err) {
+    console.warn("Failed to load total attempts count:", err);
+  }
+  return 0;
+}
