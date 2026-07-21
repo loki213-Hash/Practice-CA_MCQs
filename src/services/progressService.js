@@ -41,8 +41,8 @@ export async function getUserProgressStats() {
     return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
   }
 
-  // Filter out chapter_id: 0 which is the dummy registration placeholder
-  const activeAttempts = attempts.filter((attempt) => attempt.chapter_id !== 0);
+  // Filter out chapter_id: null or 0 which are dummy registration placeholders
+  const activeAttempts = attempts.filter((attempt) => attempt.chapter_id !== null && attempt.chapter_id !== 0);
 
   if (activeAttempts.length === 0) {
     return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
@@ -54,23 +54,25 @@ export async function getUserProgressStats() {
   let totalPercentageSum = 0;
 
   activeAttempts.forEach((attempt) => {
-    totalPercentageSum += attempt.percentage;
     const cid = attempt.chapter_id;
-    if (highestScoresByChapter[cid] === undefined || attempt.percentage > highestScoresByChapter[cid]) {
-      highestScoresByChapter[cid] = attempt.percentage;
+    const score = attempt.percentage;
+    if (highestScoresByChapter[cid] === undefined || score > highestScoresByChapter[cid]) {
+      highestScoresByChapter[cid] = score;
     }
   });
 
-  const masteredChapters = Object.keys(highestScoresByChapter).filter(
-    (cid) => highestScoresByChapter[cid] >= 80
-  );
+  const uniqueChapters = Object.keys(highestScoresByChapter);
+  uniqueChapters.forEach((cid) => {
+    totalPercentageSum += highestScoresByChapter[cid];
+  });
 
-  const averageAccuracy = Math.round(totalPercentageSum / activeAttempts.length);
+  const averageAccuracy = uniqueChapters.length > 0 ? Math.round(totalPercentageSum / uniqueChapters.length) : 0;
+  const masteredChapterIds = uniqueChapters.filter((cid) => highestScoresByChapter[cid] >= 80).map(Number);
 
   return {
-    chapterCount: masteredChapters.length,
+    chapterCount: uniqueChapters.length,
     averageAccuracy,
-    masteredChapterIds: masteredChapters.map(Number),
+    masteredChapterIds,
   };
 }
 
@@ -91,7 +93,7 @@ export async function initializeUserProgress() {
         .insert([
           {
             user_id: user.id,
-            chapter_id: 0, // Placeholder registration log
+            chapter_id: null, // Placeholder registration log (uses NULL instead of 0 to avoid foreign key errors)
             score: 0,
             total_questions: 0,
             percentage: 0,

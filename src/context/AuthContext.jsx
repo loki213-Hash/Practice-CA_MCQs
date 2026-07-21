@@ -24,13 +24,38 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const register = async (username, password) => {
+  const register = async (username, password, favouritePlace, firstnameYob) => {
     const email = `${username.trim().toLowerCase()}.caquiz@gmail.com`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username: username.trim(),
+          favourite_place: favouritePlace.trim(),
+          firstname_yob: firstnameYob.trim()
+        }
+      }
     });
     if (error) throw error;
+
+    // Failsafe insert into registered_users public profile table for admin panel lookup
+    if (data?.user) {
+      try {
+        await supabase
+          .from("registered_users")
+          .insert([
+            {
+              id: data.user.id,
+              username: username.trim(),
+              favourite_place: favouritePlace.trim(),
+              firstname_yob: firstnameYob.trim()
+            }
+          ]);
+      } catch (err) {
+        console.warn("Could not insert user recovery details into registered_users table:", err);
+      }
+    }
     return data;
   };
 
