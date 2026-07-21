@@ -2586,6 +2586,8 @@ img { max-width: 100%; display: block; }
 
 /* ===================================================================
    CHAPTER THEME SYSTEM
+   Every chapter type gets its own visual identity via CSS custom
+   properties scoped under .quiz-theme-wrapper[data-theme="..."].
    =================================================================== */
 
 .quiz-theme-wrapper {
@@ -2595,42 +2597,67 @@ img { max-width: 100%; display: block; }
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* ---- Theme: FCRA — "Foreign Currency" ---- */
+/* ---- Theme: FCRA — "Foreign Contribution / Currency" (banknote green) ---- */
 .quiz-theme-wrapper[data-theme="fcra"] {
   --paper: #F1E9D2;
   --ink: #221D12;
-  --navy: #123B2E;        /* deep banknote green */
+  --card: #fffef9;
+  --navy: #123B2E;
   --navy-2: #0C2E23;
   --navy-3: #1B5746;
   --brass: #B98A2C;
   --brass-light: #E4C377;
-  --red: #8C2F39;         /* stamp / rupee-note red */
-  --thread: #1F6F78;      /* security-thread teal */
+  --red: #8C2F39;
+  --thread: #1F6F78;
   --line: rgba(34,29,18,0.12);
   --green: #3E7A52;
+  --ink-soft: #6b5e4a;
 }
 
-/* ---- Theme: SEBI — "Digital Stock Market" ---- */
+/* ---- Theme: FEMA — "Foreign Exchange" (dark teal banknote) ---- */
+.quiz-theme-wrapper[data-theme="fema"] {
+  --paper: #E8EDE9;
+  --ink: #1a2420;
+  --card: #f8fbf9;
+  --navy: #0E3B3B;
+  --navy-2: #082C2C;
+  --navy-3: #15504F;
+  --brass: #2E8B6E;
+  --brass-light: #6CC4A8;
+  --red: #8C2F39;
+  --thread: #1A6B5A;
+  --line: rgba(14,59,59,0.12);
+  --green: #2E8B6E;
+  --ink-soft: #4a6b5e;
+}
+
+/* ---- Theme: SEBI — "Digital Stock Market" (dark fintech) ---- */
 .quiz-theme-wrapper[data-theme="sebi"] {
-  --paper: #090d16;       /* dark financial dashboard background */
-  --ink: #f8fafc;         /* white text */
-  --navy: #0d1e3d;        /* stock chart dark blue panel */
-  --navy-2: #071226;      /* deeper blue-black */
+  --paper: #090d16;
+  --ink: #f8fafc;
+  --card: #0d1527;
+  --navy: #0d1e3d;
+  --navy-2: #071226;
   --navy-3: #0f2d5c;
-  --brass: #10b981;       /* glowing transaction green */
-  --brass-light: #34d399; /* light green */
-  --red: #f43f5e;         /* market red */
-  --thread: #0284c7;      /* stock line blue */
+  --brass: #10b981;
+  --brass-light: #34d399;
+  --red: #f43f5e;
+  --thread: #0284c7;
   --line: rgba(255,255,255,0.08);
   --green: #10b981;
-  --card: #0d1527;
+  --green-bg: rgba(16,185,129,0.1);
+  --red-bg: rgba(244,63,94,0.1);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167,139,250,0.1);
+  --grey: #334155;
   --ink-soft: #94a3b8;
 }
 
-/* ---- Theme: Companies Act — "Corporate Seal" ---- */
+/* ---- Theme: Companies Act — "Corporate Seal" (navy/slate) ---- */
 .quiz-theme-wrapper[data-theme="companies"] {
   --paper: #EFEEE9;
   --ink: #1B1F2A;
+  --card: #f8f8f5;
   --navy: #16223B;
   --navy-2: #101A2C;
   --navy-3: #22355A;
@@ -2640,12 +2667,14 @@ img { max-width: 100%; display: block; }
   --thread: #2E4A6B;
   --line: rgba(27,31,42,0.10);
   --green: #3E7A52;
+  --ink-soft: #5a6172;
 }
 
-/* ---- Theme: Income Tax Act — "Ledger & Stamp" ---- */
+/* ---- Theme: Income Tax Act — "Ledger & Stamp" (warm brown) ---- */
 .quiz-theme-wrapper[data-theme="incometax"] {
   --paper: #F4EFE4;
   --ink: #241C14;
+  --card: #fdfaf4;
   --navy: #3B2418;
   --navy-2: #2B1911;
   --navy-3: #4A2E1F;
@@ -2655,9 +2684,38 @@ img { max-width: 100%; display: block; }
   --thread: #6B4A2E;
   --line: rgba(36,28,20,0.12);
   --green: #3E7A52;
+  --ink-soft: #6b5940;
 }
 
-/* Masthead Guilloche Pattern styles */
+/* ===========================================
+   THEME-AWARE ELEMENT OVERRIDES
+   These ensure cover, cards, options, palette,
+   table, modals all properly inherit theme colors.
+   =========================================== */
+
+/* -- Cover card inherits --card -- */
+.quiz-theme-wrapper[data-theme] .cover { background: var(--card); border-color: var(--line); }
+
+/* -- Cover head bottom ribbon -- */
+.quiz-theme-wrapper[data-theme] .cover-head::after {
+  background: repeating-linear-gradient(90deg, var(--brass) 0 18px, transparent 18px 26px);
+}
+
+/* -- Question card body -- */
+.quiz-theme-wrapper[data-theme] .qcard { background: var(--card); border-color: var(--line); }
+
+/* -- Stat cards on start screen -- */
+.quiz-theme-wrapper[data-theme] .stat-card { border-color: var(--line); }
+
+/* -- Instructions section -- */
+.quiz-theme-wrapper[data-theme] .instructions { color: var(--ink); }
+
+/* -- Topic pills -- */
+.quiz-theme-wrapper[data-theme] .topic-pill { border-color: var(--line); color: var(--ink); }
+
+/* ============================================
+   MASTHEAD GUILLOCHE PATTERN OVERLAY
+   ============================================ */
 .masthead-guilloche {
   display: none;
   position: absolute;
@@ -2666,15 +2724,18 @@ img { max-width: 100%; display: block; }
   z-index: 1;
 }
 
+/* Show guilloche on themed chapters */
 .quiz-theme-wrapper[data-theme="fcra"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="fema"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="sebi"] .masthead-guilloche {
   display: block;
 }
 
-/* Banknote themes Guilloche pattern styling */
+/* Banknote themes — fine crosshatch guilloche */
 .quiz-theme-wrapper[data-theme="fcra"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="fema"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche {
   opacity: .16;
@@ -2684,7 +2745,7 @@ img { max-width: 100%; display: block; }
   mix-blend-mode: screen;
 }
 
-/* SEBI Stock Theme Grid/Graph pattern styling */
+/* SEBI — digital dot-grid overlay */
 .quiz-theme-wrapper[data-theme="sebi"] .masthead-guilloche {
   background-image:
     radial-gradient(var(--thread) 1px, transparent 1px),
@@ -2694,9 +2755,13 @@ img { max-width: 100%; display: block; }
   opacity: 0.55;
 }
 
-/* Banknote borders on the header */
+/* ============================================
+   BANKNOTE BORDER STRIPS (top + bottom of masthead)
+   ============================================ */
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::before,
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::after,
+.quiz-theme-wrapper[data-theme="fema"] .masthead::before,
+.quiz-theme-wrapper[data-theme="fema"] .masthead::after,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::before,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::after,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead::before,
@@ -2708,13 +2773,15 @@ img { max-width: 100%; display: block; }
   z-index: 2;
 }
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::before,
+.quiz-theme-wrapper[data-theme="fema"] .masthead::before,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::before,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead::before { top: 6px; }
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::after,
+.quiz-theme-wrapper[data-theme="fema"] .masthead::after,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::after,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead::after { bottom: 6px; }
 
-/* SEBI Digital Graph lines (grid background or a chart line drawing) */
+/* SEBI — glowing baseline */
 .quiz-theme-wrapper[data-theme="sebi"] .masthead::before {
   content: "";
   position: absolute;
@@ -2724,40 +2791,230 @@ img { max-width: 100%; display: block; }
   z-index: 2;
 }
 
-/* Overrides for specific themes to ensure high text contrast */
+/* ============================================
+   OPTION HOVER OVERRIDES (per theme)
+   ============================================ */
 .quiz-theme-wrapper[data-theme="fcra"] .option:hover { background: #faf8f2; }
+.quiz-theme-wrapper[data-theme="fema"] .option:hover { background: #f0f6f3; }
 .quiz-theme-wrapper[data-theme="incometax"] .option:hover { background: #fdfbf7; }
 .quiz-theme-wrapper[data-theme="companies"] .option:hover { background: #f8f8f6; }
-.quiz-theme-wrapper[data-theme="sebi"] .option:hover { background: #0c1424; }
 
-.quiz-theme-wrapper[data-theme="sebi"] .cover,
-.quiz-theme-wrapper[data-theme="sebi"] .q-card,
-.quiz-theme-wrapper[data-theme="sebi"] .results-head,
-.quiz-theme-wrapper[data-theme="sebi"] .focus-panel,
-.quiz-theme-wrapper[data-theme="sebi"] .ledger-panel,
-.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay-content {
-  border-color: var(--line) !important;
+/* ============================================
+   SEBI DARK THEME — COMPLETE ELEMENT OVERRIDES
+   Every quiz panel, card, option, palette, table, and
+   modal is overridden for the dark fintech aesthetic.
+   ============================================ */
+
+/* Body / Screen backgrounds */
+.quiz-theme-wrapper[data-theme="sebi"] .screen { background: var(--paper); }
+.quiz-theme-wrapper[data-theme="sebi"] .wrap { background: transparent; }
+
+/* Cover / Start screen */
+.quiz-theme-wrapper[data-theme="sebi"] .cover {
+  background: var(--card);
+  border-color: var(--line);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .cover-body {
+  background: var(--card);
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .stat-card {
+  border-color: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .stat-card .num { color: var(--brass-light); }
+.quiz-theme-wrapper[data-theme="sebi"] .stat-card .lbl { color: var(--ink-soft); }
+.quiz-theme-wrapper[data-theme="sebi"] .legend-item { color: var(--ink-soft); }
+.quiz-theme-wrapper[data-theme="sebi"] .instructions { color: var(--ink); }
+.quiz-theme-wrapper[data-theme="sebi"] .instructions h3 { color: var(--ink); }
+.quiz-theme-wrapper[data-theme="sebi"] .topic-pill {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .topic-pill.deselected {
+  background: transparent;
+  color: var(--ink-soft);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row h4,
+.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row p { color: var(--ink); }
+.quiz-theme-wrapper[data-theme="sebi"] .start-btn {
+  background: var(--brass);
+  color: #090d16;
 }
 
-.quiz-theme-wrapper[data-theme="sebi"] .btn-primary,
-.quiz-theme-wrapper[data-theme="sebi"] .btn-admin {
-  color: #090d16 !important;
+/* Question card (quiz screen) */
+.quiz-theme-wrapper[data-theme="sebi"] .qcard {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
 }
+.quiz-theme-wrapper[data-theme="sebi"] .qmeta .qnum { color: var(--ink-soft); }
+.quiz-theme-wrapper[data-theme="sebi"] .qmeta .qtopic { color: var(--brass-light); }
+.quiz-theme-wrapper[data-theme="sebi"] .qtext { color: var(--ink); }
 
+/* Options */
 .quiz-theme-wrapper[data-theme="sebi"] .option {
   background: #090e1a;
   border-color: rgba(255,255,255,0.12);
+  color: var(--ink);
 }
-
+.quiz-theme-wrapper[data-theme="sebi"] .option:hover {
+  background: #0c1424;
+  border-color: rgba(255,255,255,0.22);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .option .bubble {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.15);
+  color: var(--ink);
+}
 .quiz-theme-wrapper[data-theme="sebi"] .option.selected {
-  background: rgba(16, 185, 129, 0.15) !important;
-  border-color: var(--brass) !important;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--brass);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .option.selected .bubble {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #090d16;
+}
+.quiz-theme-wrapper[data-theme="sebi"] .option.correct-fb {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .option.wrong-fb {
+  background: var(--red-bg);
+  border-color: var(--red);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .option .otext { color: var(--ink); }
+
+/* Feedback panel */
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-panel {
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-panel.is-correct {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-panel.is-wrong {
+  background: var(--red-bg);
+  border-color: var(--red);
 }
 
-.quiz-theme-wrapper[data-theme="sebi"] .q-card,
-.quiz-theme-wrapper[data-theme="sebi"] .focus-panel,
-.quiz-theme-wrapper[data-theme="sebi"] .ledger-panel,
-.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay-content {
-  background: #0d1527 !important;
-  color: #fff !important;
+/* Question palette (sidebar) */
+.quiz-theme-wrapper[data-theme="sebi"] .palette-panel {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
 }
+.quiz-theme-wrapper[data-theme="sebi"] .palette-panel h4 { color: var(--ink); }
+.quiz-theme-wrapper[data-theme="sebi"] .palette-panel .sub { color: var(--ink-soft); }
+.quiz-theme-wrapper[data-theme="sebi"] .pnum {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+  color: var(--ink-soft);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .pnum.answered { background: var(--green); color: #fff; border-color: var(--green); }
+.quiz-theme-wrapper[data-theme="sebi"] .pnum.notanswered { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+.quiz-theme-wrapper[data-theme="sebi"] .pnum.marked { background: var(--purple); color: #fff; border-color: var(--purple); }
+.quiz-theme-wrapper[data-theme="sebi"] .pnum.current { box-shadow: 0 0 0 2px var(--brass); }
+.quiz-theme-wrapper[data-theme="sebi"] .btn.submit {
+  background: var(--brass);
+  color: #090d16;
+}
+
+/* Navigation buttons */
+.quiz-theme-wrapper[data-theme="sebi"] .qnav .btn {
+  background: rgba(255,255,255,0.06);
+  color: var(--ink);
+  border-color: rgba(255,255,255,0.12);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .qnav .btn.primary {
+  background: var(--brass);
+  color: #090d16;
+  border-color: var(--brass);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .qnav .btn.ghost {
+  color: var(--ink-soft);
+}
+
+/* Results screen */
+.quiz-theme-wrapper[data-theme="sebi"] .results-head {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .score-ring {
+  border-color: var(--brass);
+  background: rgba(255,255,255,0.03);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .focus-panel {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .focus-panel.is-empty {
+  border-left-color: var(--green);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .panel-title { color: var(--ink); }
+.quiz-theme-wrapper[data-theme="sebi"] .panel-title .rule { background: var(--line); }
+
+/* Topic performance table */
+.quiz-theme-wrapper[data-theme="sebi"] .topic-table {
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .topic-table thead th {
+  color: var(--ink-soft);
+  border-bottom-color: var(--line);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .topic-table tbody td {
+  border-bottom-color: var(--line);
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .bar-track { background: rgba(255,255,255,0.08); }
+.quiz-theme-wrapper[data-theme="sebi"] .bar-fill { background: linear-gradient(90deg, var(--brass), var(--brass-light)); }
+
+/* Review cards */
+.quiz-theme-wrapper[data-theme="sebi"] .review-card {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+/* Confirm submit modal */
+.quiz-theme-wrapper[data-theme="sebi"] .confirm-overlay .confirm-box {
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+/* Flag button */
+.quiz-theme-wrapper[data-theme="sebi"] .flag-basic-btn {
+  color: var(--ink-soft);
+  border-color: rgba(255,255,255,0.12);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .flag-basic-btn.flagged {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Feedback submit modal */
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay .feedback-modal {
+  background: var(--card);
+  color: var(--ink);
+}
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-overlay textarea {
+  background: #090e1a;
+  color: var(--ink);
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* Back / Home buttons on results */
+.quiz-theme-wrapper[data-theme="sebi"] .btn.primary {
+  background: var(--brass);
+  color: #090d16;
+}
+
+/* Timeout modal */
+.quiz-theme-wrapper[data-theme="sebi"] .timeout-overlay .timeout-box {
+  background: var(--card);
+  color: var(--ink);
+}
+

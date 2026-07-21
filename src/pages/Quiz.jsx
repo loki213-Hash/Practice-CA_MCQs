@@ -238,6 +238,8 @@ export default function Quiz() {
   };
 
   const clearResponse = () => {
+    // Don't allow clearing after answer has been revealed (prevents cheating)
+    if (answers[current] !== null) return;
     const newAnswers = [...answers];
     newAnswers[current] = null;
     setAnswers(newAnswers);
@@ -373,11 +375,18 @@ export default function Quiz() {
 
   const theme = useMemo(() => {
     if (!chapter) return "default";
-    const name = chapter.chapter_name.toLowerCase();
+    const name = (chapter.chapter_name || "").trim().toLowerCase();
+    // Currency / Regulation themes (banknote green)
     if (name.includes("foreign contribution") || name.includes("fcra")) return "fcra";
-    if (name.includes("sebi") || name.includes("securities")) return "sebi";
-    if (name.includes("companies act") || name.includes("companies")) return "companies";
-    if (name.includes("income tax") || name.includes("income-tax")) return "incometax";
+    if (name.includes("foreign exchange") || name.includes("fema")) return "fema";
+    // Stock market themes (dark digital)
+    if (name.includes("sebi") || name.includes("securities") || name.includes("stock exchange")) return "sebi";
+    // Corporate themes (navy seal)
+    if (name.includes("companies act") || name.includes("companies") || name.includes("llp") || name.includes("corporate")) return "companies";
+    // Tax themes (ledger brown)
+    if (name.includes("income tax") || name.includes("income-tax") || name.includes("gst") || name.includes("customs")) return "incometax";
+    // Law / Act themes (fallback green for any remaining act/law chapter)
+    if (name.includes("act") || name.includes("law") || name.includes("regulation")) return "fcra";
     return "default";
   }, [chapter]);
 
@@ -470,9 +479,9 @@ export default function Quiz() {
                       <h3>Instructions</h3>
                       <ol>
                         <li>Each question carries <b>one mark</b>; there is <b>no negative marking</b>.</li>
-                        <li>Feedback and explanations are **displayed instantly** when you select an option.</li>
-                        <li>Use <b>Mark for Review &amp; Next</b> to flag questions for later check, or <b>Clear Response</b> to change an option.</li>
-                        <li>If the timer hits `00:00:00`, a popup will allow you to submit immediately or continue into overtime (which will be logged).</li>
+                        <li>Feedback and explanations are <b>displayed instantly</b> when you select an option.</li>
+                        <li>Use <b>Mark for Review &amp; Next</b> to flag questions for later check, or <b>Clear Response</b> to deselect before confirming.</li>
+                        <li>If the timer hits <b>00:00:00</b>, a popup will allow you to submit immediately or continue into overtime (which will be logged).</li>
                         <li>Click <b>Submit Test</b> once you are finished.</li>
                       </ol>
 
