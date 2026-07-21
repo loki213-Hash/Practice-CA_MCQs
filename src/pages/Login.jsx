@@ -412,10 +412,10 @@ export default function Login() {
                 </div>
 
                 {/* Recovery Phrase: Favourite Place */}
-                <div style={{ textAlign: "left", marginBottom: "-14px", paddingLeft: "4px" }}>
-                  <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 1: Favourite Place</label>
+                <div style={{ textAlign: "left", marginBottom: "4px", paddingLeft: "4px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 1: Favourite Place</label>
                 </div>
-                <div className="input-box" style={{ marginTop: "8px" }}>
+                <div className="input-box" style={{ margin: "0 0 12px 0" }}>
                   <input
                     type="text"
                     placeholder="e.g. New Delhi"
@@ -431,10 +431,10 @@ export default function Login() {
                 </div>
 
                 {/* Recovery Phrase: Firstname_Year of Birth */}
-                <div style={{ textAlign: "left", marginBottom: "-14px", paddingLeft: "4px" }}>
-                  <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 2: Firstname_Year of Birth</label>
+                <div style={{ textAlign: "left", marginBottom: "4px", paddingLeft: "4px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 2: Firstname_Year of Birth</label>
                 </div>
-                <div className="input-box" style={{ marginTop: "8px" }}>
+                <div className="input-box" style={{ margin: "0 0 12px 0" }}>
                   <input
                     type="text"
                     placeholder="e.g. John_1998"
