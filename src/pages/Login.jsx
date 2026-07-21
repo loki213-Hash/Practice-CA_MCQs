@@ -168,7 +168,9 @@ export default function Login() {
       } else {
         msg = "An error occurred.";
       }
-      if (msg.includes("already registered") || msg.includes("User already exists")) {
+      if (msg === "{}" || msg.includes("AuthRetryableFetchError") || msg.includes("fetch")) {
+        msg = "Unable to connect or complete registration. Please check your internet connection or verify your database trigger setup.";
+      } else if (msg.includes("already registered") || msg.includes("User already exists")) {
         msg = "This username is already taken. Please choose another one.";
       } else if (msg.includes("Invalid login credentials")) {
         msg = "Incorrect username or password.";
@@ -401,11 +403,22 @@ export default function Login() {
                   </button>
                 </div>
 
+                {/* Section Header for Recovery Words */}
+                <div style={{ marginTop: "24px", marginBottom: "8px", borderTop: "1px dashed #e6e1d6", paddingTop: "16px", textAlign: "left" }}>
+                  <h4 style={{ fontSize: "13px", color: "var(--navy)", fontWeight: 700, margin: "0 0 4px" }}>🔑 Security Recovery Words</h4>
+                  <p style={{ fontSize: "11px", color: "#8a94a6", margin: 0, lineHeight: 1.4 }}>
+                    Provide these to the admin to reset your password if you ever forget it.
+                  </p>
+                </div>
+
                 {/* Recovery Phrase: Favourite Place */}
-                <div className="input-box">
+                <div style={{ textAlign: "left", marginBottom: "-14px", paddingLeft: "4px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 1: Favourite Place</label>
+                </div>
+                <div className="input-box" style={{ marginTop: "8px" }}>
                   <input
                     type="text"
-                    placeholder="Favourite Place"
+                    placeholder="e.g. New Delhi"
                     value={favouritePlace}
                     onChange={(e) => setFavouritePlace(e.target.value)}
                     disabled={loading}
@@ -418,10 +431,13 @@ export default function Login() {
                 </div>
 
                 {/* Recovery Phrase: Firstname_Year of Birth */}
-                <div className="input-box">
+                <div style={{ textAlign: "left", marginBottom: "-14px", paddingLeft: "4px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 2: Firstname_Year of Birth</label>
+                </div>
+                <div className="input-box" style={{ marginTop: "8px" }}>
                   <input
                     type="text"
-                    placeholder="Firstname_Year of Birth (e.g. John_1998)"
+                    placeholder="e.g. John_1998"
                     value={firstnameYob}
                     onChange={(e) => setFirstnameYob(e.target.value)}
                     disabled={loading}
@@ -499,7 +515,7 @@ export default function Login() {
             </p>
             <div style={{ background: "#f8f9fa", border: "1px solid #e9ecef", borderRadius: "8px", padding: "14px", fontSize: "12.5px", color: "#444", textAlign: "left", marginBottom: "20px", lineHeight: "1.5" }}>
               <strong>To reset your password:</strong><br />
-              Please contact the platform administrator directly at <strong>admin.caquiz@gmail.com</strong> with your registered username. The admin will verify your profile and update your password in the administrative dashboard.
+              Please contact the platform administrator directly via Telegram at <strong>@IsAiDangerous</strong> with your registered username. The admin will verify your identity by asking for your recovery phrases before resetting your password.
             </div>
             <button
               type="button"
