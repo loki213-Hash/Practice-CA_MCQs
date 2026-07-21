@@ -2708,20 +2708,37 @@ img { max-width: 100%; display: block; }
   --ink-soft: #7D6650;
 }
 
-/* Overrides for light header text in IBC theme to ensure readable contrast */
-.quiz-theme-wrapper[data-theme="ibc"] .masthead {
+/* Overrides for light header and cover text in IBC theme to ensure readable contrast */
+.quiz-theme-wrapper[data-theme="ibc"] .masthead,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head {
   color: #382A1B !important;
 }
 .quiz-theme-wrapper[data-theme="ibc"] .masthead h1,
 .quiz-theme-wrapper[data-theme="ibc"] .masthead p,
 .quiz-theme-wrapper[data-theme="ibc"] .masthead .chip,
-.quiz-theme-wrapper[data-theme="ibc"] .masthead .status {
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .status,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head h2,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head .sub,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head .eyebrow {
   color: #382A1B !important;
 }
 .quiz-theme-wrapper[data-theme="ibc"] .brand .seal {
   border-color: #D1A279 !important;
   color: #382A1B !important;
   background: rgba(255, 255, 255, 0.4);
+}
+
+/* Force dark text for selected topic pills in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .topic-pill:not(.deselected) {
+  color: #382A1B !important;
+}
+
+/* Force dark text for all primary and submit buttons in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .btn.primary,
+.quiz-theme-wrapper[data-theme="ibc"] .start-btn,
+.quiz-theme-wrapper[data-theme="ibc"] .btn.submit,
+.quiz-theme-wrapper[data-theme="ibc"] .qnav .btn.primary {
+  color: #382A1B !important;
 }
 
 /* ===========================================
