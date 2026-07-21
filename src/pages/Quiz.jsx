@@ -371,9 +371,20 @@ export default function Quiz() {
   const q = activeQuestions[current];
   const isAnswered = q && answers[current] !== null;
 
+  const theme = useMemo(() => {
+    if (!chapter) return "default";
+    const name = chapter.chapter_name.toLowerCase();
+    if (name.includes("foreign contribution") || name.includes("fcra")) return "fcra";
+    if (name.includes("sebi") || name.includes("securities")) return "sebi";
+    if (name.includes("companies act") || name.includes("companies")) return "companies";
+    if (name.includes("income tax") || name.includes("income-tax")) return "incometax";
+    return "default";
+  }, [chapter]);
+
   return (
-    <>
+    <div className="quiz-theme-wrapper" data-theme={theme}>
       <div className="masthead">
+        <div className="masthead-guilloche"></div>
         <div className="brand">
           <div className="seal">CA</div>
           <div className="title-block">
@@ -1067,6 +1078,6 @@ export default function Quiz() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
