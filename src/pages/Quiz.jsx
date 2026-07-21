@@ -617,7 +617,22 @@ export default function Quiz() {
                   </span>
                   <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
                 </div>
-                <p className="qtext">{q.question}</p>
+                <p className="qtext">
+                  {q.question}
+                  {q.is_priority && (
+                    <span 
+                      style={{ 
+                        color: "#D35400", 
+                        fontWeight: "800", 
+                        marginLeft: "8px",
+                        fontFamily: "var(--ff-serif)"
+                      }}
+                      title="Priority Topic — Appeared in Official Exam"
+                    >
+                      (***)
+                    </span>
+                  )}
+                </p>
                 <div className="options">
                   {["A", "B", "C", "D"].map((letter) => {
                     const optKey = `option_${letter.toLowerCase()}`;
