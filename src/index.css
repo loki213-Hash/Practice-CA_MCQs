@@ -2708,38 +2708,7 @@ img { max-width: 100%; display: block; }
   --ink-soft: #7D6650;
 }
 
-/* Overrides for light header and cover text in IBC theme to ensure readable contrast */
-.quiz-theme-wrapper[data-theme="ibc"] .masthead,
-.quiz-theme-wrapper[data-theme="ibc"] .cover-head {
-  color: #382A1B !important;
-}
-.quiz-theme-wrapper[data-theme="ibc"] .masthead h1,
-.quiz-theme-wrapper[data-theme="ibc"] .masthead p,
-.quiz-theme-wrapper[data-theme="ibc"] .masthead .chip,
-.quiz-theme-wrapper[data-theme="ibc"] .masthead .status,
-.quiz-theme-wrapper[data-theme="ibc"] .cover-head h2,
-.quiz-theme-wrapper[data-theme="ibc"] .cover-head .sub,
-.quiz-theme-wrapper[data-theme="ibc"] .cover-head .eyebrow {
-  color: #382A1B !important;
-}
-.quiz-theme-wrapper[data-theme="ibc"] .brand .seal {
-  border-color: #D1A279 !important;
-  color: #382A1B !important;
-  background: rgba(255, 255, 255, 0.4);
-}
 
-/* Force dark text for selected topic pills in IBC theme */
-.quiz-theme-wrapper[data-theme="ibc"] .topic-pill:not(.deselected) {
-  color: #382A1B !important;
-}
-
-/* Force dark text for all primary and submit buttons in IBC theme */
-.quiz-theme-wrapper[data-theme="ibc"] .btn.primary,
-.quiz-theme-wrapper[data-theme="ibc"] .start-btn,
-.quiz-theme-wrapper[data-theme="ibc"] .btn.submit,
-.quiz-theme-wrapper[data-theme="ibc"] .qnav .btn.primary {
-  color: #382A1B !important;
-}
 
 /* ===========================================
    THEME-AWARE ELEMENT OVERRIDES
@@ -3098,5 +3067,110 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="sebi"] .timeout-overlay .timeout-box {
   background: var(--card);
   color: var(--ink);
+}
+
+/* ===================================================================
+   IBC LIGHT GOLD THEME OVERRIDES
+   Ensures absolute text visibility and contrast across all elements.
+   =================================================================== */
+
+/* Header and Cover Title/Description text */
+.quiz-theme-wrapper[data-theme="ibc"] .masthead,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .masthead h1,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead p,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .chip,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .status,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head h2,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head .sub,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head .eyebrow,
+.quiz-theme-wrapper[data-theme="ibc"] .cover-head .cover-eyebrow {
+  color: #1a1108 !important;
+}
+
+/* Stat Cards & Legend elements on start screen */
+.quiz-theme-wrapper[data-theme="ibc"] .stat-card {
+  background: #ffffff !important;
+  border-color: #e5d5c5 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .stat-card .num {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .stat-card .lbl {
+  color: #70594B !important;
+}
+
+/* Headings and toggle buttons */
+.quiz-theme-wrapper[data-theme="ibc"] .instructions h3,
+.quiz-theme-wrapper[data-theme="ibc"] .instructions div h3,
+.quiz-theme-wrapper[data-theme="ibc"] h3 {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .instructions ol li {
+  color: #2E1E14 !important;
+}
+
+/* Selected Topic Pills */
+.quiz-theme-wrapper[data-theme="ibc"] .topic-pill:not(.deselected) {
+  color: #1a1108 !important;
+  background: var(--navy) !important;
+  border-color: #B5875E !important;
+  font-weight: 600 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .topic-pill.deselected {
+  color: var(--ink-soft) !important;
+  border-color: rgba(240,201,163,0.5) !important;
+}
+
+/* All primary navigation and submit buttons */
+.quiz-theme-wrapper[data-theme="ibc"] .btn.primary,
+.quiz-theme-wrapper[data-theme="ibc"] .start-btn,
+.quiz-theme-wrapper[data-theme="ibc"] .btn.submit,
+.quiz-theme-wrapper[data-theme="ibc"] .qnav .btn.primary {
+  color: #1a1108 !important;
+  font-weight: 700 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .start-btn .arrow {
+  color: #1a1108 !important;
+}
+
+/* Results Screen Header in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .results-head {
+  color: #1a1108 !important;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%) !important;
+  border: 1px solid rgba(240,201,163,0.5) !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .summary h3,
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .summary p {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .score-ring {
+  border-color: #B5875E !important;
+  background: rgba(255,255,255,0.4) !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .score-ring .pct {
+  color: #1a1108 !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .score-ring .score-lbl {
+  color: #7D6650 !important;
+}
+
+/* Results breakdown labels and numbers in IBC theme */
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit {
+  color: #5a483a !important; /* dark bronze-brown label */
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit b {
+  color: #1a1108 !important; /* dark bronze-black numbers by default */
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit.correct b {
+  color: #2F855A !important; /* high-contrast dark green */
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit.incorrect b {
+  color: #9B2C2C !important; /* high-contrast dark red */
+}
+.quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit.unattempted b {
+  color: #4A5568 !important; /* high-contrast dark grey */
 }
 
