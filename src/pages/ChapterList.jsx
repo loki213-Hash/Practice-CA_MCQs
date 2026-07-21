@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getCourseBySlug } from "../services/courseService";
 import { getChapters } from "../services/chapterService";
-import { getQuestionCount } from "../services/questionService";
+import { supabase } from "../supabase/supabase";
 
 function ChapterList() {
   const { courseSlug, setType } = useParams();
@@ -29,13 +29,22 @@ function ChapterList() {
 
         setChapters(loadedChapters);
 
-        // Fetch actual question counts for each chapter
+        // Fetch actual question counts for each chapter in a single bulk query
+        const chapterIds = loadedChapters.map((c) => c.id);
+        const { data: qData, error: qError } = await supabase
+          .from("questions")
+          .select("chapter_id")
+          .in("chapter_id", chapterIds);
+
         const counts = {};
-        await Promise.all(
-          loadedChapters.map(async (chapter) => {
-            counts[chapter.id] = await getQuestionCount(chapter.id);
-          })
-        );
+        chapterIds.forEach((id) => { counts[id] = 0; });
+        if (!qError && qData) {
+          qData.forEach((q) => {
+            if (counts[q.chapter_id] !== undefined) {
+              counts[q.chapter_id]++;
+            }
+          });
+        }
         setQuestionCounts(counts);
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);

@@ -707,6 +707,9 @@ function Home() {
             </div>
             <p>
               An independent MCQ practice platform for CA aspirants. Not affiliated with or endorsed by ICAI.
+              <span style={{ display: "block", marginTop: "8px", fontWeight: "600", color: "var(--navy)" }}>
+                By Lokesh Yerramsetty ( CA Aspirant)
+              </span>
             </p>
           </div>
           <div className="foot-cols">

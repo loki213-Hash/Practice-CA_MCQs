@@ -82,6 +82,7 @@ img { max-width: 100%; display: block; }
   transition: background 0.15s ease, transform 0.15s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   border: none;
   cursor: pointer;
@@ -594,6 +595,9 @@ img { max-width: 100%; display: block; }
   font-size: 15px;
   border-radius: 6px;
   border-color: var(--navy);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn.start-btn:hover { background: var(--navy-3); transform: translateY(-1px); }
 
