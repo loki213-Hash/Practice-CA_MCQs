@@ -32,6 +32,12 @@ export default function Quiz() {
   const [reviewFilter, setReviewFilter] = useState("all");
   const [flaggedQuestions, setFlaggedQuestions] = useState({});
   const [selectedTopics, setSelectedTopics] = useState({});
+  
+  // Feedback states
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
   const PASS_THRESHOLD = 55;
   const FOCUS_THRESHOLD = 60;
@@ -109,6 +115,32 @@ export default function Quiz() {
     if (m > 0) parts.push(`${m} min${m > 1 ? "s" : ""}`);
     if (s > 0 || parts.length === 0) parts.push(`${s} sec${s > 1 ? "s" : ""}`);
     return parts.join(" ");
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackMessage.trim()) return;
+    setFeedbackSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("student_feedbacks")
+        .insert([
+          {
+            username: username || "anonymous",
+            message: feedbackMessage.trim(),
+            created_at: new Date().toISOString()
+          }
+        ]);
+      if (!error) {
+        setFeedbackSuccess(true);
+      } else {
+        alert("Failed to submit feedback. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit feedback.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
   };
 
   const startTest = () => {
@@ -221,6 +253,11 @@ export default function Quiz() {
   const goPrev = () => {
     if (current > 0) {
       goToQuestion(current - 1);
+    } else {
+      if (window.confirm("Are you sure you want to exit the quiz? Your current progress will not be saved.")) {
+        sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+        setScreen("start");
+      }
     }
   };
 
@@ -573,8 +610,8 @@ export default function Quiz() {
 
                 <div className="qnav">
                   <div className="nav-left">
-                    <button type="button" className="btn" onClick={goPrev} disabled={current === 0}>
-                      &larr; Previous
+                    <button type="button" className="btn" onClick={goPrev}>
+                      {current === 0 ? "← Exit Practice" : "← Previous"}
                     </button>
                     <button type="button" className="btn mark" onClick={markAndNext}>
                       Mark for Review &amp; Next
@@ -728,7 +765,7 @@ export default function Quiz() {
               )}
             </div>
 
-            <div style={{ display: "flex", gap: "12px", margin: "20px 0 32px" }}>
+            <div style={{ display: "flex", gap: "12px", margin: "20px 0 32px", flexWrap: "wrap" }}>
               <Link to="/" style={{ textDecoration: 'none' }}>
                 <button type="button" className="btn primary">
                   Back to Home
@@ -736,6 +773,18 @@ export default function Quiz() {
               </Link>
               <button type="button" className="btn" onClick={restartTest}>
                 Restart Test
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setShowFeedbackModal(true);
+                  setFeedbackSuccess(false);
+                  setFeedbackMessage("");
+                }}
+                style={{ border: "1px solid var(--brass)", color: "var(--brass)", background: "none" }}
+              >
+                📝 Send Feedback
               </button>
             </div>
 
@@ -917,6 +966,103 @@ export default function Quiz() {
               >
                 Continue Test
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal Overlay */}
+      {showFeedbackModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.55)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: "12px",
+            padding: "28px",
+            maxWidth: "480px",
+            width: "100%",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+          }}>
+            <h3 style={{ fontSize: "18px", color: "var(--navy)", fontWeight: 700, margin: "0 0 10px", textAlign: "left" }}>
+              📝 Submit Student Feedback
+            </h3>
+            <p style={{ fontSize: "12.5px", color: "#6b7280", margin: "0 0 16px", textAlign: "left", lineHeight: "1.4" }}>
+              Your feedback is sent directly to the administrators to improve question quality.
+            </p>
+            
+            {feedbackSuccess ? (
+              <div style={{ background: "#edfcf2", border: "1px solid #c3eccf", color: "#1e7e34", padding: "12px 14px", borderRadius: "8px", fontSize: "13px", marginBottom: "16px", textAlign: "left" }}>
+                ✓ Feedback submitted successfully. Thank you for your contribution!
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <textarea
+                  placeholder="Type your feedback message here (e.g. Chapter 3 Question 14 contains a spelling error in Option B)..."
+                  rows="5"
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    border: "1px solid #e1e4eb",
+                    borderRadius: "8px",
+                    outline: "none",
+                    fontSize: "13px",
+                    lineHeight: "1.5",
+                    background: "#fff"
+                  }}
+                  disabled={feedbackSubmitting}
+                />
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "18px" }}>
+              {feedbackSuccess ? (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setShowFeedbackModal(false);
+                    setFeedbackSuccess(false);
+                    setFeedbackMessage("");
+                  }}
+                  style={{ height: "36px", fontSize: "12.5px" }}
+                >
+                  Close
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setShowFeedbackModal(false)}
+                    style={{ background: "none", border: "1px solid #e1e4eb", color: "#555", height: "36px", fontSize: "12.5px" }}
+                    disabled={feedbackSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={submitFeedback}
+                    style={{ height: "36px", fontSize: "12.5px" }}
+                    disabled={feedbackSubmitting || !feedbackMessage.trim()}
+                  >
+                    {feedbackSubmitting ? "Submitting..." : "Submit Feedback"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

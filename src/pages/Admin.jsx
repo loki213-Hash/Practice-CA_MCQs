@@ -132,6 +132,7 @@ export default function Admin() {
     loadKpisAndStats();
     loadFlags();
     loadRegisteredUsers();
+    loadFeedbacks();
     setSuccess("Database statistics refreshed successfully!");
   };
 
@@ -301,6 +302,26 @@ export default function Admin() {
     }
   };
 
+  const loadFeedbacks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("student_feedbacks")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        const mapped = data.map((f) => ({
+          id: f.id,
+          studentName: f.username,
+          date: new Date(f.created_at).toLocaleDateString(),
+          content: f.message
+        }));
+        setFeedbacks(mapped);
+      }
+    } catch (err) {
+      console.warn("Failed to load student feedbacks:", err);
+    }
+  };
+
   // Load chapters & initial data
   useEffect(() => {
     if (!isAdmin) return;
@@ -308,12 +329,14 @@ export default function Admin() {
     loadKpisAndStats();
     loadFlags();
     loadRegisteredUsers();
+    loadFeedbacks();
 
     // Poll platform database statistics every 5 minutes (300,000ms) to avoid rate limits
     const pollInterval = setInterval(() => {
       loadKpisAndStats();
       loadFlags();
       loadRegisteredUsers();
+      loadFeedbacks();
     }, 300000);
 
     return () => clearInterval(pollInterval);
@@ -349,6 +372,21 @@ export default function Admin() {
     setError(null);
     setSuccess(null);
     try {
+      // 0. Auto-notify the reporting student (Message 2) before deleting
+      const item = flaggedItems.find((i) => i.id === questionId);
+      const flaggedBy = item?.flaggedBy;
+      if (flaggedBy && flaggedBy !== "student") {
+        try {
+          const cleanUsername = flaggedBy.includes("@") ? flaggedBy.split("@")[0] : flaggedBy;
+          await sendAppreciationNotification(
+            cleanUsername,
+            "Thanks! We're happy to let you know that the question you flagged was also reported by a few other students. After reviewing it, we've removed it from the quiz."
+          );
+        } catch (notifErr) {
+          console.warn("Could not notify student of removal:", notifErr);
+        }
+      }
+
       // 1. Delete flags
       await supabase
         .from("question_flags")
@@ -366,7 +404,7 @@ export default function Admin() {
 
       if (qError) throw qError;
 
-      setSuccess("Question deleted successfully.");
+      setSuccess("Question deleted successfully and student notified.");
       setFlaggedItems((prev) => prev.filter((item) => item.id !== questionId));
       loadKpisAndStats();
     } catch (err) {
@@ -376,7 +414,15 @@ export default function Admin() {
   };
 
   // Resolution
-  const handleResolveFeedback = (id) => {
+  const handleResolveFeedback = async (id) => {
+    try {
+      await supabase
+        .from("student_feedbacks")
+        .delete()
+        .eq("id", id);
+    } catch (err) {
+      console.warn("Failed to delete feedback row:", err);
+    }
     setFeedbacks((prev) => prev.filter((f) => f.id !== id));
     setSuccess("Feedback resolved.");
   };
@@ -393,7 +439,10 @@ export default function Admin() {
     const cleanUsername = targetUser.includes("@") ? targetUser.split("@")[0] : targetUser;
     
     try {
-      const sent = await sendAppreciationNotification(cleanUsername);
+      const sent = await sendAppreciationNotification(
+        cleanUsername,
+        "Thanks for flagging the question. We'll review it, and if a few other students also report the same issue, we'll remove or correct it."
+      );
       if (sent) {
         setSentAppreciations((prev) => ({ ...prev, [id]: true }));
         setSuccess(`Appreciation sent to student "${cleanUsername}".`);
