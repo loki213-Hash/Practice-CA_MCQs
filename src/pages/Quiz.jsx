@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { getQuestionsForChapter } from "../services/questionService";
 import { getChapterById } from "../services/chapterService";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +9,7 @@ import { supabase } from "../supabase/supabase";
 export default function Quiz() {
   const { chapterId } = useParams();
   const { user, username } = useAuth();
+  const navigate = useNavigate();
 
   const [screen, setScreen] = useState("start"); // 'start' | 'quiz' | 'results'
   const [questions, setQuestions] = useState([]);
@@ -529,15 +530,38 @@ export default function Quiz() {
                       </label>
                     </div>
 
-                    <button
-                      type="button"
-                      className="start-btn"
-                      style={{ marginTop: "20px" }}
-                      onClick={startTest}
-                      disabled={TOTAL === 0}
-                    >
-                      Start Practice <span className="arrow">&rarr;</span>
-                    </button>
+                    <div className="start-actions-row" style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+                      <button
+                        type="button"
+                        className="btn start-back-btn"
+                        onClick={() => navigate(-1)}
+                        style={{
+                          flex: 1,
+                          padding: "12px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--line)",
+                          background: "var(--card)",
+                          color: "var(--ink)",
+                          fontWeight: "600",
+                          fontSize: "13.5px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        &larr; Back to Chapters
+                      </button>
+                      <button
+                        type="button"
+                        className="start-btn"
+                        style={{ flex: 1.5, marginTop: 0 }}
+                        onClick={startTest}
+                        disabled={TOTAL === 0}
+                      >
+                        Start Practice <span className="arrow">&rarr;</span>
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
