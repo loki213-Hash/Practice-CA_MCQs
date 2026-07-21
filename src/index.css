@@ -1629,7 +1629,7 @@ img { max-width: 100%; display: block; }
   position: relative;
   width: 850px;
   max-width: 92vw;
-  height: 550px;
+  height: 680px; /* Increased from 660px to provide plenty of breathing room for all register inputs */
   background: var(--ivory);
   margin: 0;
   border-radius: 30px;
@@ -1675,10 +1675,40 @@ img { max-width: 100%; display: block; }
 
 .login-page-wrapper .form-box.register {
   visibility: hidden;
+  padding: 24px 38px; /* Compact padding for registration fields */
+  display: flex;
+  align-items: center;
 }
 
 .login-page-wrapper .container.active .form-box.register {
   visibility: visible;
+}
+
+/* Compact rules targeting register form inputs exclusively */
+.login-page-wrapper .form-box.register h1 {
+  font-size: 32px;
+  margin: 0 0 2px;
+}
+.login-page-wrapper .form-box.register p {
+  margin: 4px 0 10px;
+  font-size: 12.5px;
+}
+.login-page-wrapper .form-box.register .input-box {
+  margin: 8px 0; /* Reduced to make spacing tight */
+}
+.login-page-wrapper .form-box.register .input-box input {
+  padding: 10px 42px 10px 14px; /* Reduced padding from 14px to fit comfort */
+  font-size: 14px;
+}
+.login-page-wrapper .form-box.register .btn {
+  height: 42px; /* Shorter height to fit desktop viewport */
+  margin-top: 10px;
+}
+.login-page-wrapper .form-box.register .strength-meter {
+  margin: -4px 0 8px;
+}
+.login-page-wrapper .form-box.register .strength-meter.visible {
+  height: 24px;
 }
 
 .login-page-wrapper .input-box {
