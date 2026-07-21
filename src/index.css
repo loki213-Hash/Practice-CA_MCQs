@@ -2691,21 +2691,37 @@ img { max-width: 100%; display: block; }
   --ink-soft: #6b5940;
 }
 
-/* ---- Theme: Insolvency and Bankruptcy Code (IBC) — "Warm Copper" ---- */
+/* ---- Theme: Insolvency and Bankruptcy Code (IBC) — "Warm Gold" ---- */
 .quiz-theme-wrapper[data-theme="ibc"] {
-  --paper: #F8F3EE;        /* clay/sand warm paper */
-  --ink: #2E1E14;         /* deep copper-black ink for readable contrast */
+  --paper: #FCF8F3;        /* very light warm cream paper */
+  --ink: #382A1B;         /* deep dark bronze/brown ink for high readability */
   --card: #ffffff;
-  --navy: #AB7752;        /* primary color: copper */
-  --navy-2: #805435;
-  --navy-3: #9E6743;
-  --brass: #AB7752;
-  --brass-light: #DCA57D;
+  --navy: #F0C9A3;        /* primary color: warm gold */
+  --navy-2: #B5875E;
+  --navy-3: #D1A279;
+  --brass: #D1A279;
+  --brass-light: #F7DFBD;
   --red: #9B2C2C;
-  --thread: #9E6743;
-  --line: rgba(171,119,82,0.15);
+  --thread: #D1A279;
+  --line: rgba(240,201,163,0.3);
   --green: #3E7A52;
-  --ink-soft: #70594B;
+  --ink-soft: #7D6650;
+}
+
+/* Overrides for light header text in IBC theme to ensure readable contrast */
+.quiz-theme-wrapper[data-theme="ibc"] .masthead {
+  color: #382A1B !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .masthead h1,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead p,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .chip,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead .status {
+  color: #382A1B !important;
+}
+.quiz-theme-wrapper[data-theme="ibc"] .brand .seal {
+  border-color: #D1A279 !important;
+  color: #382A1B !important;
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* ===========================================
