@@ -4,6 +4,8 @@ import Course from "./pages/Course";
 import ChapterList from "./pages/ChapterList";
 import ComingSoon from "./pages/ComingSoon";
 import Quiz from "./pages/Quiz";
+import Login from "./pages/Login";
+import Admin from "./pages/Admin";
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
       <Route path="/course/:courseSlug/:setType" element={<ChapterList />} />
       <Route path="/quiz/:chapterId" element={<Quiz />} />
       <Route path="/coming-soon" element={<ComingSoon />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/admin" element={<Admin />} />
     </Routes>
   );
 }

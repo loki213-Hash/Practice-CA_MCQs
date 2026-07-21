@@ -1,16 +1,19 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
 import { getStatsForCourse } from "../services/questionService";
+import { useAuth } from "../context/AuthContext";
+import { getUserProgressStats, initializeUserProgress } from "../services/progressService";
+import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 
-function ChakraDial() {
+function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
   const [revealed, setRevealed] = useState(0);
   const [pct, setPct] = useState(0);
   const dialRef = useRef(null);
 
-  const total = 24;
-  const mastered = 15; // Demo master value
-  const targetPct = Math.round((mastered / total) * 100);
+  const total = totalChapters;
+  const mastered = masteredCount;
+  const targetPct = accuracy;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,19 +27,23 @@ function ChakraDial() {
     }, 55);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [total]);
 
   useEffect(() => {
+    // Reset pct and animate up when targetPct changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPct(0);
     if (targetPct === 0) return;
+    let currentPct = 0;
     const interval = setInterval(() => {
-      setPct((prev) => {
-        if (prev >= targetPct) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1400 / targetPct);
+      currentPct += 1;
+      if (currentPct >= targetPct) {
+        setPct(targetPct);
+        clearInterval(interval);
+      } else {
+        setPct(currentPct);
+      }
+    }, Math.max(10, 1400 / targetPct));
 
     return () => clearInterval(interval);
   }, [targetPct]);
@@ -95,7 +102,7 @@ function ChakraDial() {
       );
     }
     return arr;
-  }, [revealed]);
+  }, [revealed, total, mastered]);
 
   return (
     <div 
@@ -119,7 +126,7 @@ function ChakraDial() {
           <div className="sub">Accuracy this week</div>
           <div className="score">{mastered} / {total} chapters mastered</div>
         </div>
-        <div className="dial-caption">Live progress — 24 chapters, 24 spokes</div>
+        <div className="dial-caption">Live progress — {total} chapters, {total} spokes</div>
       </div>
     </div>
   );
@@ -129,11 +136,65 @@ function Home() {
   const [courses, setCourses] = useState([]);
   const [stats, setStats] = useState({});
   const [error, setError] = useState("");
-  const [activeAspirants, setActiveAspirants] = useState(18400);
   const [attemptedCount, setAttemptedCount] = useState(0);
   const [finderRate, setFinderRate] = useState(0);
+  const [userStats, setUserStats] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifInbox, setShowNotifInbox] = useState(false);
 
+  const { user, username, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Load student notifications/inbox messages
+  useEffect(() => {
+    async function loadNotifications() {
+      if (username && username !== "admin") {
+        try {
+          const data = await getNotificationsForUser(username);
+          setNotifications(data);
+        } catch (err) {
+          console.error("Failed to load notifications:", err);
+        }
+      }
+    }
+    loadNotifications();
+    // Poll notifications every 60 seconds (down from 8s) to reduce Supabase API usage
+    let interval = null;
+    if (username && username !== "admin") {
+      interval = setInterval(loadNotifications, 60000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [username]);
+
+  useEffect(() => {
+    if (username === "admin") {
+      navigate("/admin", { replace: true });
+    }
+  }, [username, navigate]);
+
+  // Load user progress statistics from Supabase
+  useEffect(() => {
+    async function loadUserStats() {
+      if (user) {
+        try {
+          // Only initialize once per browser session to avoid repeated DB calls
+          if (!sessionStorage.getItem("progress_initialized")) {
+            await initializeUserProgress();
+            sessionStorage.setItem("progress_initialized", "1");
+          }
+          const progressData = await getUserProgressStats();
+          setUserStats(progressData);
+        } catch (err) {
+          console.error("Error loading progress stats:", err);
+        }
+      } else {
+        setUserStats(null);
+      }
+    }
+    loadUserStats();
+  }, [user]);
 
   // Load courses and dynamic stats from Supabase
   useEffect(() => {
@@ -160,17 +221,6 @@ function Home() {
       }
     }
     loadCoursesAndStats();
-  }, []);
-
-  // Fluctuating live practitioner count
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveAspirants((prev) => {
-        const change = Math.floor(Math.random() * 41) - 20; // -20 to +20
-        return prev + change;
-      });
-    }, 4000);
-    return () => clearInterval(interval);
   }, []);
 
   // Animate trust row counters
@@ -317,9 +367,133 @@ function Home() {
           </a>
         </nav>
 
-        <div className="nav-actions">
-          <button type="button" className="btn-ghost">Login</button>
-          <button type="button" className="btn-solid">Continue as Guest</button>
+        <div className="nav-actions" style={{ position: "relative" }}>
+          {user ? (
+            <>
+              {/* Notification Bell */}
+              <button
+                type="button"
+                className="bell-btn"
+                onClick={() => setShowNotifInbox(!showNotifInbox)}
+                style={{
+                  position: "relative",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  padding: "6px",
+                  marginRight: "14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  color: "var(--navy)"
+                }}
+                title="Notifications Inbox"
+              >
+                🔔
+                {notifications.some(n => !n.is_read) && (
+                  <span
+                    className="bell-dot"
+                    style={{
+                      position: "absolute",
+                      top: "2px",
+                      right: "2px",
+                      width: "8px",
+                      height: "8px",
+                      background: "var(--red)",
+                      borderRadius: "50%",
+                      border: "1.5px solid #fff"
+                    }}
+                  />
+                )}
+              </button>
+
+              <span className="user-welcome" style={{ marginRight: "16px", fontSize: "14px", fontWeight: "600", color: "var(--navy)" }}>
+                Welcome, <strong>{username}</strong>
+              </span>
+              <button type="button" className="btn-solid" onClick={logout}>Logout</button>
+
+              {/* Notification Dropdown Box */}
+              {showNotifInbox && (
+                <div className="notif-dropdown" style={{
+                  position: "absolute",
+                  top: "46px",
+                  right: "10px",
+                  width: "320px",
+                  background: "#fff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                  zIndex: 1000,
+                  padding: "16px",
+                  textAlign: "left"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--line)", paddingBottom: "10px", marginBottom: "10px" }}>
+                    <h4 style={{ margin: 0, fontSize: "13px", color: "var(--navy)", fontWeight: 600 }}>Inbox Notifications</h4>
+                    <button
+                      type="button"
+                      style={{ background: "none", border: "none", fontSize: "10.5px", color: "var(--brass)", cursor: "pointer", fontWeight: 600 }}
+                      onClick={async () => {
+                        for (const n of notifications) {
+                          if (!n.is_read) await markAsRead(n.id, username);
+                        }
+                        const updated = await getNotificationsForUser(username);
+                        setNotifications(updated);
+                      }}
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {notifications.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: "11.5px", color: "var(--ink-soft)", textAlign: "center", padding: "20px 0" }}>
+                        No notifications yet.
+                      </p>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          style={{
+                            padding: "10px",
+                            borderRadius: "8px",
+                            background: n.is_read ? "rgba(0,0,0,0.01)" : "rgba(197, 166, 103, 0.06)",
+                            border: "1px solid",
+                            borderColor: n.is_read ? "var(--line)" : "rgba(197, 166, 103, 0.2)",
+                          }}
+                        >
+                          <p style={{ margin: "0 0 6px", fontSize: "12px", color: "var(--ink)", lineHeight: "1.4" }}>
+                            {n.message}
+                          </p>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "9.5px", color: "var(--ink-soft)" }}>
+                              {new Date(n.created_at).toLocaleDateString()}
+                            </span>
+                            {!n.is_read && (
+                              <button
+                                type="button"
+                                style={{ background: "none", border: "none", fontSize: "9.5px", color: "var(--navy)", cursor: "pointer", fontWeight: 700 }}
+                                onClick={async () => {
+                                  await markAsRead(n.id, username);
+                                  const updated = await getNotificationsForUser(username);
+                                  setNotifications(updated);
+                                }}
+                              >
+                                Mark as Read
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn-ghost" onClick={() => navigate("/login")}>Login</button>
+              <a href="#levels" className="btn-solid" style={{ textDecoration: "none" }}>Continue as Guest</a>
+            </>
+          )}
         </div>
       </header>
 
@@ -334,7 +508,7 @@ function Home() {
           </p>
           <div className="hero-ctas">
             <a href="#levels" className="btn-primary">
-              Begin a free mock test <span>→</span>
+              Lets Practice MCQs <span>→</span>
             </a>
             <a href="#how" className="btn-secondary">See how scoring works</a>
           </div>
@@ -355,7 +529,11 @@ function Home() {
           </div>
         </div>
 
-        <ChakraDial />
+        <ChakraDial
+          masteredCount={userStats ? userStats.chapterCount : 15}
+          totalChapters={24}
+          accuracy={userStats ? userStats.averageAccuracy : 63}
+        />
       </main>
 
       {/* ---------- Levels ---------- */}
