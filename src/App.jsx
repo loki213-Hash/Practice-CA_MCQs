@@ -6,6 +6,7 @@ import ComingSoon from "./pages/ComingSoon";
 import Quiz from "./pages/Quiz";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -17,8 +18,10 @@ function App() {
       <Route path="/coming-soon" element={<ComingSoon />} />
       <Route path="/login" element={<Login />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
 export default App;
+
