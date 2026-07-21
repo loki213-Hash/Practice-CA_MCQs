@@ -503,7 +503,7 @@ export default function Quiz() {
 
                       <div style={{ marginTop: "24px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 8px" }}>
-                          <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "16.5px", color: "var(--navy)", margin: 0 }}>
+                          <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "16.5px", color: "var(--ink)", margin: 0 }}>
                             Select topics to include
                           </h3>
                           {uniqueTopics.length > 0 && (
@@ -1032,7 +1032,7 @@ export default function Quiz() {
       {showTimeoutModal && (
         <div className="confirm-overlay open" style={{ zIndex: 10000 }}>
           <div className="confirm-box" style={{ maxWidth: "450px" }}>
-            <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "var(--navy)", margin: "0 0 10px" }}>
+            <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "var(--ink)", margin: "0 0 10px" }}>
               ⏰ 3 Hours Completed!
             </h3>
             <p style={{ margin: "10px 0 20px", fontSize: "14px", color: "var(--ink-soft)", lineHeight: "1.5" }}>
@@ -1089,7 +1089,7 @@ export default function Quiz() {
             width: "100%",
             boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
           }}>
-            <h3 style={{ fontSize: "18px", color: "var(--navy)", fontWeight: 700, margin: "0 0 10px", textAlign: "left" }}>
+            <h3 style={{ fontSize: "18px", color: "var(--ink)", fontWeight: 700, margin: "0 0 10px", textAlign: "left" }}>
               📝 Submit Student Feedback
             </h3>
             <p style={{ fontSize: "12.5px", color: "#6b7280", margin: "0 0 16px", textAlign: "left", lineHeight: "1.4" }}>
