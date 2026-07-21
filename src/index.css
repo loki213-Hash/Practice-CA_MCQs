@@ -2614,21 +2614,21 @@ img { max-width: 100%; display: block; }
   --ink-soft: #6b5e4a;
 }
 
-/* ---- Theme: FEMA — "Foreign Exchange" (dark teal banknote) ---- */
+/* ---- Theme: FEMA — "Foreign Exchange / Blue Banknote" ---- */
 .quiz-theme-wrapper[data-theme="fema"] {
-  --paper: #E8EDE9;
-  --ink: #1a2420;
-  --card: #f8fbf9;
-  --navy: #0E3B3B;
-  --navy-2: #082C2C;
-  --navy-3: #15504F;
-  --brass: #2E8B6E;
-  --brass-light: #6CC4A8;
-  --red: #8C2F39;
-  --thread: #1A6B5A;
-  --line: rgba(14,59,59,0.12);
-  --green: #2E8B6E;
-  --ink-soft: #4a6b5e;
+  --paper: #E6ECF5;        /* soft blue banknote paper */
+  --ink: #111C2C;         /* deep navy ink */
+  --card: #f6fafe;
+  --navy: #1B365D;        /* deep royal blue */
+  --navy-2: #0E2244;
+  --navy-3: #2B4D7E;
+  --brass: #D69E2E;       /* warm gold threads */
+  --brass-light: #F6E05E;
+  --red: #9B2C2C;
+  --thread: #2B6CB0;      /* security-thread blue */
+  --line: rgba(27,54,93,0.12);
+  --green: #2F855A;
+  --ink-soft: #4A5568;
 }
 
 /* ---- Theme: SEBI — "Digital Stock Market" (dark fintech) ---- */
@@ -2705,13 +2705,34 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme] .qcard { background: var(--card); border-color: var(--line); }
 
 /* -- Stat cards on start screen -- */
-.quiz-theme-wrapper[data-theme] .stat-card { border-color: var(--line); }
+.quiz-theme-wrapper[data-theme] .stat-card {
+  background: var(--card);
+  border-color: var(--line);
+}
+.quiz-theme-wrapper[data-theme] .stat-card .num {
+  color: var(--navy);
+}
 
 /* -- Instructions section -- */
 .quiz-theme-wrapper[data-theme] .instructions { color: var(--ink); }
 
 /* -- Topic pills -- */
-.quiz-theme-wrapper[data-theme] .topic-pill { border-color: var(--line); color: var(--ink); }
+.quiz-theme-wrapper[data-theme] .topic-pill {
+  border-color: var(--line);
+}
+.quiz-theme-wrapper[data-theme] .topic-pill:not(.deselected) {
+  color: #ffffff !important;
+  background: var(--navy) !important;
+}
+.quiz-theme-wrapper[data-theme] .topic-pill.deselected {
+  color: var(--ink-soft) !important;
+  background: transparent !important;
+}
+
+/* -- Results breakdown labels -- */
+.quiz-theme-wrapper[data-theme] .rbit {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
 
 /* ============================================
    MASTHEAD GUILLOCHE PATTERN OVERLAY
