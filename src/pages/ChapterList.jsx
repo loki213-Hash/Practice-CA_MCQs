@@ -98,6 +98,7 @@ function ChapterList() {
           <p className="eyebrow">
             {course.course_name}
             {setType !== "chapters" ? ` · ${setType}` : ""}
+            {totalQuestions > 0 ? ` · ${totalQuestions.toLocaleString()} MCQs` : ""}
           </p>
           <h1>Choose a chapter</h1>
         </header>

@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
 import { getQuestionsForChapter } from "../services/questionService";
 import { getChapterById } from "../services/chapterService";
+import { useAuth } from "../context/AuthContext";
+import { saveQuizAttempt } from "../services/progressService";
 import { supabase } from "../supabase/supabase";
 
 export default function Quiz() {
   const { chapterId } = useParams();
-  const navigate = useNavigate();
+  const { user, username } = useAuth();
 
   const [screen, setScreen] = useState("start"); // 'start' | 'quiz' | 'results'
   const [questions, setQuestions] = useState([]);
@@ -20,14 +22,18 @@ export default function Quiz() {
   const [marked, setMarked] = useState([]);
   const [visited, setVisited] = useState([]);
 
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  // Timer states (3 hours = 10800 seconds)
+  const [remainingSeconds, setRemainingSeconds] = useState(10800);
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [hasConfirmedOvertime, setHasConfirmedOvertime] = useState(false);
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [reviewFilter, setReviewFilter] = useState("all"); // 'all' | 'correct' | 'incorrect' | 'unattempted'
+  const [reviewFilter, setReviewFilter] = useState("all");
   const [flaggedQuestions, setFlaggedQuestions] = useState({});
   const [selectedTopics, setSelectedTopics] = useState({});
 
   const PASS_THRESHOLD = 55;
+  const FOCUS_THRESHOLD = 60;
 
   useEffect(() => {
     async function loadData() {
@@ -61,37 +67,55 @@ export default function Quiz() {
     loadData();
   }, [chapterId]);
 
+  // strict 3-hour timer ticking logic
   useEffect(() => {
     let interval = null;
     if (screen === "quiz") {
       interval = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
+        setRemainingSeconds((prev) => {
+          if (prev === 1 && !hasConfirmedOvertime) {
+            setShowTimeoutModal(true);
+            return 0;
+          }
+          if (prev === 0 && !hasConfirmedOvertime) {
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
-    } else {
-      if (interval) clearInterval(interval);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [screen]);
+  }, [screen, hasConfirmedOvertime]);
 
-  const formatTime = (sec) => {
-    const m = Math.floor(sec / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = Math.floor(sec % 60)
-      .toString()
-      .padStart(2, "0");
-    return `${m}:${s}`;
+  const formatRemainingTime = (sec) => {
+    const isNegative = sec < 0;
+    const absSec = Math.abs(sec);
+    const h = Math.floor(absSec / 3600).toString().padStart(2, "0");
+    const m = Math.floor((absSec % 3600) / 60).toString().padStart(2, "0");
+    const s = (absSec % 60).toString().padStart(2, "0");
+    return `${isNegative ? "-" : ""}${h}:${m}:${s}`;
+  };
+
+  const formatDuration = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    
+    const parts = [];
+    if (h > 0) parts.push(`${h} hr${h > 1 ? "s" : ""}`);
+    if (m > 0) parts.push(`${m} min${m > 1 ? "s" : ""}`);
+    if (s > 0 || parts.length === 0) parts.push(`${s} sec${s > 1 ? "s" : ""}`);
+    return parts.join(" ");
   };
 
   const startTest = () => {
     if (questions.length === 0) return;
 
-    // Filter active questions based on selected topics
     const filteredQuestions = questions.filter((q) => {
       const topic = q.topic;
-      if (!topic) return true; // Default general topics
+      if (!topic) return true;
       return selectedTopics[topic] !== false;
     });
 
@@ -109,13 +133,43 @@ export default function Quiz() {
     initialVisited[0] = true;
     setVisited(initialVisited);
 
-    setElapsedSeconds(0);
+    // Store start timestamp to prevent timer reset on page refresh
+    const startKey = `ca_quiz_start_${chapterId}`;
+    const existingStart = sessionStorage.getItem(startKey);
+    if (!existingStart) {
+      sessionStorage.setItem(startKey, Date.now().toString());
+    }
+    // Calculate remaining time from stored start, so refresh doesn't restart the clock
+    const storedStart = parseInt(sessionStorage.getItem(startKey) || Date.now());
+    const elapsed = Math.floor((Date.now() - storedStart) / 1000);
+    const trueRemaining = Math.max(0, 10800 - elapsed);
+
+    setRemainingSeconds(trueRemaining);
+    setHasConfirmedOvertime(false);
+    setShowTimeoutModal(false);
     setScreen("quiz");
   };
 
   const handleFlagQuestion = async (questionId) => {
     if (flaggedQuestions[questionId]) return;
     setFlaggedQuestions((prev) => ({ ...prev, [questionId]: true }));
+    
+    // Fallback cache: Save flag to localStorage first for admin panel sync if table is missing
+    try {
+      const localFlags = JSON.parse(localStorage.getItem("ca_quiz_local_flags") || "[]");
+      if (!localFlags.some(f => f.question_id === questionId)) {
+        localFlags.push({
+          question_id: questionId,
+          flag_type: "not_required",
+          flagged_by: username || "student",
+          created_at: new Date().toISOString()
+        });
+        localStorage.setItem("ca_quiz_local_flags", JSON.stringify(localFlags));
+      }
+    } catch (e) {
+      console.warn("Failed to write local flag cache:", e);
+    }
+
     try {
       const { error } = await supabase
         .from("question_flags")
@@ -123,6 +177,7 @@ export default function Quiz() {
           {
             question_id: questionId,
             flag_type: "not_required",
+            flagged_by: username || "student",
             created_at: new Date().toISOString(),
           },
         ]);
@@ -135,7 +190,7 @@ export default function Quiz() {
   };
 
   const selectOption = (letter) => {
-    if (answers[current] !== null) return; // locked
+    if (answers[current] !== null) return;
     const newAnswers = [...answers];
     newAnswers[current] = letter;
     setAnswers(newAnswers);
@@ -181,15 +236,26 @@ export default function Quiz() {
     setShowConfirm(false);
     setScreen("results");
     window.scrollTo(0, 0);
+
+    if (user) {
+      saveQuizAttempt({
+        chapterId: Number(chapterId),
+        score: stats.correct,
+        totalQuestions: TOTAL,
+      }).catch((err) => {
+        console.error("Failed to save progress to Supabase:", err);
+      });
+    }
   };
 
   const restartTest = () => {
     setScreen("start");
-    setElapsedSeconds(0);
+    setRemainingSeconds(10800);
     window.scrollTo(0, 0);
   };
 
   const TOTAL = screen === "start" ? questions.length : activeQuestions.length;
+  
   const uniqueTopics = useMemo(() => {
     return Array.from(new Set(questions.map((q) => q.topic))).filter(Boolean);
   }, [questions]);
@@ -201,24 +267,22 @@ export default function Quiz() {
     }));
   };
 
-  const q = activeQuestions[current];
-  const isAnswered = q && answers[current] !== null;
-
-  // Results computations
-  const stats = useMemo(() => {
+  // Inline stats calculation
+  const stats = (() => {
     let correct = 0;
     let incorrect = 0;
     let unattempted = 0;
     const topicStats = {};
 
     activeQuestions.forEach((q, i) => {
+      const chosen = answers[i];
       const topic = q.topic || "General";
       if (!topicStats[topic]) topicStats[topic] = { correct: 0, total: 0 };
       topicStats[topic].total++;
 
-      if (answers[i] === null) {
+      if (chosen === null) {
         unattempted++;
-      } else if (answers[i] === q.correct_option) {
+      } else if (chosen === q.correct_option) {
         correct++;
         topicStats[topic].correct++;
       } else {
@@ -226,35 +290,40 @@ export default function Quiz() {
       }
     });
 
-    const pct = TOTAL === 0 ? 0 : Math.round((correct / TOTAL) * 100);
+    const pct = TOTAL > 0 ? Math.round((correct / TOTAL) * 100) : 0;
     return { correct, incorrect, unattempted, pct, topicStats };
-  }, [activeQuestions, answers, TOTAL]);
-
-  let headline = "";
-  if (stats.pct >= 80) headline = "Excellent work — exam-ready performance.";
-  else if (stats.pct >= 60) headline = "Solid attempt — a bit more revision will seal it.";
-  else if (stats.pct >= 55) headline = "Fair attempt — revisit the flagged topics below.";
-  else headline = "Needs more preparation — review each explanation carefully.";
+  })();
 
   const hasPassed = stats.pct >= PASS_THRESHOLD;
+  const headline = stats.pct >= 80
+    ? "Expert Grip!"
+    : stats.pct >= 60
+    ? "Good Effort!"
+    : stats.pct >= 55
+    ? "Pass Mark Cleared"
+    : "Review Recommended";
 
-  const FOCUS_THRESHOLD = 60;
-  const focusTopics = useMemo(() => {
-    return Object.keys(stats.topicStats)
-      .map((topic) => {
-        const st = stats.topicStats[topic];
-        return {
-          topic,
-          acc: Math.round((st.correct / st.total) * 100),
-          correct: st.correct,
-          total: st.total,
-        };
-      })
-      .filter((t) => t.acc < FOCUS_THRESHOLD)
-      .sort((a, b) => a.acc - b.acc);
-  }, [stats.topicStats]);
+  const focusTopics = Object.keys(stats.topicStats)
+    .map((topic) => {
+      const st = stats.topicStats[topic];
+      const acc = Math.round((st.correct / st.total) * 100);
+      return { topic, acc, correct: st.correct, total: st.total };
+    })
+    .filter((t) => t.acc < FOCUS_THRESHOLD)
+    .sort((a, b) => a.acc - b.acc);
 
   const sortedTopics = Object.keys(stats.topicStats).sort();
+
+  const totalTimeTakenSeconds = remainingSeconds >= 0 
+    ? 10800 - remainingSeconds 
+    : 10800 + Math.abs(remainingSeconds);
+
+  const extraTimeTakenSeconds = remainingSeconds < 0 
+    ? Math.abs(remainingSeconds) 
+    : 0;
+
+  const q = activeQuestions[current];
+  const isAnswered = q && answers[current] !== null;
 
   return (
     <>
@@ -262,8 +331,8 @@ export default function Quiz() {
         <div className="brand">
           <div className="seal">CA</div>
           <div className="title-block">
-            <h1>{chapter ? `${chapter.chapter_name.trim()} - Test` : "Practice Test"}</h1>
-            <p>Chapter {chapterId} &mdash; Practice MCQ Test</p>
+            <h1>{chapter ? `${chapter.chapter_name.trim()} - Practice` : "Practice Session"}</h1>
+            <p>Chapter {chapterId} &mdash; Practice MCQ Session</p>
           </div>
         </div>
         <div className="status">
@@ -273,7 +342,7 @@ export default function Quiz() {
             </div>
           )}
           <div className="chip">
-            Time <b>{formatTime(elapsedSeconds)}</b>
+            Time Left <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatRemainingTime(remainingSeconds)}</b>
           </div>
         </div>
       </div>
@@ -283,10 +352,10 @@ export default function Quiz() {
           <div className="wrap">
             <div className="cover">
               <div className="cover-head">
-                <p className="eyebrow">Practice Test &middot; Objective Type</p>
-                <h2>Test your grip before it's tested in the exam hall.</h2>
+                <p className="eyebrow">Practice Session &middot; Objective Type</p>
+                <h2>Interactive 3-Hour Practice Session</h2>
                 <p className="sub">
-                  Objective questions drawn from the study material &mdash; covering all key sections and topics, with a sharp focus on limits, conditions and exceptions.
+                  Practice objective questions drawn from the study material. An active 3-hour timer helps you gauge your pace. You will receive instant feedback and detailed explanations as soon as you select an option.
                 </p>
               </div>
               <div className="cover-body">
@@ -310,7 +379,7 @@ export default function Quiz() {
                         <div className="lbl">Options each</div>
                       </div>
                       <div className="stat-card">
-                        <div className="num">&infin;</div>
+                        <div className="num">3 hrs</div>
                         <div className="lbl">Time limit</div>
                       </div>
                     </div>
@@ -343,12 +412,11 @@ export default function Quiz() {
                     <div className="instructions">
                       <h3>Instructions</h3>
                       <ol>
-                        <li>Each question carries <b>one mark</b>; there is <b>no negative marking</b> in this practice test.</li>
-                        <li>As soon as you tap an option, you'll instantly see whether it's <b>Correct</b> or <b>Wrong</b>, along with a full <b>explanation</b> &mdash; then move on with <b>Next</b>.</li>
-                        <li>Use <b>Mark for Review &amp; Next</b> to flag a question, or <b>Clear Response</b> to unlock and re-attempt an answered question.</li>
-                        <li>The <b>question palette</b> on the right lets you jump to any question directly, at any time.</li>
-                        <li>Click <b>Submit Test</b> once you are done &mdash; you can submit even with questions left unanswered.</li>
-                        <li>On submission, you'll see your overall <b>pass percentage</b>, a topic-wise performance breakdown, and a full explanation for every question.</li>
+                        <li>Each question carries <b>one mark</b>; there is <b>no negative marking</b>.</li>
+                        <li>Feedback and explanations are **displayed instantly** when you select an option.</li>
+                        <li>Use <b>Mark for Review &amp; Next</b> to flag questions for later check, or <b>Clear Response</b> to change an option.</li>
+                        <li>If the timer hits `00:00:00`, a popup will allow you to submit immediately or continue into overtime (which will be logged).</li>
+                        <li>Click <b>Submit Test</b> once you are finished.</li>
                       </ol>
 
                       <div style={{ marginTop: "24px" }}>
@@ -386,7 +454,7 @@ export default function Quiz() {
                       onClick={startTest}
                       disabled={TOTAL === 0}
                     >
-                      Start Test <span className="arrow">&rarr;</span>
+                      Start Practice <span className="arrow">&rarr;</span>
                     </button>
                   </>
                 )}
@@ -443,17 +511,6 @@ export default function Quiz() {
                   })}
                 </div>
 
-                <div className="flag-basic-container">
-                  <button
-                    type="button"
-                    className={`flag-basic-btn ${flaggedQuestions[q.id] ? "flagged" : ""}`}
-                    onClick={() => handleFlagQuestion(q.id)}
-                    title="If you feel this question is too basic or unnecessary, click to flag it. Flagged questions will be reviewed by admin for potential removal."
-                  >
-                    <span>🚩</span> {flaggedQuestions[q.id] ? "Flagged as Not Required" : "Not Required?"}
-                  </button>
-                </div>
-
                 {isAnswered && (
                   <div id="qFeedback">
                     <div
@@ -474,6 +531,20 @@ export default function Quiz() {
                     </div>
                   </div>
                 )}
+
+                <div className="flag-basic-container" style={{ marginTop: isAnswered ? "20px" : "10px", display: "flex", alignItems: "center", gap: "14px" }}>
+                  <button
+                    type="button"
+                    className={`flag-basic-btn ${flaggedQuestions[q.id] ? "flagged" : ""}`}
+                    onClick={() => handleFlagQuestion(q.id)}
+                    title="If you feel this question is too basic or unnecessary, click to flag it."
+                  >
+                    <span>🚩</span> {flaggedQuestions[q.id] ? "Flagged as Not Required" : "Not Required?"}
+                  </button>
+                  <span style={{ fontSize: "11px", color: "var(--ink-soft)", fontWeight: 500 }}>
+                    [Ref ID: #{q.id}]
+                  </span>
+                </div>
 
                 <div className="qnav">
                   <div className="nav-left">
@@ -572,6 +643,9 @@ export default function Quiz() {
                     {hasPassed ? "Passed" : "Better Luck Next Time"}
                   </span>
                 </h3>
+                <p style={{ margin: "-4px 0 16px", fontSize: "15px", color: "rgba(255, 255, 255, 0.8)", fontWeight: "500" }}>
+                  {headline}
+                </p>
                 <div className="breakdown">
                   <div className="rbit correct">
                     <b>{stats.correct}</b>Correct
@@ -583,8 +657,13 @@ export default function Quiz() {
                     <b>{stats.unattempted}</b>Unattempted
                   </div>
                   <div className="rbit">
-                    <b>{formatTime(elapsedSeconds)}</b>Time taken
+                    <b>{formatDuration(totalTimeTakenSeconds)}</b>Time taken
                   </div>
+                  {extraTimeTakenSeconds > 0 && (
+                    <div className="rbit incorrect" style={{ borderColor: "var(--red)" }}>
+                      <b style={{ color: "var(--red)" }}>{formatDuration(extraTimeTakenSeconds)}</b>Extra Time Taken
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -765,6 +844,7 @@ export default function Quiz() {
         </div>
       )}
 
+      {/* CONFIRM SUBMIT OVERLAY */}
       <div className={`confirm-overlay ${showConfirm ? "open" : ""}`}>
         <div className="confirm-box">
           <p>Submit the test? You will not be able to change your answers after this.</p>
@@ -778,6 +858,44 @@ export default function Quiz() {
           </div>
         </div>
       </div>
+
+      {/* TIMEOUT OVERLAY POPUP */}
+      {showTimeoutModal && (
+        <div className="confirm-overlay open" style={{ zIndex: 10000 }}>
+          <div className="confirm-box" style={{ maxWidth: "450px" }}>
+            <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "var(--navy)", margin: "0 0 10px" }}>
+              ⏰ 3 Hours Completed!
+            </h3>
+            <p style={{ margin: "10px 0 20px", fontSize: "14px", color: "var(--ink-soft)", lineHeight: "1.5" }}>
+              You have completed the strict 3-hour limit. You can submit the exam now or continue testing (overtime will be logged and displayed in your results).
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                className="btn primary"
+                style={{ width: "100%", height: "46px" }}
+                onClick={() => {
+                  setShowTimeoutModal(false);
+                  finishTest();
+                }}
+              >
+                Submit Test
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ width: "100%", height: "46px", background: "none", border: "1px solid var(--line)" }}
+                onClick={() => {
+                  setHasConfirmedOvertime(true);
+                  setShowTimeoutModal(false);
+                }}
+              >
+                Continue Test
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
