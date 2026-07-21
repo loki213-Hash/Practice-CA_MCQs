@@ -91,14 +91,32 @@ export default function Admin() {
 
   const loadChapters = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. Fetch courses to create mapping
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("id, course_name");
+      
+      const courseMap = {};
+      if (courseData) {
+        courseData.forEach((c) => {
+          courseMap[c.id] = c.course_name;
+        });
+      }
+
+      // 2. Fetch chapters
+      const { data: chapterData, error } = await supabase
         .from("chapters")
-        .select("id, chapter_name")
+        .select("id, chapter_name, course_id")
         .order("id");
-      if (!error && data) {
-        setDbChapters(data);
-        if (data.length > 0) {
-          setChapterId(String(data[0].id));
+
+      if (!error && chapterData) {
+        const mapped = chapterData.map((chap) => ({
+          ...chap,
+          course_name: courseMap[chap.course_id] || "Unknown Course"
+        }));
+        setDbChapters(mapped);
+        if (mapped.length > 0) {
+          setChapterId(String(mapped[0].id));
         }
       }
     } catch (err) {
@@ -1048,7 +1066,7 @@ export default function Admin() {
                       {dbChapters.length > 0 ? (
                         dbChapters.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.chapter_name}
+                            [{c.course_name}] {c.chapter_name}
                           </option>
                         ))
                       ) : (
