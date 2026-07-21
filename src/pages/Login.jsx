@@ -10,6 +10,8 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [favouritePlace, setFavouritePlace] = useState("");
+  const [firstnameYob, setFirstnameYob] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -76,6 +78,8 @@ export default function Login() {
   const handleToggle = (signUpMode) => {
     setIsSignUp(signUpMode);
     setError("");
+    setFavouritePlace("");
+    setFirstnameYob("");
     flyBird(signUpMode ? "rtl" : "ltr");
   };
 
@@ -131,18 +135,39 @@ export default function Login() {
       setError("Passwords do not match.");
       return;
     }
+    if (isSignUp) {
+      if (!favouritePlace.trim()) {
+        setError("Please enter your Favourite Place (Recovery Word 1).");
+        return;
+      }
+      if (!firstnameYob.trim()) {
+        setError("Please enter your Firstname_Year of Birth (Recovery Word 2).");
+        return;
+      }
+      if (!/^[a-zA-Z0-9]+_[0-9]{4}$/.test(firstnameYob.trim())) {
+        setError("Firstname_Year of Birth must follow the format 'Firstname_YYYY' (e.g. John_1998).");
+        return;
+      }
+    }
 
     setLoading(true);
     try {
       if (isSignUp) {
-        await register(cleanUsername, password);
+        await register(cleanUsername, password, favouritePlace, firstnameYob);
         await login(cleanUsername, password, rememberMe);
       } else {
         await login(cleanUsername, password, rememberMe);
       }
       navigate("/", { replace: true });
     } catch (err) {
-      let msg = err.message || "An error occurred.";
+      let msg;
+      if (err && typeof err === "object") {
+        msg = err.message || err.error_description || "An error occurred.";
+      } else if (typeof err === "string") {
+        msg = err;
+      } else {
+        msg = "An error occurred.";
+      }
       if (msg.includes("already registered") || msg.includes("User already exists")) {
         msg = "This username is already taken. Please choose another one.";
       } else if (msg.includes("Invalid login credentials")) {
@@ -374,6 +399,40 @@ export default function Login() {
                       <i></i>
                     </div>
                   </button>
+                </div>
+
+                {/* Recovery Phrase: Favourite Place */}
+                <div className="input-box">
+                  <input
+                    type="text"
+                    placeholder="Favourite Place"
+                    value={favouritePlace}
+                    onChange={(e) => setFavouritePlace(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+
+                {/* Recovery Phrase: Firstname_Year of Birth */}
+                <div className="input-box">
+                  <input
+                    type="text"
+                    placeholder="Firstname_Year of Birth (e.g. John_1998)"
+                    value={firstnameYob}
+                    onChange={(e) => setFirstnameYob(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
                 </div>
 
                 <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading}>

@@ -25,10 +25,13 @@ export default function Admin() {
     flagsCount: 0,
   });
 
-  // Flagged questions state
   const [flaggedItems, setFlaggedItems] = useState([]);
   const [flagsLoading, setFlagsLoading] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
+
+  // Recovery phrase student registration list state
+  const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [recoverySearch, setRecoverySearch] = useState("");
 
   // Bulk Importer states
   const [chapterId, setChapterId] = useState("1");
@@ -128,6 +131,7 @@ export default function Admin() {
     loadChapters();
     loadKpisAndStats();
     loadFlags();
+    loadRegisteredUsers();
     setSuccess("Database statistics refreshed successfully!");
   };
 
@@ -272,17 +276,33 @@ export default function Admin() {
     }
   };
 
+  const loadRegisteredUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("registered_users")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setRegisteredUsers(data);
+      }
+    } catch (err) {
+      console.warn("Failed to load registered users:", err);
+    }
+  };
+
   // Load chapters & initial data
   useEffect(() => {
     if (!isAdmin) return;
     loadChapters();
     loadKpisAndStats();
     loadFlags();
+    loadRegisteredUsers();
 
     // Poll platform database statistics every 5 minutes (300,000ms) to avoid rate limits
     const pollInterval = setInterval(() => {
       loadKpisAndStats();
       loadFlags();
+      loadRegisteredUsers();
     }, 300000);
 
     return () => clearInterval(pollInterval);
@@ -618,6 +638,14 @@ export default function Admin() {
                 onClick={() => { setActiveTab("import"); setSuccess(null); setError(null); }}
               >
                 📝 Bulk Importer
+              </button>
+              <button
+                type="button"
+                className={`admin-tab-btn ${activeTab === "recovery" ? "active" : ""}`}
+                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
+                onClick={() => { setActiveTab("recovery"); setSuccess(null); setError(null); }}
+              >
+                🔑 Student Credentials
               </button>
             </div>
             
@@ -979,6 +1007,81 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                     >
                       {importing ? "Importing..." : "Import to Database"}
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: STUDENT RECOVERY CREDENTIALS */}
+            {activeTab === "recovery" && (
+              <div className="admin-panel">
+                <div className="panel-head" style={{ marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "18px", color: "#111622", fontWeight: "600" }}>Student Verification &amp; Recovery Phrases</h3>
+                    <p style={{ fontSize: "12.5px", color: "#6b7280" }}>Verify recovery phrase answers verbally or via DM before resetting passwords manually.</p>
+                  </div>
+                  
+                  {/* Search filter */}
+                  <div style={{ position: "relative", width: "240px" }}>
+                    <input
+                      type="text"
+                      placeholder="Search username..."
+                      value={recoverySearch}
+                      onChange={(e) => setRecoverySearch(e.target.value)}
+                      style={{ padding: "8px 12px 8px 32px", border: "1px solid #e1e4eb", borderRadius: "6px", fontSize: "12.5px", outline: "none", width: "100%" }}
+                    />
+                    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" stroke="#a3a09a" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px" }}>
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </div>
+                </div>
+
+                {registeredUsers.length > 0 ? (
+                  <div style={{ overflowX: "auto", border: "1px solid #e1e4eb", borderRadius: "6px" }}>
+                    <table className="topic-table" style={{ margin: 0, fontSize: "13px" }}>
+                      <thead>
+                        <tr>
+                          <th>Username</th>
+                          <th>Phrase 1: Favourite Place</th>
+                          <th>Phrase 2: Firstname_Year of Birth</th>
+                          <th>Registered Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registeredUsers
+                          .filter((u) => !recoverySearch || u.username.toLowerCase().includes(recoverySearch.toLowerCase()))
+                          .map((user) => (
+                            <tr key={user.id}>
+                              <td style={{ padding: "10px 14px", fontWeight: "600", color: "var(--navy)" }}>{user.username}</td>
+                              <td style={{ padding: "10px 14px", color: "#111622" }}>{user.favourite_place}</td>
+                              <td className="mono" style={{ padding: "10px 14px" }}>{user.firstname_yob}</td>
+                              <td style={{ padding: "10px 14px", color: "#6b7280" }}>{new Date(user.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="card" style={{ padding: "24px", textAlign: "center", border: "1px dashed #e1e4eb" }}>
+                    <p style={{ fontSize: "13.5px", color: "#6b7280", margin: "0 0 16px" }}>No student recovery profiles found in database.</p>
+                    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "16px", background: "#fdf8f2", border: "1px solid #fbd5d5", borderRadius: "8px", textAlign: "left", fontSize: "12px", color: "#222" }}>
+                      <strong style={{ color: "#c27803" }}>Setup Required:</strong> Make sure you have run the `registered_users` table creation script in Supabase SQL editor:
+                      <pre style={{ background: "#272822", color: "#f8f8f2", padding: "10px", borderRadius: "4px", marginTop: "8px", overflowX: "auto", fontSize: "11px" }}>
+{`CREATE TABLE public.registered_users (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username text UNIQUE NOT NULL,
+  favourite_place text NOT NULL,
+  firstname_yob text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+ALTER TABLE public.registered_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anyone_can_insert" ON public.registered_users FOR INSERT WITH CHECK (true);
+CREATE POLICY "users_read_own_or_admin" ON public.registered_users FOR SELECT USING (
+  auth.uid() = id OR auth.email() = 'admin.caquiz@gmail.com'
+);`}
+                      </pre>
+                    </div>
                   </div>
                 )}
               </div>
