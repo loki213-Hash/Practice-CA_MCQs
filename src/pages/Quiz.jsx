@@ -40,8 +40,8 @@ export default function Quiz() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-  const PASS_THRESHOLD = 55;
-  const FOCUS_THRESHOLD = 60;
+  const PASS_THRESHOLD = 60;
+  const FOCUS_THRESHOLD = 65;
 
   useEffect(() => {
     async function loadData() {
@@ -346,9 +346,9 @@ export default function Quiz() {
   const hasPassed = stats.pct >= PASS_THRESHOLD;
   const headline = stats.pct >= 80
     ? "Expert Grip!"
-    : stats.pct >= 60
+    : stats.pct >= 70
     ? "Good Effort!"
-    : stats.pct >= 55
+    : stats.pct >= 60
     ? "Pass Mark Cleared"
     : "Review Recommended";
 

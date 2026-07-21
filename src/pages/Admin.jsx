@@ -263,8 +263,9 @@ export default function Admin() {
         }).length;
 
         // 3. Percent of students who flagged = unique flagged / unique appeared
-        const appearedCount = Math.max(1, totalUniqueAttempted);
-        const percentNotRequired = Math.min(100, Math.round((flagCount / appearedCount) * 100));
+        const percentNotRequired = totalUniqueAttempted > 0
+          ? Math.min(100, Math.round((flagCount / totalUniqueAttempted) * 100))
+          : 0;
 
         return {
           ...q,
