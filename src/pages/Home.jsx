@@ -679,7 +679,7 @@ function Home() {
             Help fellow aspirants expand their practice! If you remember any questions from your CA Final, SPOM, or Adv ITT exams, submit them via our Google Form.
           </p>
           <a
-            href="https://forms.google.com"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSeqh92WZ7LafRuOBV5tNen35yBoIakAJ9VpcTC74zIZDtxOpQ/viewform?usp=dialog"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"
