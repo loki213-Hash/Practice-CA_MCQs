@@ -316,6 +316,19 @@ export default function Quiz() {
     }));
   };
 
+  const allTopicsSelected = useMemo(() => {
+    return uniqueTopics.length > 0 && uniqueTopics.every((t) => selectedTopics[t] !== false);
+  }, [uniqueTopics, selectedTopics]);
+
+  const handleToggleAllTopics = () => {
+    const targetState = !allTopicsSelected;
+    const newSelections = {};
+    uniqueTopics.forEach((t) => {
+      newSelections[t] = targetState;
+    });
+    setSelectedTopics(newSelections);
+  };
+
   // Inline stats calculation
   const stats = (() => {
     let correct = 0;
@@ -386,6 +399,8 @@ export default function Quiz() {
     if (name.includes("companies act") || name.includes("companies") || name.includes("llp") || name.includes("corporate")) return "companies";
     // Tax themes (ledger brown)
     if (name.includes("income tax") || name.includes("income-tax") || name.includes("gst") || name.includes("customs")) return "incometax";
+    // Insolvency & Bankruptcy theme (copper/rust #AB7752)
+    if (name.includes("insolvency") || name.includes("bankruptcy") || name.includes("ibc")) return "ibc";
     // Law / Act themes (fallback green for any remaining act/law chapter)
     if (name.includes("act") || name.includes("law") || name.includes("regulation")) return "fcra";
     return "default";
@@ -487,10 +502,31 @@ export default function Quiz() {
                       </ol>
 
                       <div style={{ marginTop: "24px" }}>
-                        <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "16px", color: "var(--navy)", margin: "0 0 8px" }}>
-                          Select topics to include (all selected by default)
-                        </h3>
-                        <p style={{ margin: "0 0 14px", fontSize: "12px", color: "var(--ink-soft)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 8px" }}>
+                          <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "16.5px", color: "var(--navy)", margin: 0 }}>
+                            Select topics to include
+                          </h3>
+                          {uniqueTopics.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleToggleAllTopics}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "var(--brass)",
+                                fontSize: "12px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                                padding: "4px 8px",
+                                textDecoration: "underline",
+                                fontFamily: "var(--ff-sans)"
+                              }}
+                            >
+                              {allTopicsSelected ? "Deselect All" : "Select All"}
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ margin: "0 0 14px", fontSize: "12.5px", color: "var(--ink-soft)" }}>
                           Tap a topic to select or deselect it from your practice session.
                         </p>
                         {uniqueTopics.length > 0 && (

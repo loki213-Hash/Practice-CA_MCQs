@@ -2691,6 +2691,23 @@ img { max-width: 100%; display: block; }
   --ink-soft: #6b5940;
 }
 
+/* ---- Theme: Insolvency and Bankruptcy Code (IBC) — "Warm Copper" ---- */
+.quiz-theme-wrapper[data-theme="ibc"] {
+  --paper: #F8F3EE;        /* clay/sand warm paper */
+  --ink: #2E1E14;         /* deep copper-black ink for readable contrast */
+  --card: #ffffff;
+  --navy: #AB7752;        /* primary color: copper */
+  --navy-2: #805435;
+  --navy-3: #9E6743;
+  --brass: #AB7752;
+  --brass-light: #DCA57D;
+  --red: #9B2C2C;
+  --thread: #9E6743;
+  --line: rgba(171,119,82,0.15);
+  --green: #3E7A52;
+  --ink-soft: #70594B;
+}
+
 /* ===========================================
    THEME-AWARE ELEMENT OVERRIDES
    These ensure cover, cards, options, palette,
@@ -2754,6 +2771,7 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="fema"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="sebi"] .masthead-guilloche {
   display: block;
 }
@@ -2762,7 +2780,8 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="fcra"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="fema"] .masthead-guilloche,
 .quiz-theme-wrapper[data-theme="companies"] .masthead-guilloche,
-.quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche {
+.quiz-theme-wrapper[data-theme="incometax"] .masthead-guilloche,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead-guilloche {
   opacity: .16;
   background-image:
     repeating-linear-gradient(115deg, var(--brass-light) 0 1px, transparent 1px 7px),
@@ -2790,7 +2809,9 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="companies"] .masthead::before,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::after,
 .quiz-theme-wrapper[data-theme="incometax"] .masthead::before,
-.quiz-theme-wrapper[data-theme="incometax"] .masthead::after {
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::after,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead::before,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead::after {
   content: "";
   position: absolute; left: 0; right: 0; height: 4px;
   background: repeating-linear-gradient(90deg, var(--brass) 0 10px, transparent 10px 16px);
@@ -2800,11 +2821,13 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::before,
 .quiz-theme-wrapper[data-theme="fema"] .masthead::before,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::before,
-.quiz-theme-wrapper[data-theme="incometax"] .masthead::before { top: 6px; }
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::before,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead::before { top: 6px; }
 .quiz-theme-wrapper[data-theme="fcra"] .masthead::after,
 .quiz-theme-wrapper[data-theme="fema"] .masthead::after,
 .quiz-theme-wrapper[data-theme="companies"] .masthead::after,
-.quiz-theme-wrapper[data-theme="incometax"] .masthead::after { bottom: 6px; }
+.quiz-theme-wrapper[data-theme="incometax"] .masthead::after,
+.quiz-theme-wrapper[data-theme="ibc"] .masthead::after { bottom: 6px; }
 
 /* SEBI — glowing baseline */
 .quiz-theme-wrapper[data-theme="sebi"] .masthead::before {
@@ -2823,6 +2846,7 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="fema"] .option:hover { background: #f0f6f3; }
 .quiz-theme-wrapper[data-theme="incometax"] .option:hover { background: #fdfbf7; }
 .quiz-theme-wrapper[data-theme="companies"] .option:hover { background: #f8f8f6; }
+.quiz-theme-wrapper[data-theme="ibc"] .option:hover { background: #faf5f0; }
 
 /* ============================================
    SEBI DARK THEME — COMPLETE ELEMENT OVERRIDES
