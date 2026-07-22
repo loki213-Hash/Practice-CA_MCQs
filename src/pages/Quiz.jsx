@@ -414,9 +414,18 @@ export default function Quiz() {
       name.includes("adv it") || 
       name.includes("itt") || 
       name.includes("information technology") ||
+      name.includes("forensic") ||
+      name.includes("cyber") ||
+      name.includes("rpa") ||
+      name.includes("erp") ||
+      name.includes("power bi") ||
+      name.includes("python") ||
+      name.includes("knime") ||
+      name.includes("analytics") ||
       courseName.includes("advitt") ||
       courseName.includes("adv. it") ||
       courseName.includes("advanced it") ||
+      courseName.includes("adv it") ||
       courseName.includes("itt") ||
       courseSlug.includes("advitt") ||
       courseSlug.includes("itt")
