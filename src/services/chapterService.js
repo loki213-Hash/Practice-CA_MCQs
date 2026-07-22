@@ -23,7 +23,7 @@ export async function getChapters(courseId, setType) {
 export async function getChapterById(chapterId) {
   const { data, error } = await supabase
     .from("chapters")
-    .select("*")
+    .select("*, courses(course_name, course_slug)")
     .eq("id", chapterId)
     .single();
 

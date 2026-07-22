@@ -34,7 +34,8 @@ function ChapterList() {
         const { data: qData, error: qError } = await supabase
           .from("questions")
           .select("chapter_id")
-          .in("chapter_id", chapterIds);
+          .in("chapter_id", chapterIds)
+          .range(0, 99999);
 
         const counts = {};
         chapterIds.forEach((id) => { counts[id] = 0; });

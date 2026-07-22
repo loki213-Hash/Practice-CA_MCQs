@@ -2708,6 +2708,26 @@ img { max-width: 100%; display: block; }
   --ink-soft: #7D6650;
 }
 
+/* ---- Theme: Advanced ITT — "ICAI Vintage Paper" (from Advanced_IT_Live_Quiz.html) ---- */
+.quiz-theme-wrapper[data-theme="advitt"] {
+  --paper: #F7F3EA;
+  --paper-line: #E4DCC8;
+  --ink: #1E2A33;
+  --ink-soft: #4B5A63;
+  --navy: #1E2A33;
+  --navy-2: #141D24;
+  --navy-3: #2A3B47;
+  --brass: #9C7A2E;
+  --brass-light: #C9A54B;
+  --red: #A8402F;
+  --red-bg: #F6E4DF;
+  --thread: #9C7A2E;
+  --line: #E4DCC8;
+  --green: #2F6E4F;
+  --green-bg: #E4F0E9;
+  --card: #FFFFFF;
+}
+
 
 
 /* ===========================================
@@ -3205,5 +3225,287 @@ img { max-width: 100%; display: block; }
 }
 .quiz-theme-wrapper[data-theme="ibc"] .results-head .rbit.unattempted b {
   color: #4A5568 !important; /* high-contrast dark grey */
+}
+
+/* ===================================================================
+   ADVANCED ITT (ADV ITT) THEME OVERRIDES (from Advanced_IT_Live_Quiz.html)
+   =================================================================== */
+.quiz-theme-wrapper[data-theme="advitt"] {
+  background:
+    repeating-linear-gradient(transparent, transparent 27px, #E4DCC8 28px),
+    #F7F3EA !important;
+  color: #1E2A33 !important;
+  min-height: 100vh;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+}
+
+/* Masthead */
+.quiz-theme-wrapper[data-theme="advitt"] .masthead {
+  background: transparent !important;
+  border-bottom: 3px double #1E2A33 !important;
+  box-shadow: none !important;
+  color: #1E2A33 !important;
+  padding: 18px 24px 14px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .masthead h1 {
+  color: #1E2A33 !important;
+  font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif !important;
+  font-weight: 700 !important;
+  font-size: 28px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .masthead p {
+  color: #4B5A63 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .brand .title-block p {
+  color: #9C7A2E !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .brand .seal {
+  width: 74px !important;
+  height: 74px !important;
+  border-radius: 50% !important;
+  border: 2px solid #9C7A2E !important;
+  color: #9C7A2E !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.05em !important;
+  background: repeating-conic-gradient(from 0deg, rgba(156,122,46,.08) 0deg 6deg, transparent 6deg 12deg) !important;
+}
+
+/* Status Chips */
+.quiz-theme-wrapper[data-theme="advitt"] .masthead .status .chip {
+  background: #FFFFFF !important;
+  border: 1px solid #E4DCC8 !important;
+  color: #4B5A63 !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  border-radius: 4px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .masthead .status .chip b {
+  color: #1E2A33 !important;
+}
+
+/* Cards & Containers */
+.quiz-theme-wrapper[data-theme="advitt"] .cover,
+.quiz-theme-wrapper[data-theme="advitt"] .qcard,
+.quiz-theme-wrapper[data-theme="advitt"] .palette-card,
+.quiz-theme-wrapper[data-theme="advitt"] .results-head {
+  background: #FFFFFF !important;
+  border: 1px solid #E4DCC8 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(30,42,51,.06), 0 8px 24px rgba(30,42,51,.08) !important;
+}
+
+/* Cover Header */
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head {
+  background: #FFFFFF !important;
+  color: #1E2A33 !important;
+  border-bottom: 1px solid #E4DCC8 !important;
+  padding: 32px 36px 24px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head h2 {
+  color: #1E2A33 !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+  font-size: 28px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head .sub {
+  color: #4B5A63 !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+  font-style: italic !important;
+  font-size: 15px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head .eyebrow,
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head .cover-eyebrow {
+  color: #9C7A2E !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  letter-spacing: 0.14em !important;
+  font-size: 11px !important;
+}
+
+/* Stat Cards */
+.quiz-theme-wrapper[data-theme="advitt"] .stat-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E4DCC8 !important;
+  border-radius: 6px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .stat-card .num {
+  color: #1E2A33 !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+  font-size: 24px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .stat-card .lbl {
+  color: #4B5A63 !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  font-size: 11px !important;
+}
+
+/* Buttons */
+.quiz-theme-wrapper[data-theme="advitt"] .btn.primary,
+.quiz-theme-wrapper[data-theme="advitt"] .start-btn,
+.quiz-theme-wrapper[data-theme="advitt"] .btn.submit,
+.quiz-theme-wrapper[data-theme="advitt"] .qnav .btn.primary {
+  background: #9C7A2E !important;
+  border-color: #9C7A2E !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  border-radius: 4px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .btn.primary:hover,
+.quiz-theme-wrapper[data-theme="advitt"] .start-btn:hover {
+  background: #8a6a28 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .start-btn .arrow {
+  color: #FFFFFF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .btn.secondary,
+.quiz-theme-wrapper[data-theme="advitt"] .qnav .btn:not(.primary) {
+  background: transparent !important;
+  color: #1E2A33 !important;
+  border: 1px solid #E4DCC8 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .btn.secondary:hover {
+  background: #F0ECE0 !important;
+}
+
+/* Question Text & Number */
+.quiz-theme-wrapper[data-theme="advitt"] .qtext {
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+  font-size: 19px !important;
+  line-height: 1.5 !important;
+  color: #1E2A33 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .qmeta .qtopic {
+  color: #9C7A2E !important;
+  border: 1px solid #C9A54B !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  border-radius: 3px !important;
+  padding: 3px 8px !important;
+  font-size: 10.5px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .qmeta .qnum {
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  color: #9C7A2E !important;
+}
+
+/* Options */
+.quiz-theme-wrapper[data-theme="advitt"] .option {
+  border: 1px solid #E4DCC8 !important;
+  background: #FFFFFF !important;
+  border-radius: 5px !important;
+  color: #1E2A33 !important;
+  font-size: 15px !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option:hover {
+  border-color: #C9A54B !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option .lbl {
+  border: 2px solid #4B5A63 !important;
+  color: #4B5A63 !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  border-radius: 50% !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.picked {
+  border-color: #1E2A33 !important;
+  background: #F4F1E8 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.picked .lbl {
+  background: #1E2A33 !important;
+  border-color: #1E2A33 !important;
+  color: #FFFFFF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.correct {
+  border-color: #2F6E4F !important;
+  background: #E4F0E9 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.correct .lbl {
+  background: #2F6E4F !important;
+  border-color: #2F6E4F !important;
+  color: #FFFFFF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.incorrect {
+  border-color: #A8402F !important;
+  background: #F6E4DF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .option.incorrect .lbl {
+  background: #A8402F !important;
+  border-color: #A8402F !important;
+  color: #FFFFFF !important;
+}
+
+/* Topic Pills */
+.quiz-theme-wrapper[data-theme="advitt"] .topic-pill:not(.deselected) {
+  background: #9C7A2E !important;
+  border-color: #9C7A2E !important;
+  color: #FFFFFF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .topic-pill.deselected {
+  background: transparent !important;
+  border-color: #E4DCC8 !important;
+  color: #4B5A63 !important;
+}
+
+/* Palette Grid */
+.quiz-theme-wrapper[data-theme="advitt"] .qbox {
+  border: 1px solid #E4DCC8 !important;
+  background: #FFFFFF !important;
+  color: #4B5A63 !important;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .qbox.answered {
+  background: #EFEAD9 !important;
+  border-color: #C9A54B !important;
+  color: #1E2A33 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .qbox.current {
+  border-color: #1E2A33 !important;
+  border-width: 2px !important;
+  color: #1E2A33 !important;
+  font-weight: 700 !important;
+}
+
+/* Results Screen */
+.quiz-theme-wrapper[data-theme="advitt"] .results-head {
+  color: #1E2A33 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E4DCC8 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .summary h3,
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .summary p {
+  color: #1E2A33 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .score-ring {
+  border-color: #9C7A2E !important;
+  background: conic-gradient(#9C7A2E calc(var(--pct) * 1%), #E4DCC8 0) !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .score-ring::before {
+  background: #FFFFFF !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .score-ring .pct {
+  color: #1E2A33 !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .rbit {
+  color: #4B5A63 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .rbit b {
+  color: #1E2A33 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .rbit.correct b {
+  color: #2F6E4F !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .results-head .rbit.incorrect b {
+  color: #A8402F !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .panel-title {
+  color: #1E2A33 !important;
+  font-family: Georgia, 'Iowan Old Style', serif !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .panel-title .rule {
+  background: #E4DCC8 !important;
 }
 
