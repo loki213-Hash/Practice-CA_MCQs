@@ -3449,23 +3449,40 @@ img { max-width: 100%; display: block; }
   color: #4B5A63 !important;
 }
 
-/* Palette Grid */
-.quiz-theme-wrapper[data-theme="advitt"] .qbox {
+/* Palette Grid Buttons in ADV ITT */
+.quiz-theme-wrapper[data-theme="advitt"] .pnum {
   border: 1px solid #E4DCC8 !important;
   background: #FFFFFF !important;
   color: #4B5A63 !important;
   font-family: 'SF Mono', 'Consolas', 'Menlo', monospace !important;
+  border-radius: 4px !important;
 }
-.quiz-theme-wrapper[data-theme="advitt"] .qbox.answered {
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.answered {
   background: #EFEAD9 !important;
   border-color: #C9A54B !important;
   color: #1E2A33 !important;
 }
-.quiz-theme-wrapper[data-theme="advitt"] .qbox.current {
-  border-color: #1E2A33 !important;
-  border-width: 2px !important;
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.notanswered,
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.notvisited {
+  background: #FFFFFF !important;
+  border-color: #E4DCC8 !important;
+  color: #4B5A63 !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.marked {
+  background: #F6E4DF !important;
+  border-color: #A8402F !important;
+  color: #A8402F !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.current {
+  border: 2px solid #1E2A33 !important;
   color: #1E2A33 !important;
   font-weight: 700 !important;
+}
+
+/* Palette Legend Swatches in ADV ITT */
+.quiz-theme-wrapper[data-theme="advitt"] .palette-legend .pdot,
+.quiz-theme-wrapper[data-theme="advitt"] .legend-row .legend-dot {
+  border-radius: 3px !important;
 }
 
 /* Results Screen */

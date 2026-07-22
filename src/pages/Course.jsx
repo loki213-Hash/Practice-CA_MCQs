@@ -62,19 +62,42 @@ function Course() {
     );
   }
 
+  const isAdvItt = course && (
+    course.course_slug?.toLowerCase().includes("advitt") ||
+    course.course_slug?.toLowerCase().includes("itt") ||
+    course.course_name?.toLowerCase().includes("adv") ||
+    course.course_name?.toLowerCase().includes("itt")
+  );
+
   return (
-    <>
-      <nav className="inner-navbar">
-        <Link className="brand" to="/">
-          <img src="/ca-logo.png" alt="CA" />
-          <span className="brand-title">CA Quiz Platform</span>
-        </Link>
-      </nav>
+    <div className="quiz-theme-wrapper" data-theme={isAdvItt ? "advitt" : "default"}>
+      {isAdvItt ? (
+        <div className="masthead">
+          <div className="brand">
+            <div className="seal">
+              ADV<br />ITT<br />2026
+            </div>
+            <div className="title-block">
+              <h1>{course.course_name} — Live Quiz Bank</h1>
+              <p>Advanced Information Technology Training · ICAI Format</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <nav className="inner-navbar">
+          <Link className="brand" to="/">
+            <img src="/ca-logo.png" alt="CA" />
+            <span className="brand-title">CA Quiz Platform</span>
+          </Link>
+        </nav>
+      )}
       <div className="page-shell">
         <Link className="back-link" to="/">← All courses</Link>
 
         <header className="hero-copy compact-copy">
-          <p className="eyebrow">{course.course_name}</p>
+          <p className="eyebrow">
+            {isAdvItt ? "ADVANCED INFORMATION TECHNOLOGY TRAINING · ICAI FORMAT" : course.course_name}
+          </p>
           <h1>Select a set</h1>
           <p>Choose a question set to view its chapters and start practising.</p>
         </header>
@@ -99,7 +122,7 @@ function Course() {
           ))}
         </section>
       </div>
-    </>
+    </div>
   );
 }
 

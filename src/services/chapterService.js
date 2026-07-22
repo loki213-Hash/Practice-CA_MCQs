@@ -21,12 +21,28 @@ export async function getChapters(courseId, setType) {
 }
 
 export async function getChapterById(chapterId) {
-  const { data, error } = await supabase
+  const { data: chapter, error } = await supabase
     .from("chapters")
-    .select("*, courses(course_name, course_slug)")
+    .select("*, courses(id, course_name, course_slug)")
     .eq("id", chapterId)
     .single();
 
   if (error) throw error;
-  return data;
+
+  if (chapter && chapter.course_id && (!chapter.courses || !chapter.courses.course_slug)) {
+    try {
+      const { data: course } = await supabase
+        .from("courses")
+        .select("id, course_name, course_slug")
+        .eq("id", chapter.course_id)
+        .single();
+      if (course) {
+        chapter.courses = course;
+      }
+    } catch (e) {
+      console.warn("Fallback course fetch warning:", e.message);
+    }
+  }
+
+  return chapter;
 }
