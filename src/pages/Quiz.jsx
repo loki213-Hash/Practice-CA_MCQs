@@ -303,11 +303,24 @@ export default function Quiz() {
     window.scrollTo(0, 0);
   };
 
-  const TOTAL = screen === "start" ? questions.length : activeQuestions.length;
-  
   const uniqueTopics = useMemo(() => {
     return Array.from(new Set(questions.map((q) => q.topic))).filter(Boolean);
   }, [questions]);
+
+  const activeSelectedQuestions = useMemo(() => {
+    return questions.filter((q) => {
+      const topic = q.topic;
+      if (!topic) return true;
+      return selectedTopics[topic] !== false;
+    });
+  }, [questions, selectedTopics]);
+
+  const selectedTopicsCount = useMemo(() => {
+    if (uniqueTopics.length === 0) return 0;
+    return uniqueTopics.filter((t) => selectedTopics[t] !== false).length;
+  }, [uniqueTopics, selectedTopics]);
+
+  const TOTAL = screen === "start" ? activeSelectedQuestions.length : activeQuestions.length;
 
   const toggleTopicSelection = (topic) => {
     setSelectedTopics((prev) => ({
@@ -390,6 +403,25 @@ export default function Quiz() {
   const theme = useMemo(() => {
     if (!chapter) return "default";
     const name = (chapter.chapter_name || "").trim().toLowerCase();
+    const courseName = (chapter.courses?.course_name || "").trim().toLowerCase();
+    const courseSlug = (chapter.courses?.course_slug || "").trim().toLowerCase();
+
+    // CA AdvITT Theme (from Advanced_IT_Live_Quiz.html)
+    if (
+      name.includes("advitt") || 
+      name.includes("adv. it") || 
+      name.includes("advanced it") || 
+      name.includes("adv it") || 
+      name.includes("itt") || 
+      name.includes("information technology") ||
+      courseName.includes("advitt") ||
+      courseName.includes("adv. it") ||
+      courseName.includes("advanced it") ||
+      courseName.includes("itt") ||
+      courseSlug.includes("advitt") ||
+      courseSlug.includes("itt")
+    ) return "advitt";
+
     // Currency / Regulation themes (banknote green)
     if (name.includes("foreign contribution") || name.includes("fcra")) return "fcra";
     if (name.includes("foreign exchange") || name.includes("fema")) return "fema";
@@ -411,10 +443,20 @@ export default function Quiz() {
       <div className="masthead">
         <div className="masthead-guilloche"></div>
         <div className="brand">
-          <div className="seal">CA</div>
+          <div className="seal">
+            {theme === "advitt" ? (
+              <>ADV<br />ITT<br />2026</>
+            ) : (
+              "CA"
+            )}
+          </div>
           <div className="title-block">
             <h1>{chapter ? `${chapter.chapter_name.trim()} - Practice` : "Practice Session"}</h1>
-            <p>Chapter {chapterId} &mdash; Practice MCQ Session</p>
+            <p>
+              {theme === "advitt" 
+                ? "Advanced Information Technology Training · ICAI Format" 
+                : `Chapter ${chapterId} — Practice MCQ Session`}
+            </p>
           </div>
         </div>
         <div className="status">
@@ -453,7 +495,7 @@ export default function Quiz() {
                         <div className="lbl">Questions</div>
                       </div>
                       <div className="stat-card">
-                        <div className="num">{uniqueTopics.length}</div>
+                        <div className="num">{selectedTopicsCount} / {uniqueTopics.length}</div>
                         <div className="lbl">Topics covered</div>
                       </div>
                       <div className="stat-card">
@@ -932,28 +974,28 @@ export default function Quiz() {
                 className={`filter-btn ${reviewFilter === "all" ? "active" : ""}`}
                 onClick={() => setReviewFilter("all")}
               >
-                All {TOTAL}
+                All ({TOTAL})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "incorrect" ? "active" : ""}`}
                 onClick={() => setReviewFilter("incorrect")}
               >
-                Incorrect
+                Incorrect ({stats.incorrect})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "correct" ? "active" : ""}`}
                 onClick={() => setReviewFilter("correct")}
               >
-                Correct
+                Correct ({stats.correct})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "unattempted" ? "active" : ""}`}
                 onClick={() => setReviewFilter("unattempted")}
               >
-                Unattempted
+                Unattempted ({stats.unattempted})
               </button>
             </div>
             <div>

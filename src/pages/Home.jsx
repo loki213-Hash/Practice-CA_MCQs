@@ -227,7 +227,8 @@ function Home() {
 
         const { data: allQuestions } = await supabase
           .from("questions")
-          .select("chapter_id");
+          .select("chapter_id")
+          .range(0, 99999);
 
         const chaptersByCourse = {};
         if (allChapters) {
