@@ -143,6 +143,8 @@ function Home() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifInbox, setShowNotifInbox] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [interruptedSession, setInterruptedSession] = useState(null);
+  const [showInterruptedModal, setShowInterruptedModal] = useState(false);
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -158,6 +160,37 @@ function Home() {
       setRealTarget(count);
     }
     fetchRealCount();
+  }, []);
+
+  // Check for interrupted quiz session on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const savedStr = localStorage.getItem("ca_quiz_interrupted_session");
+        if (savedStr) {
+          const saved = JSON.parse(savedStr);
+          if (
+            saved &&
+            saved.screen === "quiz" &&
+            saved.chapterId &&
+            Array.isArray(saved.activeQuestions) &&
+            saved.activeQuestions.length > 0
+          ) {
+            const startTime = saved.startTime || Date.now();
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            if (elapsed < 10800) {
+              setInterruptedSession(saved);
+              setShowInterruptedModal(true);
+            } else {
+              localStorage.removeItem("ca_quiz_interrupted_session");
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to check interrupted session:", e);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const { user, username, logout } = useAuth();
@@ -176,7 +209,7 @@ function Home() {
       }
     }
     loadNotifications();
-    // Poll notifications every 60 seconds (down from 8s) to reduce Supabase API usage
+    // Poll notifications every 60 seconds to reduce Supabase API usage
     let interval = null;
     if (username && username !== "admin") {
       interval = setInterval(() => {
@@ -194,26 +227,38 @@ function Home() {
     }
   }, [username, navigate]);
 
-  // Load user progress statistics from Supabase
+  // Load & listen to real-time user progress statistics from Supabase & localStorage for ChakraDial & Progress
   useEffect(() => {
     async function loadUserStats() {
-      if (user) {
-        try {
-          // Only initialize once per browser session to avoid repeated DB calls
-          if (!sessionStorage.getItem("progress_initialized")) {
-            await initializeUserProgress();
-            sessionStorage.setItem("progress_initialized", "1");
-          }
-          const progressData = await getUserProgressStats();
-          setUserStats(progressData);
-        } catch (err) {
-          console.error("Error loading progress stats:", err);
+      try {
+        if (user && !sessionStorage.getItem("progress_initialized")) {
+          await initializeUserProgress();
+          sessionStorage.setItem("progress_initialized", "1");
         }
-      } else {
-        setUserStats(null);
+        const progressData = await getUserProgressStats();
+        setUserStats(progressData);
+      } catch (err) {
+        console.error("Error loading progress stats:", err);
       }
     }
     loadUserStats();
+
+    // Listen for custom progress update events dispatched when a test completes
+    const handleProgressUpdate = () => {
+      loadUserStats();
+    };
+    window.addEventListener("ca_quiz_progress_updated", handleProgressUpdate);
+
+    // Supabase Realtime channel for instant progress updates across devices/tabs
+    const channel = supabase
+      .channel("realtime-user-progress")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_progress" }, loadUserStats)
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("ca_quiz_progress_updated", handleProgressUpdate);
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Load courses and dynamic stats from Supabase
@@ -809,6 +854,46 @@ function Home() {
           <span>Made by an &quot;Aspirant, for Aspirants&quot;</span>
         </div>
       </footer>
+
+      {/* Interrupted Test Resume Modal Popup */}
+      {showInterruptedModal && interruptedSession && (
+        <div className="confirm-overlay open" style={{ zIndex: 10000 }}>
+          <div className="confirm-box" style={{ maxWidth: "460px", background: "#ffffff", borderRadius: "14px", padding: "28px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <h3 style={{ fontSize: "20px", color: "var(--navy)", fontWeight: 700, margin: "0 0 10px", textAlign: "left", fontFamily: "Georgia, serif" }}>
+              📝 Unfinished Practice Test Detected
+            </h3>
+            <p style={{ margin: "10px 0 24px", fontSize: "14px", color: "var(--ink-soft)", lineHeight: "1.6", textAlign: "left" }}>
+              You have an active session for <strong>{interruptedSession.chapterName || `Chapter ${interruptedSession.chapterId}`}</strong> at <strong>Question {(interruptedSession.current || 0) + 1}</strong> of {interruptedSession.activeQuestions ? interruptedSession.activeQuestions.length : 0}.
+              <br /><br />
+              Would you like to resume your test from where you left off?
+            </p>
+            <div className="confirm-actions" style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ cursor: "pointer", padding: "10px 18px", fontSize: "13.5px" }}
+                onClick={() => {
+                  localStorage.removeItem("ca_quiz_interrupted_session");
+                  setShowInterruptedModal(false);
+                }}
+              >
+                Discard & Disregard
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ cursor: "pointer", padding: "10px 22px", fontSize: "13.5px" }}
+                onClick={() => {
+                  setShowInterruptedModal(false);
+                  navigate(`/quiz/${interruptedSession.chapterId}`);
+                }}
+              >
+                Resume Test →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

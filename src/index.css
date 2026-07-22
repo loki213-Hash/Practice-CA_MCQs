@@ -331,9 +331,56 @@ img { max-width: 100%; display: block; }
 
 /* How it works */
 .home-page .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.home-page .how-step { padding: 26px 22px; border-radius: var(--radius); background: #fff; border: 1px solid var(--hairline); box-shadow: 0 4px 12px rgba(11, 37, 69, 0.03); }
-.home-page .how-step .idx { font-family: 'IBM Plex Mono', monospace; color: var(--gold); font-weight: 600; font-size: 13px; }
-.home-page .how-step h4 { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--navy); margin: 12px 0 8px; }
+.home-page .how-step {
+  padding: 26px 22px;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 4px 12px rgba(11, 37, 69, 0.03);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.home-page .how-step::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3.5px;
+  background: linear-gradient(90deg, var(--gold, #D69E2E), var(--navy, #111C2C));
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.home-page .how-step:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(197, 166, 103, 0.45);
+  box-shadow: 0 16px 36px rgba(11, 37, 69, 0.12);
+}
+.home-page .how-step:hover::before {
+  opacity: 1;
+}
+.home-page .how-step .idx {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 13px;
+  transition: transform 0.3s ease, color 0.3s ease;
+  display: inline-block;
+}
+.home-page .how-step:hover .idx {
+  color: var(--navy);
+  transform: scale(1.18);
+}
+.home-page .how-step h4 {
+  font-family: 'Fraunces', serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 12px 0 8px;
+  transition: color 0.3s ease;
+}
+.home-page .how-step:hover h4 {
+  color: var(--brass, #9C7A2E);
+}
 .home-page .how-step p { font-size: 13.8px; color: var(--ink-soft); line-height: 1.55; }
 
 /* CTA banner */

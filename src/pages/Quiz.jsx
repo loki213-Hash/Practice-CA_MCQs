@@ -8,7 +8,7 @@ import { supabase } from "../supabase/supabase";
 
 export default function Quiz() {
   const { chapterId } = useParams();
-  const { user, username } = useAuth();
+  const { username } = useAuth();
   const navigate = useNavigate();
 
   const [screen, setScreen] = useState("start"); // 'start' | 'quiz' | 'results'
@@ -68,15 +68,16 @@ export default function Quiz() {
         });
         setSelectedTopics(initialSelected);
 
-        // Check for active quiz session in sessionStorage to restore progress on refresh
+        // Check for active quiz session in localStorage / sessionStorage to restore progress on refresh or return
         try {
           const sessionKey = `ca_quiz_session_${chapterId}`;
-          const savedStr = sessionStorage.getItem(sessionKey);
+          const savedStr = localStorage.getItem("ca_quiz_interrupted_session") || sessionStorage.getItem(sessionKey);
           if (savedStr) {
             const saved = JSON.parse(savedStr);
             if (
               saved &&
               saved.screen === "quiz" &&
+              String(saved.chapterId) === String(chapterId) &&
               Array.isArray(saved.activeQuestions) &&
               saved.activeQuestions.length > 0
             ) {
@@ -109,13 +110,15 @@ export default function Quiz() {
     loadData();
   }, [chapterId]);
 
-  // Auto-persist active quiz state to sessionStorage during test so browser refresh stays on the same question
+  // Auto-persist active quiz state to localStorage/sessionStorage during test
   useEffect(() => {
     if (screen === "quiz" && activeQuestions.length > 0) {
       try {
         const startKey = `ca_quiz_start_${chapterId}`;
         const startTime = parseInt(sessionStorage.getItem(startKey) || Date.now().toString());
         const sessionData = {
+          chapterId,
+          chapterName: chapter?.chapter_name || `Chapter ${chapterId}`,
           screen: "quiz",
           startTime,
           current,
@@ -126,11 +129,12 @@ export default function Quiz() {
           selectedTopics,
         };
         sessionStorage.setItem(`ca_quiz_session_${chapterId}`, JSON.stringify(sessionData));
+        localStorage.setItem("ca_quiz_interrupted_session", JSON.stringify(sessionData));
       } catch (e) {
         console.warn("Failed to save active quiz session:", e);
       }
     }
-  }, [screen, current, answers, marked, visited, activeQuestions, selectedTopics, chapterId]);
+  }, [screen, current, answers, marked, visited, activeQuestions, selectedTopics, chapterId, chapter]);
 
   // strict 3-hour timer ticking logic
   useEffect(() => {
@@ -215,6 +219,11 @@ export default function Quiz() {
       return;
     }
 
+    // Clear previous session data for fresh test
+    sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
+    sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+    localStorage.removeItem("ca_quiz_interrupted_session");
+
     let finalQuestions = [...filteredQuestions];
     if (shuffleQuestions) {
       for (let i = finalQuestions.length - 1; i > 0; i--) {
@@ -234,16 +243,9 @@ export default function Quiz() {
 
     // Store start timestamp to prevent timer reset on page refresh
     const startKey = `ca_quiz_start_${chapterId}`;
-    const existingStart = sessionStorage.getItem(startKey);
-    if (!existingStart) {
-      sessionStorage.setItem(startKey, Date.now().toString());
-    }
-    // Calculate remaining time from stored start, so refresh doesn't restart the clock
-    const storedStart = parseInt(sessionStorage.getItem(startKey) || Date.now());
-    const elapsed = Math.floor((Date.now() - storedStart) / 1000);
-    const trueRemaining = Math.max(0, 10800 - elapsed);
+    sessionStorage.setItem(startKey, Date.now().toString());
 
-    setRemainingSeconds(trueRemaining);
+    setRemainingSeconds(10800);
     setHasConfirmedOvertime(false);
     setShowTimeoutModal(false);
     setScreen("quiz");
@@ -317,6 +319,7 @@ export default function Quiz() {
       if (window.confirm("Are you sure you want to exit the quiz? Your current progress will not be saved.")) {
         sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
         sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+        localStorage.removeItem("ca_quiz_interrupted_session");
         setScreen("start");
       }
     }
@@ -342,24 +345,24 @@ export default function Quiz() {
   const finishTest = () => {
     sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
     sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+    localStorage.removeItem("ca_quiz_interrupted_session");
     setShowConfirm(false);
     setScreen("results");
     window.scrollTo(0, 0);
 
-    if (user) {
-      saveQuizAttempt({
-        chapterId: Number(chapterId),
-        score: stats.correct,
-        totalQuestions: TOTAL,
-      }).catch((err) => {
-        console.error("Failed to save progress to Supabase:", err);
-      });
-    }
+    saveQuizAttempt({
+      chapterId: Number(chapterId),
+      score: stats.correct,
+      totalQuestions: TOTAL,
+    }).catch((err) => {
+      console.error("Failed to save progress:", err);
+    });
   };
 
   const restartTest = () => {
     sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
     sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+    localStorage.removeItem("ca_quiz_interrupted_session");
     setScreen("start");
     setRemainingSeconds(10800);
     window.scrollTo(0, 0);

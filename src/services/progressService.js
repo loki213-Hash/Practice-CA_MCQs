@@ -1,42 +1,78 @@
 import { supabase } from "../supabase/supabase";
 
 export async function saveQuizAttempt({ chapterId, score, totalQuestions }) {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    throw new Error("User must be logged in to save progress.");
+  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  const attemptObj = {
+    chapter_id: chapterId,
+    score,
+    total_questions: totalQuestions,
+    percentage,
+    completed_at: new Date().toISOString(),
+  };
+
+  // Always save to localStorage progress cache first (ensures progress is saved for all users)
+  try {
+    const localAttempts = JSON.parse(localStorage.getItem("ca_quiz_local_attempts") || "[]");
+    localAttempts.push(attemptObj);
+    localStorage.setItem("ca_quiz_local_attempts", JSON.stringify(localAttempts));
+  } catch (e) {
+    console.warn("Failed to write local progress cache:", e);
   }
 
-  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  // Dispatch custom browser event for real-time update across open components/tabs
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("ca_quiz_progress_updated"));
+  }
 
-  const { data, error } = await supabase
-    .from("user_progress")
-    .insert([
-      {
-        user_id: user.id,
-        chapter_id: chapterId,
-        score,
-        total_questions: totalQuestions,
-        percentage,
-        completed_at: new Date().toISOString(),
-      },
-    ]);
+  // Also save to Supabase if user is logged in
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from("user_progress")
+        .insert([
+          {
+            user_id: user.id,
+            ...attemptObj,
+          },
+        ]);
+      if (error) console.warn("Supabase progress save error:", error.message);
+      return data;
+    }
+  } catch (err) {
+    console.warn("User progress save notice:", err);
+  }
 
-  if (error) throw error;
-  return data;
+  return attemptObj;
 }
 
 export async function getUserProgressStats() {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
+  let attempts = [];
+
+  // 1. Load from localStorage cache
+  try {
+    const localAttempts = JSON.parse(localStorage.getItem("ca_quiz_local_attempts") || "[]");
+    attempts = [...localAttempts];
+  } catch (e) {
+    console.warn("Failed to read local progress:", e);
   }
 
-  const { data: attempts, error } = await supabase
-    .from("user_progress")
-    .select("chapter_id, percentage")
-    .eq("user_id", user.id);
+  // 2. Load from Supabase if logged in
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: dbAttempts, error } = await supabase
+        .from("user_progress")
+        .select("chapter_id, percentage")
+        .eq("user_id", user.id);
+      if (!error && dbAttempts) {
+        attempts = [...attempts, ...dbAttempts];
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to fetch Supabase progress:", e);
+  }
 
-  if (error) throw error;
   if (!attempts || attempts.length === 0) {
     return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
   }
@@ -48,7 +84,6 @@ export async function getUserProgressStats() {
     return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
   }
 
-  // Calculate stats
   // Group by chapter to find highest score per chapter
   const highestScoresByChapter = {};
   let totalPercentageSum = 0;
