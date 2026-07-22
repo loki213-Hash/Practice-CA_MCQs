@@ -3246,12 +3246,17 @@ img { max-width: 100%; display: block; }
   box-shadow: none !important;
   color: #1E2A33 !important;
   padding: 18px 24px 14px !important;
+  position: relative !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .masthead-guilloche {
+  display: none !important;
 }
 .quiz-theme-wrapper[data-theme="advitt"] .masthead h1 {
   color: #1E2A33 !important;
   font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif !important;
   font-weight: 700 !important;
   font-size: 28px !important;
+  margin: 0 !important;
 }
 .quiz-theme-wrapper[data-theme="advitt"] .masthead p {
   color: #4B5A63 !important;
@@ -3307,6 +3312,18 @@ img { max-width: 100%; display: block; }
   color: #1E2A33 !important;
   border-bottom: 1px solid #E4DCC8 !important;
   padding: 32px 36px 24px !important;
+  position: relative !important;
+}
+.quiz-theme-wrapper[data-theme="advitt"] .cover-head::after {
+  content: "" !important;
+  display: block !important;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important; right: auto !important;
+  height: 6px !important;
+  margin-top: 18px !important;
+  background: repeating-linear-gradient(90deg, #9C7A2E 0 18px, transparent 18px 26px) !important;
+  opacity: 0.8 !important;
 }
 .quiz-theme-wrapper[data-theme="advitt"] .cover-head h2 {
   color: #1E2A33 !important;

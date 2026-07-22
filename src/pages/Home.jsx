@@ -230,6 +230,7 @@ function Home() {
           .select("chapter_id")
           .range(0, 99999);
 
+        const setTypesByCourse = {};
         const chaptersByCourse = {};
         if (allChapters) {
           allChapters.forEach((ch) => {
@@ -237,6 +238,13 @@ function Home() {
               chaptersByCourse[ch.course_id] = [];
             }
             chaptersByCourse[ch.course_id].push(String(ch.id));
+
+            if (ch.set_type) {
+              if (!setTypesByCourse[ch.course_id]) {
+                setTypesByCourse[ch.course_id] = new Set();
+              }
+              setTypesByCourse[ch.course_id].add(ch.set_type);
+            }
           });
         }
 
@@ -254,9 +262,13 @@ function Home() {
           chapterIds.forEach((cid) => {
             questionCount += (questionCountByChapter[cid] || 0);
           });
+          const setSet = setTypesByCourse[course.id];
+          const setCount = setSet && setSet.size > 0 ? setSet.size : chapterIds.length;
+
           statsMap[course.course_slug.toLowerCase()] = {
             chapterCount: chapterIds.length,
-            questionCount: questionCount
+            questionCount: questionCount,
+            setCount: setCount,
           };
         });
         setStats(statsMap);
@@ -307,20 +319,20 @@ function Home() {
     for (const val of Object.values(stats)) {
       sum += val.questionCount;
     }
-    return sum > 0 ? `${sum.toLocaleString()}+` : "42,000+";
+    return sum > 0 ? `${sum.toLocaleString()} MCQs` : "Loading...";
   }, [stats]);
 
   const cardData = useMemo(() => {
     return courses.map((course) => {
       const slug = course.course_slug.toLowerCase();
-      const courseStats = stats[slug] || { chapterCount: 0, questionCount: 0 };
+      const courseStats = stats[slug] || { chapterCount: 0, questionCount: 0, setCount: 0 };
       
       let themeClass = "foundation";
       let tag = "Entry level";
       let desc = course.course_name;
-      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
-      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
-      let mocks = "24";
+      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "Loading...";
+      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "Loading...";
+      let mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Practice Sets` : "Loading...";
       let ctaText = `Practice ${course.course_name}`;
 
       if (slug.includes("spom")) {
@@ -328,24 +340,24 @@ function Home() {
         tag = "Self Paced Module";
         desc = "FEMA, FCRA, and corporate laws — practice Set A and Set B chapters individually with instant explanations.";
         papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
-        mocks = "24";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "...";
+        mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Sets` : "...";
         ctaText = "Practice SPOM";
       } else if (slug.includes("advitt") || slug.includes("itt")) {
         themeClass = "inter";
         tag = "IT stage";
         desc = "Advanced Integrated IT Training & Testing MCQ preparation based on the latest pattern.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Papers` : "...";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()}+` : "...";
-        mocks = "48";
+        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
+        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "...";
+        mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Chapters` : "...";
         ctaText = "Practice Adv ITT";
       } else if (slug.includes("final")) {
         themeClass = "final";
         tag = "Final stage";
         desc = "Advanced Auditing, Strategic Financial Management, Direct & Indirect Tax - timed mock papers.";
-        papers = "6";
-        mcqs = "";
-        mocks = "";
+        papers = "Coming Soon";
+        mcqs = "Coming Soon";
+        mocks = "Coming Soon";
         ctaText = "CA Final";
       }
 

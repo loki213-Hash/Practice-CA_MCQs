@@ -104,7 +104,7 @@ function ChapterList() {
         <div className="masthead">
           <div className="brand">
             <div className="seal">
-              ADV<br />ITT<br />2026
+              ADV<br />ITT
             </div>
             <div className="title-block">
               <h1>{course.course_name} — Live Quiz Bank</h1>
