@@ -453,6 +453,12 @@ export default function Quiz() {
     return "default";
   }, [chapter]);
 
+  useEffect(() => {
+    if (chapter?.chapter_name) {
+      document.title = `${chapter.chapter_name} | CA Quiz Platform`;
+    }
+  }, [chapter]);
+
   return (
     <div className="quiz-theme-wrapper" data-theme={theme}>
       <div className="masthead">
@@ -460,17 +466,17 @@ export default function Quiz() {
         <div className="brand">
           <div className="seal">
             {theme === "advitt" ? (
-              <>ADV<br />ITT<br />2026</>
+              <>ADV<br />ITT</>
             ) : (
               "CA"
             )}
           </div>
           <div className="title-block">
-            <h1>{chapter ? chapter.chapter_name : "Practice Session"}</h1>
+            <h1>{chapter ? chapter.chapter_name : "Chapter Quiz"}</h1>
             <p>
               {theme === "advitt" 
                 ? "Advanced Information Technology Training · ICAI Format" 
-                : `Chapter ${chapterId} — Practice MCQ Session`}
+                : `Chapter ${chapterId} — MCQ Session`}
             </p>
           </div>
         </div>
@@ -494,9 +500,9 @@ export default function Quiz() {
                 <p className="eyebrow">
                   {theme === "advitt"
                     ? "ADVANCED INFORMATION TECHNOLOGY TRAINING · ICAI FORMAT"
-                    : `${chapter ? chapter.chapter_name : "Practice Session"} · OBJECTIVE TYPE`}
+                    : `${chapter ? chapter.chapter_name : "Chapter Quiz"} · OBJECTIVE TYPE`}
                 </p>
-                <h2>{chapter ? chapter.chapter_name : "Interactive 3-Hour Practice Session"}</h2>
+                <h2>{chapter ? chapter.chapter_name : "Chapter Quiz"}</h2>
                 <p className="sub">
                   {theme === "advitt"
                     ? `Interactive 3-hour practice test for ${chapter ? chapter.chapter_name : "this chapter"}. Objective questions drawn from official ICAI study material.`
