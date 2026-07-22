@@ -47,23 +47,26 @@ export default function Quiz() {
     async function loadData() {
       try {
         setLoading(true);
-        const data = await getQuestionsForChapter(chapterId);
-        setQuestions(data);
+        const [chapterData, questionsData] = await Promise.all([
+          getChapterById(chapterId).catch((err) => {
+            console.warn("Failed to load chapter info:", err.message);
+            return null;
+          }),
+          getQuestionsForChapter(chapterId),
+        ]);
+
+        if (chapterData) {
+          setChapter(chapterData);
+        }
+        setQuestions(questionsData || []);
 
         // Initialize all unique topics to true (selected)
-        const topics = Array.from(new Set(data.map((q) => q.topic))).filter(Boolean);
+        const topics = Array.from(new Set((questionsData || []).map((q) => q.topic))).filter(Boolean);
         const initialSelected = {};
         topics.forEach((t) => {
           initialSelected[t] = true;
         });
         setSelectedTopics(initialSelected);
-
-        try {
-          const chapterData = await getChapterById(chapterId);
-          setChapter(chapterData);
-        } catch (chapErr) {
-          console.warn("Failed to load chapter info:", chapErr.message);
-        }
 
         setError(null);
       } catch (err) {
@@ -401,13 +404,16 @@ export default function Quiz() {
   const isAnswered = q && answers[current] !== null;
 
   const theme = useMemo(() => {
-    if (!chapter) return "default";
+    if (!chapter) return "advitt";
     const name = (chapter.chapter_name || "").trim().toLowerCase();
+    const slug = (chapter.chapter_slug || "").trim().toLowerCase();
     const courseName = (chapter.courses?.course_name || "").trim().toLowerCase();
     const courseSlug = (chapter.courses?.course_slug || "").trim().toLowerCase();
 
     // CA AdvITT Theme (from Advanced_IT_Live_Quiz.html)
     if (
+      slug.includes("advitt") ||
+      slug.includes("itt") ||
       name.includes("advitt") || 
       name.includes("adv. it") || 
       name.includes("advanced it") || 
@@ -460,7 +466,7 @@ export default function Quiz() {
             )}
           </div>
           <div className="title-block">
-            <h1>{chapter ? `${chapter.chapter_name.trim()} - Practice` : "Practice Session"}</h1>
+            <h1>{chapter ? chapter.chapter_name : "Practice Session"}</h1>
             <p>
               {theme === "advitt" 
                 ? "Advanced Information Technology Training · ICAI Format" 
@@ -485,10 +491,16 @@ export default function Quiz() {
           <div className="wrap">
             <div className="cover">
               <div className="cover-head">
-                <p className="eyebrow">Practice Session &middot; Objective Type</p>
-                <h2>Interactive 3-Hour Practice Session</h2>
+                <p className="eyebrow">
+                  {theme === "advitt"
+                    ? "ADVANCED INFORMATION TECHNOLOGY TRAINING · ICAI FORMAT"
+                    : `${chapter ? chapter.chapter_name : "Practice Session"} · OBJECTIVE TYPE`}
+                </p>
+                <h2>{chapter ? chapter.chapter_name : "Interactive 3-Hour Practice Session"}</h2>
                 <p className="sub">
-                  Practice objective questions drawn from the study material. An active 3-hour timer helps you gauge your pace. You will receive instant feedback and detailed explanations as soon as you select an option.
+                  {theme === "advitt"
+                    ? `Interactive 3-hour practice test for ${chapter ? chapter.chapter_name : "this chapter"}. Objective questions drawn from official ICAI study material.`
+                    : "Practice objective questions drawn from the study material. An active 3-hour timer helps you gauge your pace. You will receive instant feedback and detailed explanations as soon as you select an option."}
                 </p>
               </div>
               <div className="cover-body">
