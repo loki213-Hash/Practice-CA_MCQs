@@ -5,6 +5,7 @@ export async function getQuestionsForChapter(chapterId) {
     .from("questions")
     .select("id, chapter_id, topic, question, option_a, option_b, option_c, option_d, correct_option, explanation, is_priority")
     .eq("chapter_id", chapterId)
+    .range(0, 99999)
     .order("id");
 
   if (error) throw error;
