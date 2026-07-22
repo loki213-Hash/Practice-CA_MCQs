@@ -511,7 +511,10 @@ export default function Quiz() {
               </div>
               <div className="cover-body">
                 {loading ? (
-                  <p>Loading questions...</p>
+                  <div className="loader-container" style={{ padding: "40px 0" }}>
+                    <div className="loader-spinner"></div>
+                    <p className="loader-text">Loading questions and chapter details…</p>
+                  </div>
                 ) : error ? (
                   <p style={{ color: "var(--red)" }}>{error}</p>
                 ) : (

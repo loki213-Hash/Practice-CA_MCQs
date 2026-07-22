@@ -142,6 +142,7 @@ function Home() {
   const [userStats, setUserStats] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifInbox, setShowNotifInbox] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -178,7 +179,9 @@ function Home() {
     // Poll notifications every 60 seconds (down from 8s) to reduce Supabase API usage
     let interval = null;
     if (username && username !== "admin") {
-      interval = setInterval(loadNotifications, 60000);
+      interval = setInterval(() => {
+        loadNotifications();
+      }, 60000);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -217,18 +220,32 @@ function Home() {
   useEffect(() => {
     async function loadCoursesAndStats() {
       try {
+        setLoading(true);
         const fetchedCourses = await getCourses();
         setCourses(fetchedCourses);
 
-        // Fetch all chapters and question counts in bulk (only 2 network requests total!)
-        const { data: allChapters } = await supabase
+        // Fetch all chapters and question counts in bulk
+        const { data: allChapters, error: chapErr } = await supabase
           .from("chapters")
-          .select("id, course_id");
+          .select("id, course_id, set_type");
 
-        const { data: allQuestions } = await supabase
-          .from("questions")
-          .select("chapter_id")
-          .range(0, 99999);
+        if (chapErr) throw chapErr;
+
+        // Fetch exact question counts in parallel for all chapters (avoids 1000-row cap completely!)
+        const questionCountByChapter = {};
+        if (allChapters) {
+          await Promise.all(
+            allChapters.map(async (ch) => {
+              const { count, error: qErr } = await supabase
+                .from("questions")
+                .select("*", { count: "exact", head: true })
+                .eq("chapter_id", ch.id);
+              if (!qErr) {
+                questionCountByChapter[ch.id] = count || 0;
+              }
+            })
+          );
+        }
 
         const setTypesByCourse = {};
         const chaptersByCourse = {};
@@ -243,15 +260,11 @@ function Home() {
               if (!setTypesByCourse[ch.course_id]) {
                 setTypesByCourse[ch.course_id] = new Set();
               }
-              setTypesByCourse[ch.course_id].add(ch.set_type);
+              const trimmed = ch.set_type.trim();
+              if (trimmed) {
+                setTypesByCourse[ch.course_id].add(trimmed);
+              }
             }
-          });
-        }
-
-        const questionCountByChapter = {};
-        if (allQuestions) {
-          allQuestions.forEach((q) => {
-            questionCountByChapter[q.chapter_id] = (questionCountByChapter[q.chapter_id] || 0) + 1;
           });
         }
 
@@ -263,7 +276,7 @@ function Home() {
             questionCount += (questionCountByChapter[cid] || 0);
           });
           const setSet = setTypesByCourse[course.id];
-          const setCount = setSet && setSet.size > 0 ? setSet.size : chapterIds.length;
+          const setCount = setSet && setSet.size > 0 ? setSet.size : 0;
 
           statsMap[course.course_slug.toLowerCase()] = {
             chapterCount: chapterIds.length,
@@ -275,6 +288,8 @@ function Home() {
       } catch (loadError) {
         setError("Courses could not be loaded. Please refresh the page.");
         console.error(loadError);
+      } finally {
+        setLoading(false);
       }
     }
     loadCoursesAndStats();
@@ -330,34 +345,28 @@ function Home() {
       let themeClass = "foundation";
       let tag = "Entry level";
       let desc = course.course_name;
-      let papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "Loading...";
-      let mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "Loading...";
-      let mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Practice Sets` : "Loading...";
+      let papers = courseStats.chapterCount;
+      let mcqs = courseStats.questionCount;
+      let mocks = courseStats.setCount;
       let ctaText = `Practice ${course.course_name}`;
 
       if (slug.includes("spom")) {
         themeClass = "foundation";
         tag = "Self Paced Module";
         desc = "FEMA, FCRA, and corporate laws — practice Set A and Set B chapters individually with instant explanations.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "...";
-        mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Sets` : "...";
         ctaText = "Practice SPOM";
       } else if (slug.includes("advitt") || slug.includes("itt")) {
         themeClass = "inter";
         tag = "IT stage";
         desc = "Advanced Integrated IT Training & Testing MCQ preparation based on the latest pattern.";
-        papers = courseStats.chapterCount > 0 ? `${courseStats.chapterCount} Chapters` : "...";
-        mcqs = courseStats.questionCount > 0 ? `${courseStats.questionCount.toLocaleString()} MCQs` : "...";
-        mocks = courseStats.setCount > 0 ? `${courseStats.setCount} Chapters` : "...";
         ctaText = "Practice Adv ITT";
       } else if (slug.includes("final")) {
         themeClass = "final";
         tag = "Final stage";
         desc = "Advanced Auditing, Strategic Financial Management, Direct & Indirect Tax - timed mock papers.";
         papers = "Coming Soon";
-        mcqs = "Coming Soon";
-        mocks = "Coming Soon";
+        mcqs = "";
+        mocks = "";
         ctaText = "CA Final";
       }
 
@@ -373,6 +382,15 @@ function Home() {
       };
     });
   }, [courses, stats]);
+
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader-spinner"></div>
+        <p className="loader-text">Loading CA Quiz Platform…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">
@@ -617,21 +635,26 @@ function Home() {
                 <h3>{course.course_name === "CA Final" ? "CA Final" : course.course_name}</h3>
                 <p>{course.desc}</p>
                 <div className="level-meta">
-                  <div>
-                    <span className="n">{course.papers}</span>
-                    <span className="l">Papers</span>
-                  </div>
-                  {course.mcqs && (
+                  {course.papers === "Coming Soon" ? (
                     <div>
-                      <span className="n">{course.mcqs}</span>
-                      <span className="l">MCQs</span>
+                      <span className="n">Coming Soon</span>
+                      <span className="l">🕐</span>
                     </div>
-                  )}
-                  {course.mocks && (
-                    <div>
-                      <span className="n">{course.mocks}</span>
-                      <span className="l">Mock sets</span>
-                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="n">{course.papers}</span>
+                        <span className="l">{course.papers === 1 ? "Chapter" : "Chapters"}</span>
+                      </div>
+                      <div>
+                        <span className="n">{Number(course.mcqs || 0).toLocaleString()}</span>
+                        <span className="l">MCQs</span>
+                      </div>
+                      <div>
+                        <span className="n">{course.mocks}</span>
+                        <span className="l">{course.mocks === 1 ? "Set" : "Sets"}</span>
+                      </div>
+                    </>
                   )}
                 </div>
 

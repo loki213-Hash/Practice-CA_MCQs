@@ -48,17 +48,10 @@ function Course() {
 
   if (!course) {
     return (
-      <>
-        <nav className="inner-navbar">
-          <Link className="brand" to="/">
-            <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
-          </Link>
-        </nav>
-        <div className="page-shell">
-          <p className="loading-text">Loading course…</p>
-        </div>
-      </>
+      <div className="loader-container">
+        <div className="loader-spinner"></div>
+        <p className="loader-text">Loading course…</p>
+      </div>
     );
   }
 

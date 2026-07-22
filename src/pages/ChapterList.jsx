@@ -29,23 +29,22 @@ function ChapterList() {
 
         setChapters(loadedChapters);
 
-        // Fetch actual question counts for each chapter in a single bulk query
         const chapterIds = loadedChapters.map((c) => c.id);
-        const { data: qData, error: qError } = await supabase
-          .from("questions")
-          .select("chapter_id")
-          .in("chapter_id", chapterIds)
-          .range(0, 99999);
-
         const counts = {};
         chapterIds.forEach((id) => { counts[id] = 0; });
-        if (!qError && qData) {
-          qData.forEach((q) => {
-            if (counts[q.chapter_id] !== undefined) {
-              counts[q.chapter_id]++;
+
+        await Promise.all(
+          chapterIds.map(async (cid) => {
+            const { count, error: qError } = await supabase
+              .from("questions")
+              .select("*", { count: "exact", head: true })
+              .eq("chapter_id", cid);
+            if (!qError) {
+              counts[cid] = count || 0;
             }
-          });
-        }
+          })
+        );
+
         setQuestionCounts(counts);
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
@@ -75,17 +74,10 @@ function ChapterList() {
 
   if (!course) {
     return (
-      <>
-        <nav className="inner-navbar">
-          <Link className="brand" to="/">
-            <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
-          </Link>
-        </nav>
-        <div className="page-shell">
-          <p className="loading-text">Loading chapters…</p>
-        </div>
-      </>
+      <div className="loader-container">
+        <div className="loader-spinner"></div>
+        <p className="loader-text">Loading chapters…</p>
+      </div>
     );
   }
 
