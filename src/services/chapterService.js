@@ -23,13 +23,13 @@ export async function getChapters(courseId, setType) {
 export async function getChapterById(chapterId) {
   const { data: chapter, error } = await supabase
     .from("chapters")
-    .select("*, courses(id, course_name, course_slug)")
+    .select("*")
     .eq("id", chapterId)
     .single();
 
   if (error) throw error;
 
-  if (chapter && chapter.course_id && (!chapter.courses || !chapter.courses.course_slug)) {
+  if (chapter && chapter.course_id) {
     try {
       const { data: course } = await supabase
         .from("courses")

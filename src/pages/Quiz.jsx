@@ -404,7 +404,7 @@ export default function Quiz() {
   const isAnswered = q && answers[current] !== null;
 
   const theme = useMemo(() => {
-    if (!chapter) return "advitt";
+    if (!chapter) return "default";
     const name = (chapter.chapter_name || "").trim().toLowerCase();
     const slug = (chapter.chapter_slug || "").trim().toLowerCase();
     const courseName = (chapter.courses?.course_name || "").trim().toLowerCase();
@@ -472,12 +472,21 @@ export default function Quiz() {
             )}
           </div>
           <div className="title-block">
-            <h1>{chapter ? chapter.chapter_name : "Chapter Quiz"}</h1>
-            <p>
-              {theme === "advitt" 
-                ? "Advanced Information Technology Training · ICAI Format" 
-                : `Chapter ${chapterId} — MCQ Session`}
-            </p>
+            {theme === "advitt" ? (
+              <>
+                <h1>{chapter ? chapter.chapter_name : "Chapter Quiz"}</h1>
+                <p>Advanced Information Technology Training · ICAI Format</p>
+              </>
+            ) : (
+              <>
+                <h1>{chapter ? `${chapter.chapter_name.trim()} - Practice` : "Practice Session"}</h1>
+                <p>
+                  {chapter
+                    ? `CHAPTER ${chapter.display_order || chapterId} — PRACTICE MCQ SESSION`
+                    : `CHAPTER ${chapterId} — PRACTICE MCQ SESSION`}
+                </p>
+              </>
+            )}
           </div>
         </div>
         <div className="status">
