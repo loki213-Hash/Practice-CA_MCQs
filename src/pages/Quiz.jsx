@@ -68,6 +68,37 @@ export default function Quiz() {
         });
         setSelectedTopics(initialSelected);
 
+        // Check for active quiz session in sessionStorage to restore progress on refresh
+        try {
+          const sessionKey = `ca_quiz_session_${chapterId}`;
+          const savedStr = sessionStorage.getItem(sessionKey);
+          if (savedStr) {
+            const saved = JSON.parse(savedStr);
+            if (
+              saved &&
+              saved.screen === "quiz" &&
+              Array.isArray(saved.activeQuestions) &&
+              saved.activeQuestions.length > 0
+            ) {
+              const startKey = `ca_quiz_start_${chapterId}`;
+              const storedStart = parseInt(sessionStorage.getItem(startKey) || saved.startTime || Date.now());
+              const elapsed = Math.floor((Date.now() - storedStart) / 1000);
+              const trueRemaining = Math.max(0, 10800 - elapsed);
+
+              setActiveQuestions(saved.activeQuestions);
+              setCurrent(typeof saved.current === "number" ? saved.current : 0);
+              setAnswers(saved.answers || new Array(saved.activeQuestions.length).fill(null));
+              setMarked(saved.marked || new Array(saved.activeQuestions.length).fill(false));
+              setVisited(saved.visited || new Array(saved.activeQuestions.length).fill(false));
+              if (saved.selectedTopics) setSelectedTopics(saved.selectedTopics);
+              setRemainingSeconds(trueRemaining);
+              setScreen("quiz");
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to restore active quiz session:", e);
+        }
+
         setError(null);
       } catch (err) {
         setError(err.message || "Failed to load questions.");
@@ -77,6 +108,29 @@ export default function Quiz() {
     }
     loadData();
   }, [chapterId]);
+
+  // Auto-persist active quiz state to sessionStorage during test so browser refresh stays on the same question
+  useEffect(() => {
+    if (screen === "quiz" && activeQuestions.length > 0) {
+      try {
+        const startKey = `ca_quiz_start_${chapterId}`;
+        const startTime = parseInt(sessionStorage.getItem(startKey) || Date.now().toString());
+        const sessionData = {
+          screen: "quiz",
+          startTime,
+          current,
+          activeQuestions,
+          answers,
+          marked,
+          visited,
+          selectedTopics,
+        };
+        sessionStorage.setItem(`ca_quiz_session_${chapterId}`, JSON.stringify(sessionData));
+      } catch (e) {
+        console.warn("Failed to save active quiz session:", e);
+      }
+    }
+  }, [screen, current, answers, marked, visited, activeQuestions, selectedTopics, chapterId]);
 
   // strict 3-hour timer ticking logic
   useEffect(() => {
@@ -261,6 +315,7 @@ export default function Quiz() {
       goToQuestion(current - 1);
     } else {
       if (window.confirm("Are you sure you want to exit the quiz? Your current progress will not be saved.")) {
+        sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
         sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
         setScreen("start");
       }
@@ -285,6 +340,8 @@ export default function Quiz() {
   };
 
   const finishTest = () => {
+    sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
+    sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
     setShowConfirm(false);
     setScreen("results");
     window.scrollTo(0, 0);
@@ -301,6 +358,8 @@ export default function Quiz() {
   };
 
   const restartTest = () => {
+    sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
+    sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
     setScreen("start");
     setRemainingSeconds(10800);
     window.scrollTo(0, 0);
