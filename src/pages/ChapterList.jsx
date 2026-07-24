@@ -96,7 +96,7 @@ function ChapterList() {
     return (
       <div className="loader-container">
         <div className="loader-spinner"></div>
-        <p className="loader-text">Loading subjects & chapters…</p>
+        <p className="loader-text">Loading chapters & sub-chapters…</p>
       </div>
     );
   }
@@ -152,13 +152,13 @@ function ChapterList() {
             {setType !== "chapters" ? ` · ${setType}` : ""}
             {totalQuestions > 0 ? ` · ${totalQuestions.toLocaleString()} MCQs` : ""}
           </p>
-          <h1 className="subject-page-title">{subjects.length > 0 ? "Select a subject & chapter" : "Choose a chapter"}</h1>
+          <h1 className="subject-page-title">{subjects.length > 0 ? "Select Chapter & Sub-Chapter" : "Choose a Chapter"}</h1>
           <p style={{ margin: "4px 0 0", fontSize: "13.5px", color: "var(--ink-soft)" }}>
-            Select a subject to view chapters and start practising.
+            Select a main chapter to view its sub-chapters and start practising.
           </p>
         </header>
 
-        {/* Subject Filter Pills */}
+        {/* Subject / Main Chapter Filter Pills */}
         {subjects.length > 0 && (
           <div className="subject-filter-container">
             <button
@@ -166,7 +166,7 @@ function ChapterList() {
               className={`subject-pill ${selectedSubjectId === "all" ? "active" : ""}`}
               onClick={() => setSelectedSubjectId("all")}
             >
-              All subjects ({subjects.length})
+              All Chapters ({subjects.length})
             </button>
             {subjects.map((sub) => (
               <button
@@ -181,7 +181,7 @@ function ChapterList() {
           </div>
         )}
 
-        {/* Responsive Subject Cards Grid */}
+        {/* Responsive Main Chapters Grid */}
         {subjects.length > 0 ? (
           <div className="subject-grid">
             {visibleSubjects.map((subject) => {
@@ -216,7 +216,7 @@ function ChapterList() {
                     </div>
                     <div className="subject-meta">
                       <span className={`subject-badge ${isZero ? "zero-badge" : ""}`}>
-                        {subjectChapters.length} {subjectChapters.length === 1 ? "chapter" : "chapters"}
+                        {subjectChapters.length} {subjectChapters.length === 1 ? "sub-chapter" : "sub-chapters"}
                       </span>
                       {!isZero && (
                         <svg
@@ -257,7 +257,7 @@ function ChapterList() {
                             return (
                               <div className="chapter-row" key={chapter.id}>
                                 <div className="chapter-info">
-                                  <span className="chapter-title">{chapter.chapter_name}</span>
+                                  <span className="chapter-title">{chapter.chapter_name.trim()}</span>
                                   <span className="chapter-count-meta">{countLabel}</span>
                                 </div>
                                 <Link className="chapter-start-btn" to={`/quiz/${chapter.id}`}>
@@ -274,7 +274,7 @@ function ChapterList() {
               );
             })}
 
-            {/* Unassigned Chapters Card if All Subjects is selected */}
+            {/* Unassigned Sub-Chapters Card if All Chapters is selected */}
             {selectedSubjectId === "all" && unassignedChapters.length > 0 && (
               <article className="subject-card">
                 <div
@@ -289,7 +289,7 @@ function ChapterList() {
                   </div>
                   <div className="subject-meta">
                     <span className="subject-badge">
-                      {unassignedChapters.length} {unassignedChapters.length === 1 ? "chapter" : "chapters"}
+                      {unassignedChapters.length} {unassignedChapters.length === 1 ? "sub-chapter" : "sub-chapters"}
                     </span>
                     <svg
                       className={`chevron-icon ${expandedSubjectIds["unassigned"] ? "rotated" : ""}`}
@@ -327,7 +327,7 @@ function ChapterList() {
                         return (
                           <div className="chapter-row" key={chapter.id}>
                             <div className="chapter-info">
-                              <span className="chapter-title">{chapter.chapter_name}</span>
+                              <span className="chapter-title">{chapter.chapter_name.trim()}</span>
                               <span className="chapter-count-meta">{countLabel}</span>
                             </div>
                             <Link className="chapter-start-btn" to={`/quiz/${chapter.id}`}>
@@ -365,7 +365,7 @@ function ChapterList() {
                 return (
                   <article className="chapter-card" key={chapter.id}>
                     <div>
-                      <h2>{chapter.chapter_name}</h2>
+                      <h2>{chapter.chapter_name.trim()}</h2>
                       <p className="q-count">{countLabel}</p>
                     </div>
                     <Link className="btn primary" to={`/quiz/${chapter.id}`}>
