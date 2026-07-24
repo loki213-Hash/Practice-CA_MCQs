@@ -468,6 +468,8 @@ export default function Quiz() {
   const theme = useMemo(() => {
     if (!chapter) return "default";
     const name = (chapter.chapter_name || "").trim().toLowerCase();
+    const subName = (chapter.subject?.subject_name || "").trim().toLowerCase();
+    const combinedName = `${name} ${subName}`;
     const slug = (chapter.chapter_slug || "").trim().toLowerCase();
     const courseName = (chapter.courses?.course_name || "").trim().toLowerCase();
     const courseSlug = (chapter.courses?.course_slug || "").trim().toLowerCase();
@@ -476,20 +478,20 @@ export default function Quiz() {
     if (
       slug.includes("advitt") ||
       slug.includes("itt") ||
-      name.includes("advitt") || 
-      name.includes("adv. it") || 
-      name.includes("advanced it") || 
-      name.includes("adv it") || 
-      name.includes("itt") || 
-      name.includes("information technology") ||
-      name.includes("forensic") ||
-      name.includes("cyber") ||
-      name.includes("rpa") ||
-      name.includes("erp") ||
-      name.includes("power bi") ||
-      name.includes("python") ||
-      name.includes("knime") ||
-      name.includes("analytics") ||
+      combinedName.includes("advitt") || 
+      combinedName.includes("adv. it") || 
+      combinedName.includes("advanced it") || 
+      combinedName.includes("adv it") || 
+      combinedName.includes("itt") || 
+      combinedName.includes("information technology") ||
+      combinedName.includes("forensic") ||
+      combinedName.includes("cyber") ||
+      combinedName.includes("rpa") ||
+      combinedName.includes("erp") ||
+      combinedName.includes("power bi") ||
+      combinedName.includes("python") ||
+      combinedName.includes("knime") ||
+      combinedName.includes("analytics") ||
       courseName.includes("advitt") ||
       courseName.includes("adv. it") ||
       courseName.includes("advanced it") ||
@@ -500,18 +502,18 @@ export default function Quiz() {
     ) return "advitt";
 
     // Currency / Regulation themes (banknote green)
-    if (name.includes("foreign contribution") || name.includes("fcra")) return "fcra";
-    if (name.includes("foreign exchange") || name.includes("fema")) return "fema";
+    if (combinedName.includes("foreign contribution") || combinedName.includes("fcra")) return "fcra";
+    if (combinedName.includes("foreign exchange") || combinedName.includes("fema")) return "fema";
     // Stock market themes (dark digital)
-    if (name.includes("sebi") || name.includes("securities") || name.includes("stock exchange")) return "sebi";
+    if (combinedName.includes("sebi") || combinedName.includes("securities") || combinedName.includes("stock exchange")) return "sebi";
     // Corporate themes (navy seal)
-    if (name.includes("companies act") || name.includes("companies") || name.includes("llp") || name.includes("corporate")) return "companies";
+    if (combinedName.includes("companies act") || combinedName.includes("companies") || combinedName.includes("llp") || combinedName.includes("corporate")) return "companies";
     // Tax themes (ledger brown)
-    if (name.includes("income tax") || name.includes("income-tax") || name.includes("gst") || name.includes("customs")) return "incometax";
+    if (combinedName.includes("income tax") || combinedName.includes("income-tax") || combinedName.includes("gst") || combinedName.includes("customs")) return "incometax";
     // Insolvency & Bankruptcy theme (copper/rust #AB7752)
-    if (name.includes("insolvency") || name.includes("bankruptcy") || name.includes("ibc")) return "ibc";
+    if (combinedName.includes("insolvency") || combinedName.includes("bankruptcy") || combinedName.includes("ibc")) return "ibc";
     // Law / Act themes (fallback green for any remaining act/law chapter)
-    if (name.includes("act") || name.includes("law") || name.includes("regulation")) return "fcra";
+    if (combinedName.includes("act") || combinedName.includes("law") || combinedName.includes("regulation")) return "fcra";
     return "default";
   }, [chapter]);
 
