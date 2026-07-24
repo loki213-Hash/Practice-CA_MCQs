@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getCourseBySlug } from "../services/courseService";
 import { getSubjects } from "../services/subjectService";
 import { getChapters } from "../services/chapterService";
+import { getTopicCountsForChapters } from "../services/topicService";
 import { supabase } from "../supabase/supabase";
 
 function ChapterList() {
@@ -13,6 +14,7 @@ function ChapterList() {
   const [chapters, setChapters] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState("all");
   const [questionCounts, setQuestionCounts] = useState({});
+  const [topicCounts, setTopicCounts] = useState({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -35,22 +37,27 @@ function ChapterList() {
         setChapters(loadedChapters || []);
 
         const chapterIds = (loadedChapters || []).map((c) => c.id);
-        const counts = {};
-        chapterIds.forEach((id) => { counts[id] = 0; });
+        const qCounts = {};
+        chapterIds.forEach((id) => { qCounts[id] = 0; });
 
-        await Promise.all(
-          chapterIds.map(async (cid) => {
-            const { count, error: qError } = await supabase
-              .from("questions")
-              .select("*", { count: "exact", head: true })
-              .eq("chapter_id", cid);
-            if (!qError) {
-              counts[cid] = count || 0;
-            }
-          })
-        );
+        // Fetch question counts and topic counts in parallel
+        const [tCounts] = await Promise.all([
+          getTopicCountsForChapters(chapterIds),
+          Promise.all(
+            chapterIds.map(async (cid) => {
+              const { count, error: qError } = await supabase
+                .from("questions")
+                .select("*", { count: "exact", head: true })
+                .eq("chapter_id", cid);
+              if (!qError) {
+                qCounts[cid] = count || 0;
+              }
+            })
+          ),
+        ]);
 
-        setQuestionCounts(counts);
+        setQuestionCounts(qCounts);
+        setTopicCounts(tCounts || {});
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
         setError("Chapters could not be loaded.");
@@ -81,7 +88,7 @@ function ChapterList() {
     return (
       <div className="loader-container">
         <div className="loader-spinner"></div>
-        <p className="loader-text">Loading subjects & chapters…</p>
+        <p className="loader-text">Loading topics & chapters…</p>
       </div>
     );
   }
@@ -140,8 +147,8 @@ function ChapterList() {
           <h1>{subjects.length > 0 ? "Select a subject & chapter" : "Choose a chapter"}</h1>
           <p>
             {subjects.length > 0
-              ? "Browse by subject or select a chapter to begin practising."
-              : "Choose a chapter to begin practising MCQs."}
+              ? "Browse by subject or select a chapter to view its topics and start practising."
+              : "Choose a chapter to view topics and start practising."}
           </p>
         </header>
 
@@ -194,27 +201,32 @@ function ChapterList() {
                   ) : (
                     <section className="chapter-list">
                       {subjectChapters.map((chapter) => {
-                        const count = questionCounts[chapter.id] ?? 0;
-                        const hasQuestions = count > 0;
+                        const qCount = questionCounts[chapter.id] ?? 0;
+                        const tCount = topicCounts[chapter.id] ?? 0;
+
+                        let countLabel;
+                        if (tCount > 0 && qCount > 0) {
+                          countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
+                        } else if (tCount > 0) {
+                          countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"}`;
+                        } else if (qCount > 0) {
+                          countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
+                        } else {
+                          countLabel = "Topics & MCQs available";
+                        }
 
                         return (
                           <article className="chapter-card" key={chapter.id}>
                             <div>
                               <h2>{chapter.chapter_name}</h2>
                               <p className="q-count">
-                                {count} {count === 1 ? "question" : "questions"}
+                                {countLabel}
                               </p>
                             </div>
 
-                            {hasQuestions ? (
-                              <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                                Start Quiz →
-                              </Link>
-                            ) : (
-                              <span className="btn" style={{ opacity: 0.4, cursor: "default" }}>
-                                No questions yet
-                              </span>
-                            )}
+                            <Link className="btn primary" to={`/quiz/${chapter.id}`}>
+                              Select Topics & Start →
+                            </Link>
                           </article>
                         );
                       })}
@@ -235,27 +247,32 @@ function ChapterList() {
                 </div>
                 <section className="chapter-list">
                   {unassignedChapters.map((chapter) => {
-                    const count = questionCounts[chapter.id] ?? 0;
-                    const hasQuestions = count > 0;
+                    const qCount = questionCounts[chapter.id] ?? 0;
+                    const tCount = topicCounts[chapter.id] ?? 0;
+
+                    let countLabel;
+                    if (tCount > 0 && qCount > 0) {
+                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
+                    } else if (tCount > 0) {
+                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"}`;
+                    } else if (qCount > 0) {
+                      countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
+                    } else {
+                      countLabel = "Topics & MCQs available";
+                    }
 
                     return (
                       <article className="chapter-card" key={chapter.id}>
                         <div>
                           <h2>{chapter.chapter_name}</h2>
                           <p className="q-count">
-                            {count} {count === 1 ? "question" : "questions"}
+                            {countLabel}
                           </p>
                         </div>
 
-                        {hasQuestions ? (
-                          <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                            Start Quiz →
-                          </Link>
-                        ) : (
-                          <span className="btn" style={{ opacity: 0.4, cursor: "default" }}>
-                            No questions yet
-                          </span>
-                        )}
+                        <Link className="btn primary" to={`/quiz/${chapter.id}`}>
+                          Select Topics & Start →
+                        </Link>
                       </article>
                     );
                   })}
@@ -270,27 +287,32 @@ function ChapterList() {
           ) : (
             <section className="chapter-list">
               {chapters.map((chapter) => {
-                const count = questionCounts[chapter.id] ?? 0;
-                const hasQuestions = count > 0;
+                const qCount = questionCounts[chapter.id] ?? 0;
+                const tCount = topicCounts[chapter.id] ?? 0;
+
+                let countLabel;
+                if (tCount > 0 && qCount > 0) {
+                  countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
+                } else if (tCount > 0) {
+                  countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"}`;
+                } else if (qCount > 0) {
+                  countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
+                } else {
+                  countLabel = "Topics & MCQs available";
+                }
 
                 return (
                   <article className="chapter-card" key={chapter.id}>
                     <div>
                       <h2>{chapter.chapter_name}</h2>
                       <p className="q-count">
-                        {count} {count === 1 ? "question" : "questions"}
+                        {countLabel}
                       </p>
                     </div>
 
-                    {hasQuestions ? (
-                      <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                        Start Quiz →
-                      </Link>
-                    ) : (
-                      <span className="btn" style={{ opacity: 0.4, cursor: "default" }}>
-                        No questions yet
-                      </span>
-                    )}
+                    <Link className="btn primary" to={`/quiz/${chapter.id}`}>
+                      Select Topics & Start →
+                    </Link>
                   </article>
                 );
               })}

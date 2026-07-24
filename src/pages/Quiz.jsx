@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { saveQuizAttempt } from "../services/progressService";
 import { supabase } from "../supabase/supabase";
 
+import { getTopicsForChapter } from "../services/topicService";
+
 export default function Quiz() {
   const { chapterId } = useParams();
   const { username } = useAuth();
@@ -14,6 +16,7 @@ export default function Quiz() {
   const [screen, setScreen] = useState("start"); // 'start' | 'quiz' | 'results'
   const [questions, setQuestions] = useState([]);
   const [chapter, setChapter] = useState(null);
+  const [dbTopics, setDbTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,21 +50,32 @@ export default function Quiz() {
     async function loadData() {
       try {
         setLoading(true);
-        const [chapterData, questionsData] = await Promise.all([
+        const [chapterData, questionsData, loadedDbTopics] = await Promise.all([
           getChapterById(chapterId).catch((err) => {
             console.warn("Failed to load chapter info:", err.message);
             return null;
           }),
-          getQuestionsForChapter(chapterId),
+          getQuestionsForChapter(chapterId).catch((err) => {
+            console.warn("Failed to load questions:", err.message);
+            return [];
+          }),
+          getTopicsForChapter(chapterId).catch((err) => {
+            console.warn("Failed to load topics:", err.message);
+            return [];
+          }),
         ]);
 
         if (chapterData) {
           setChapter(chapterData);
         }
         setQuestions(questionsData || []);
+        setDbTopics(loadedDbTopics || []);
 
-        // Initialize all unique topics to true (selected)
-        const topics = Array.from(new Set((questionsData || []).map((q) => q.topic))).filter(Boolean);
+        // Initialize all unique topics from both database topics table and questions topics
+        const dbNames = (loadedDbTopics || []).map((t) => t.topic_name).filter(Boolean);
+        const qNames = (questionsData || []).map((q) => q.topic).filter(Boolean);
+        const topics = Array.from(new Set([...dbNames, ...qNames]));
+
         const initialSelected = {};
         topics.forEach((t) => {
           initialSelected[t] = true;
@@ -369,8 +383,10 @@ export default function Quiz() {
   };
 
   const uniqueTopics = useMemo(() => {
-    return Array.from(new Set(questions.map((q) => q.topic))).filter(Boolean);
-  }, [questions]);
+    const dbNames = (dbTopics || []).map((t) => t.topic_name).filter(Boolean);
+    const qNames = (questions || []).map((q) => q.topic).filter(Boolean);
+    return Array.from(new Set([...dbNames, ...qNames]));
+  }, [questions, dbTopics]);
 
   const activeSelectedQuestions = useMemo(() => {
     return questions.filter((q) => {
