@@ -13,6 +13,7 @@ function ChapterList() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState("all");
+  const [expandedSubjectIds, setExpandedSubjectIds] = useState({});
   const [questionCounts, setQuestionCounts] = useState({});
   const [topicCounts, setTopicCounts] = useState({});
   const [error, setError] = useState("");
@@ -67,6 +68,13 @@ function ChapterList() {
     loadChapters();
   }, [courseSlug, setType]);
 
+  const toggleSubjectExpand = (subId) => {
+    setExpandedSubjectIds((prev) => ({
+      ...prev,
+      [subId]: !prev[subId],
+    }));
+  };
+
   if (error) {
     return (
       <>
@@ -88,7 +96,7 @@ function ChapterList() {
     return (
       <div className="loader-container">
         <div className="loader-spinner"></div>
-        <p className="loader-text">Loading topics & chapters…</p>
+        <p className="loader-text">Loading subjects & chapters…</p>
       </div>
     );
   }
@@ -138,17 +146,15 @@ function ChapterList() {
           ← {setType === "chapters" ? "Back to Home" : `Back to ${course.course_name}`}
         </Link>
 
-        <header className="hero-copy compact-copy">
+        <header className="hero-copy compact-copy subject-page-header">
           <p className="eyebrow">
             {isAdvItt ? "ADVANCED INFORMATION TECHNOLOGY TRAINING · ICAI FORMAT" : course.course_name}
             {setType !== "chapters" ? ` · ${setType}` : ""}
             {totalQuestions > 0 ? ` · ${totalQuestions.toLocaleString()} MCQs` : ""}
           </p>
-          <h1>{subjects.length > 0 ? "Select a subject & chapter" : "Choose a chapter"}</h1>
-          <p>
-            {subjects.length > 0
-              ? "Browse by subject or select a chapter to view its topics and start practising."
-              : "Choose a chapter to view topics and start practising."}
+          <h1 className="subject-page-title">{subjects.length > 0 ? "Select a subject & chapter" : "Choose a chapter"}</h1>
+          <p style={{ margin: "4px 0 0", fontSize: "13.5px", color: "var(--ink-soft)" }}>
+            Select a subject to view chapters and start practising.
           </p>
         </header>
 
@@ -160,7 +166,7 @@ function ChapterList() {
               className={`subject-pill ${selectedSubjectId === "all" ? "active" : ""}`}
               onClick={() => setSelectedSubjectId("all")}
             >
-              All Subjects ({subjects.length})
+              All subjects ({subjects.length})
             </button>
             {subjects.map((sub) => (
               <button
@@ -175,35 +181,138 @@ function ChapterList() {
           </div>
         )}
 
-        {/* Render Chapters Grouped by Subjects */}
+        {/* Responsive Subject Cards Grid */}
         {subjects.length > 0 ? (
-          <div>
+          <div className="subject-grid">
             {visibleSubjects.map((subject) => {
               const subjectChapters = chapters.filter(
                 (ch) => String(ch.subject_id) === String(subject.id)
               );
+              const isZero = subjectChapters.length === 0;
+              const isExpanded = !!expandedSubjectIds[subject.id];
 
               return (
-                <div className="subject-block" key={subject.id}>
-                  <div className="subject-header">
-                    <h3>
-                      <span>📘 {subject.subject_name}</span>
-                    </h3>
-                    <span className="subject-badge">
-                      {subjectChapters.length} {subjectChapters.length === 1 ? "Chapter" : "Chapters"}
-                    </span>
+                <article
+                  key={subject.id}
+                  className={`subject-card ${isZero ? "disabled-card" : ""} ${isExpanded ? "is-expanded" : ""}`}
+                >
+                  <div
+                    className="subject-card-header"
+                    onClick={() => !isZero && toggleSubjectExpand(subject.id)}
+                    role={isZero ? undefined : "button"}
+                    tabIndex={isZero ? undefined : 0}
+                    onKeyDown={(e) => {
+                      if (!isZero && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        toggleSubjectExpand(subject.id);
+                      }
+                    }}
+                  >
+                    <div className="subject-title-area">
+                      <span className="subject-icon">📘</span>
+                      <h3 className="subject-name" title={subject.subject_name}>
+                        {subject.subject_name}
+                      </h3>
+                    </div>
+                    <div className="subject-meta">
+                      <span className={`subject-badge ${isZero ? "zero-badge" : ""}`}>
+                        {subjectChapters.length} {subjectChapters.length === 1 ? "chapter" : "chapters"}
+                      </span>
+                      {!isZero && (
+                        <svg
+                          className={`chevron-icon ${isExpanded ? "rotated" : ""}`}
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
 
-                  {subjectChapters.length === 0 ? (
-                    <p style={{ color: "var(--ink-soft, #4B5A63)", fontStyle: "italic", fontSize: "14px", margin: "10px 0" }}>
-                      No chapters available under this subject yet.
-                    </p>
-                  ) : (
-                    <section className="chapter-list">
-                      {subjectChapters.map((chapter) => {
+                  {!isZero && (
+                    <div className={`subject-card-body-wrapper ${isExpanded ? "expanded" : ""}`}>
+                      <div className="subject-card-body-inner">
+                        <div className="chapter-rows-list">
+                          {subjectChapters.map((chapter) => {
+                            const qCount = questionCounts[chapter.id] ?? 0;
+                            const tCount = topicCounts[chapter.id] ?? 0;
+                            let countLabel;
+                            if (tCount > 0 && qCount > 0) {
+                              countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
+                            } else if (tCount > 0) {
+                              countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"}`;
+                            } else if (qCount > 0) {
+                              countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
+                            } else {
+                              countLabel = "Topics available";
+                            }
+
+                            return (
+                              <div className="chapter-row" key={chapter.id}>
+                                <div className="chapter-info">
+                                  <span className="chapter-title">{chapter.chapter_name}</span>
+                                  <span className="chapter-count-meta">{countLabel}</span>
+                                </div>
+                                <Link className="chapter-start-btn" to={`/quiz/${chapter.id}`}>
+                                  Start →
+                                </Link>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+
+            {/* Unassigned Chapters Card if All Subjects is selected */}
+            {selectedSubjectId === "all" && unassignedChapters.length > 0 && (
+              <article className="subject-card">
+                <div
+                  className="subject-card-header"
+                  onClick={() => toggleSubjectExpand("unassigned")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="subject-title-area">
+                    <span className="subject-icon">📑</span>
+                    <h3 className="subject-name">Other Chapters</h3>
+                  </div>
+                  <div className="subject-meta">
+                    <span className="subject-badge">
+                      {unassignedChapters.length} {unassignedChapters.length === 1 ? "chapter" : "chapters"}
+                    </span>
+                    <svg
+                      className={`chevron-icon ${expandedSubjectIds["unassigned"] ? "rotated" : ""}`}
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className={`subject-card-body-wrapper ${expandedSubjectIds["unassigned"] ? "expanded" : ""}`}>
+                  <div className="subject-card-body-inner">
+                    <div className="chapter-rows-list">
+                      {unassignedChapters.map((chapter) => {
                         const qCount = questionCounts[chapter.id] ?? 0;
                         const tCount = topicCounts[chapter.id] ?? 0;
-
                         let countLabel;
                         if (tCount > 0 && qCount > 0) {
                           countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
@@ -212,72 +321,25 @@ function ChapterList() {
                         } else if (qCount > 0) {
                           countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
                         } else {
-                          countLabel = "Topics & MCQs available";
+                          countLabel = "Topics available";
                         }
 
                         return (
-                          <article className="chapter-card" key={chapter.id}>
-                            <div>
-                              <h2>{chapter.chapter_name}</h2>
-                              <p className="q-count">
-                                {countLabel}
-                              </p>
+                          <div className="chapter-row" key={chapter.id}>
+                            <div className="chapter-info">
+                              <span className="chapter-title">{chapter.chapter_name}</span>
+                              <span className="chapter-count-meta">{countLabel}</span>
                             </div>
-
-                            <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                              Select Topics & Start →
+                            <Link className="chapter-start-btn" to={`/quiz/${chapter.id}`}>
+                              Start →
                             </Link>
-                          </article>
+                          </div>
                         );
                       })}
-                    </section>
-                  )}
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
-
-            {/* Render any chapters not linked to a subject if All Subjects selected */}
-            {selectedSubjectId === "all" && unassignedChapters.length > 0 && (
-              <div className="subject-block">
-                <div className="subject-header">
-                  <h3>
-                    <span>📑 Other Chapters</span>
-                  </h3>
-                  <span className="subject-badge">{unassignedChapters.length} Chapters</span>
-                </div>
-                <section className="chapter-list">
-                  {unassignedChapters.map((chapter) => {
-                    const qCount = questionCounts[chapter.id] ?? 0;
-                    const tCount = topicCounts[chapter.id] ?? 0;
-
-                    let countLabel;
-                    if (tCount > 0 && qCount > 0) {
-                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
-                    } else if (tCount > 0) {
-                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"}`;
-                    } else if (qCount > 0) {
-                      countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
-                    } else {
-                      countLabel = "Topics & MCQs available";
-                    }
-
-                    return (
-                      <article className="chapter-card" key={chapter.id}>
-                        <div>
-                          <h2>{chapter.chapter_name}</h2>
-                          <p className="q-count">
-                            {countLabel}
-                          </p>
-                        </div>
-
-                        <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                          Select Topics & Start →
-                        </Link>
-                      </article>
-                    );
-                  })}
-                </section>
-              </div>
+              </article>
             )}
           </div>
         ) : (
@@ -289,7 +351,6 @@ function ChapterList() {
               {chapters.map((chapter) => {
                 const qCount = questionCounts[chapter.id] ?? 0;
                 const tCount = topicCounts[chapter.id] ?? 0;
-
                 let countLabel;
                 if (tCount > 0 && qCount > 0) {
                   countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} MCQs`;
@@ -298,20 +359,17 @@ function ChapterList() {
                 } else if (qCount > 0) {
                   countLabel = `${qCount} ${qCount === 1 ? "question" : "questions"}`;
                 } else {
-                  countLabel = "Topics & MCQs available";
+                  countLabel = "Topics available";
                 }
 
                 return (
                   <article className="chapter-card" key={chapter.id}>
                     <div>
                       <h2>{chapter.chapter_name}</h2>
-                      <p className="q-count">
-                        {countLabel}
-                      </p>
+                      <p className="q-count">{countLabel}</p>
                     </div>
-
                     <Link className="btn primary" to={`/quiz/${chapter.id}`}>
-                      Select Topics & Start →
+                      Start →
                     </Link>
                   </article>
                 );
