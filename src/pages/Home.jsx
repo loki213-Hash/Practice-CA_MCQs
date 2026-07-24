@@ -269,12 +269,29 @@ function Home() {
         const fetchedCourses = await getCourses();
         setCourses(fetchedCourses);
 
-        // Fetch all chapters and question counts in bulk
-        const { data: allChapters, error: chapErr } = await supabase
-          .from("chapters")
-          .select("id, course_id, set_type");
+        // Fetch all chapters, subjects, and question counts in bulk
+        const [{ data: allChapters }, { data: allSubjects }] = await Promise.all([
+          supabase.from("chapters").select("id, course_id, subject_id, set_type"),
+          supabase.from("subjects").select("id, course_id, set_type"),
+        ]);
 
-        if (chapErr) throw chapErr;
+        const subjectCourseMap = {};
+        const setTypesByCourse = {};
+
+        if (allSubjects) {
+          allSubjects.forEach((sub) => {
+            if (sub.course_id) {
+              subjectCourseMap[sub.id] = sub.course_id;
+              if (sub.set_type) {
+                if (!setTypesByCourse[sub.course_id]) {
+                  setTypesByCourse[sub.course_id] = new Set();
+                }
+                const trimmed = sub.set_type.trim();
+                if (trimmed) setTypesByCourse[sub.course_id].add(trimmed);
+              }
+            }
+          });
+        }
 
         // Fetch exact question counts in parallel for all chapters (avoids 1000-row cap completely!)
         const questionCountByChapter = {};
@@ -292,22 +309,24 @@ function Home() {
           );
         }
 
-        const setTypesByCourse = {};
         const chaptersByCourse = {};
         if (allChapters) {
           allChapters.forEach((ch) => {
-            if (!chaptersByCourse[ch.course_id]) {
-              chaptersByCourse[ch.course_id] = [];
-            }
-            chaptersByCourse[ch.course_id].push(String(ch.id));
-
-            if (ch.set_type) {
-              if (!setTypesByCourse[ch.course_id]) {
-                setTypesByCourse[ch.course_id] = new Set();
+            const courseId = ch.course_id || (ch.subject_id ? subjectCourseMap[ch.subject_id] : null);
+            if (courseId) {
+              if (!chaptersByCourse[courseId]) {
+                chaptersByCourse[courseId] = [];
               }
-              const trimmed = ch.set_type.trim();
-              if (trimmed) {
-                setTypesByCourse[ch.course_id].add(trimmed);
+              chaptersByCourse[courseId].push(String(ch.id));
+
+              if (ch.set_type) {
+                if (!setTypesByCourse[courseId]) {
+                  setTypesByCourse[courseId] = new Set();
+                }
+                const trimmed = ch.set_type.trim();
+                if (trimmed) {
+                  setTypesByCourse[courseId].add(trimmed);
+                }
               }
             }
           });
