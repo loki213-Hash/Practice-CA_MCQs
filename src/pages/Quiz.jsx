@@ -561,7 +561,9 @@ export default function Quiz() {
               <>
                 <h1>{chapter ? `${chapter.chapter_name.trim()} - Practice` : "Practice Session"}</h1>
                 <p>
-                  {chapter
+                  {chapter?.subject
+                    ? `${chapter.subject.subject_name.trim().toUpperCase()} · PRACTICE MCQ SESSION`
+                    : chapter
                     ? `CHAPTER ${chapter.display_order || chapterId} — PRACTICE MCQ SESSION`
                     : `CHAPTER ${chapterId} — PRACTICE MCQ SESSION`}
                 </p>
