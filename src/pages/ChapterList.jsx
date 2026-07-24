@@ -4,8 +4,17 @@ import { getCourseBySlug } from "../services/courseService";
 import { getSubjects } from "../services/subjectService";
 import { getChapters } from "../services/chapterService";
 import { getTopicCountsForChapters } from "../services/topicService";
-import { getUserProgressStats } from "../services/progressService";
 import { supabase } from "../supabase/supabase";
+
+function getSubjectIcon(name) {
+  const n = (name || "").toLowerCase();
+  if (n.includes("company") || n.includes("companies")) return "🏛️";
+  if (n.includes("sebi") || n.includes("regulation")) return "📈";
+  if (n.includes("fema") || n.includes("foreign exchange")) return "💱";
+  if (n.includes("fcra") || n.includes("foreign contribution")) return "🌍";
+  if (n.includes("ibc") || n.includes("insolvency") || n.includes("bankruptcy")) return "⚖️";
+  return "📑";
+}
 
 function ChapterList() {
   const { courseSlug, setType } = useParams();
@@ -13,10 +22,9 @@ function ChapterList() {
   const [course, setCourse] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const [activeSubjectId, setActiveSubjectId] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [questionCounts, setQuestionCounts] = useState({});
   const [topicCounts, setTopicCounts] = useState({});
-  const [userProgress, setUserProgress] = useState({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -29,11 +37,9 @@ function ChapterList() {
 
         const selectedSet = setType === "chapters" ? null : setType;
 
-        // Fetch subjects, chapters, and progress in parallel
-        const [loadedSubjects, loadedChapters, progressData] = await Promise.all([
+        const [loadedSubjects, loadedChapters] = await Promise.all([
           getSubjects(loadedCourse.id, selectedSet),
           getChapters(loadedCourse.id, selectedSet),
-          getUserProgressStats().catch(() => null),
         ]);
 
         const validSubjects = loadedSubjects || [];
@@ -42,20 +48,10 @@ function ChapterList() {
         setSubjects(validSubjects);
         setChapters(validChapters);
 
-        // Auto-select the first subject with chapters or first available subject
-        const firstAvailableSubject = validSubjects.find((s) =>
-          validChapters.some((c) => String(c.subject_id) === String(s.id))
-        ) || validSubjects[0];
-
-        if (firstAvailableSubject) {
-          setActiveSubjectId(firstAvailableSubject.id);
-        }
-
         const chapterIds = validChapters.map((c) => c.id);
         const qCounts = {};
         chapterIds.forEach((id) => { qCounts[id] = 0; });
 
-        // Fetch question counts and topic counts in parallel
         const [tCounts] = await Promise.all([
           getTopicCountsForChapters(chapterIds),
           Promise.all(
@@ -73,21 +69,6 @@ function ChapterList() {
 
         setQuestionCounts(qCounts);
         setTopicCounts(tCounts || {});
-
-        // Map user progress by chapter_id
-        if (progressData && Array.isArray(progressData.attempts)) {
-          const progMap = {};
-          progressData.attempts.forEach((att) => {
-            if (att.chapter_id) {
-              const prevMax = progMap[att.chapter_id]?.score || 0;
-              progMap[att.chapter_id] = {
-                score: Math.max(prevMax, att.score || 0),
-                total: att.total_questions || 0,
-              };
-            }
-          });
-          setUserProgress(progMap);
-        }
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
         setError("Chapters could not be loaded.");
@@ -99,18 +80,10 @@ function ChapterList() {
 
   if (error) {
     return (
-      <>
-        <nav className="inner-navbar">
-          <Link className="brand" to="/">
-            <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
-          </Link>
-        </nav>
-        <div className="page-shell">
-          <p className="error-message">{error}</p>
-          <Link className="btn primary" to="/" style={{ marginTop: 16 }}>Back to Home</Link>
-        </div>
-      </>
+      <div className="proto-wrap">
+        <p className="error-message">{error}</p>
+        <Link className="start-btn" to="/" style={{ display: "inline-block", marginTop: 16 }}>Back to Home</Link>
+      </div>
     );
   }
 
@@ -123,166 +96,123 @@ function ChapterList() {
     );
   }
 
-  const isAdvItt = course && (
-    course.course_slug?.toLowerCase().includes("advitt") ||
-    course.course_slug?.toLowerCase().includes("itt") ||
-    course.course_name?.toLowerCase().includes("adv") ||
-    course.course_name?.toLowerCase().includes("itt")
-  );
+  const totalCourseQuestions = Object.values(questionCounts).reduce((sum, c) => sum + c, 0);
 
-  const activeSubject = subjects.find((s) => String(s.id) === String(activeSubjectId)) || subjects[0];
+  const selectedSubject = selectedIndex !== null ? subjects[selectedIndex] : null;
 
-  const activeChapters = activeSubject
-    ? chapters.filter((ch) => String(ch.subject_id) === String(activeSubject.id))
-    : chapters;
+  const selectedSubjectChapters = selectedSubject
+    ? chapters.filter((ch) => String(ch.subject_id) === String(selectedSubject.id))
+    : [];
+
+  const getSubjectTotalQuestions = (subId) => {
+    const subChs = chapters.filter((ch) => String(ch.subject_id) === String(subId));
+    return subChs.reduce((sum, ch) => sum + (questionCounts[ch.id] || 0), 0);
+  };
+
+  const handleCardClick = (index) => {
+    setSelectedIndex((prev) => (prev === index ? null : index));
+  };
 
   return (
-    <div className="quiz-theme-wrapper" data-theme={isAdvItt ? "advitt" : "default"}>
-      {isAdvItt ? (
-        <div className="masthead">
-          <div className="brand">
-            <div className="seal">
-              ADV<br />ITT
-            </div>
-            <div className="title-block">
-              <h1>{course.course_name} — Live Quiz Bank</h1>
-              <p>Advanced Information Technology Training · ICAI Format</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <nav className="inner-navbar">
-          <Link className="brand" to="/">
-            <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
-          </Link>
-        </nav>
-      )}
-
-      <div className="page-shell subject-page-shell">
-        <Link className="back-link" to={setType === "chapters" ? "/" : `/course/${courseSlug}`}>
-          ← {setType === "chapters" ? "Back to Home" : `Back to ${course.course_name}`}
+    <div className="proto-body">
+      <div className="proto-wrap">
+        <Link className="back-link" to={setType === "chapters" ? "/" : `/course/${courseSlug}`} style={{ marginBottom: 12, display: "inline-block" }}>
+          ← Back to {course.course_name}
         </Link>
 
-        {/* Top Filter Pill */}
-        {subjects.length > 0 && (
-          <div className="subject-filter-container">
-            <button
-              type="button"
-              className="subject-pill active"
-            >
-              All subjects ({subjects.length})
-            </button>
-          </div>
-        )}
+        <div className="eyebrow">
+          {course.course_name} &middot; {setType !== "chapters" ? setType : "PRACTICE"} &middot; {totalCourseQuestions} MCQS
+        </div>
 
-        {/* Uniform Height Subject Cards Grid */}
-        {subjects.length > 0 ? (
-          <>
-            <div className="subject-grid-uniform">
-              {subjects.map((subject) => {
-                const subChapters = chapters.filter(
-                  (ch) => String(ch.subject_id) === String(subject.id)
-                );
-                const count = subChapters.length;
-                const isSelected = String(subject.id) === String(activeSubjectId);
+        <h1>Select subject &amp; chapter</h1>
+        <p className="sub">Tap a subject to flip it and reveal its chapters below.</p>
 
-                return (
-                  <div
-                    key={subject.id}
-                    className={`subject-card-uniform ${isSelected ? "selected-accent" : ""} ${count === 0 ? "disabled-card" : ""}`}
-                    onClick={() => setActiveSubjectId(subject.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setActiveSubjectId(subject.id);
-                      }
-                    }}
-                  >
-                    <h3 className="subject-card-name" title={subject.subject_name}>
-                      {subject.subject_name}
-                    </h3>
-                    <p className="subject-card-count">
-                      {count} {count === 1 ? "chapter" : "chapters"}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="pills">
+          <button type="button" className="pill active">
+            All subjects ({subjects.length})
+          </button>
+        </div>
 
-            {/* Sub-Chapters Full-Width Container Below Grid */}
-            <div className="subchapters-container-panel">
-              {activeChapters.length === 0 ? (
-                <div className="subchapter-empty-state">
-                  <p>No chapters available for <strong>{activeSubject?.subject_name}</strong> yet.</p>
-                </div>
-              ) : (
-                <div className="subchapter-rows-list">
-                  {activeChapters.map((chapter) => {
-                    const qCount = questionCounts[chapter.id] ?? 0;
-                    const tCount = topicCounts[chapter.id] ?? 0;
-                    const prog = userProgress[chapter.id];
+        {/* 3D Flip Cards Grid */}
+        <div className="grid">
+          {subjects.map((s, i) => {
+            const isSelected = i === selectedIndex;
+            const subChs = chapters.filter((ch) => String(ch.subject_id) === String(s.id));
+            const chCount = subChs.length;
+            const subQCount = getSubjectTotalQuestions(s.id);
+            const icon = getSubjectIcon(s.subject_name);
 
-                    let countLabel;
-                    if (prog && prog.score > 0) {
-                      countLabel = `${prog.score} of ${qCount || prog.total} answered`;
-                    } else if (tCount > 0 && qCount > 0) {
-                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} questions`;
-                    } else if (tCount > 0) {
-                      countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} questions`;
-                    } else if (qCount > 0) {
-                      countLabel = `${qCount} questions`;
-                    } else {
-                      countLabel = `1 topic · ${qCount} questions`;
-                    }
-
-                    return (
-                      <div className="subchapter-row" key={chapter.id}>
-                        <div className="subchapter-row-info">
-                          <h4 className="subchapter-row-title">{chapter.chapter_name.trim()}</h4>
-                          <p className="subchapter-row-meta">{countLabel}</p>
-                        </div>
-                        <Link className="subchapter-start-btn" to={`/quiz/${chapter.id}`}>
-                          Start →
-                        </Link>
+            return (
+              <div
+                key={s.id}
+                className={`card-outer ${isSelected ? "selected" : ""}`}
+                onClick={() => handleCardClick(i)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleCardClick(i);
+                  }
+                }}
+              >
+                <div className="card-inner">
+                  {/* Card Front */}
+                  <div className="card-face card-front">
+                    <span className="icon">{icon}</span>
+                    <div>
+                      <div className="subj-name" title={s.subject_name}>{s.subject_name}</div>
+                      <div className="subj-meta">
+                        {chCount} {chCount === 1 ? "chapter" : "chapters"}
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
+
+                  {/* Card Back */}
+                  <div className="card-face card-back">
+                    <span className="icon">✓</span>
+                    <div>
+                      <div className="subj-name">Selected</div>
+                      <div className="subj-meta">{subQCount} questions</div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </>
-        ) : (
-          /* Direct Chapter List Fallback for Courses without Subjects */
-          chapters.length === 0 ? (
-            <p style={{ margin: "20px 0", fontStyle: "italic", color: "var(--ink-soft)" }}>No chapters are available yet.</p>
-          ) : (
-            <div className="subchapters-container-panel">
-              <div className="subchapter-rows-list">
-                {chapters.map((chapter) => {
-                  const qCount = questionCounts[chapter.id] ?? 0;
-                  const tCount = topicCounts[chapter.id] ?? 0;
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Expandable Chapter / Test Panel */}
+        <div className={`panel ${selectedIndex !== null ? "open" : ""}`}>
+          {selectedSubject && (
+            selectedSubjectChapters.length === 0 ? (
+              <div className="panel-empty">
+                No chapters added yet for {selectedSubject.subject_name}.
+              </div>
+            ) : (
+              <div className="panel-inner">
+                {selectedSubjectChapters.map((c) => {
+                  const qCount = questionCounts[c.id] ?? 0;
+                  const tCount = topicCounts[c.id] ?? 0;
 
                   return (
-                    <div className="subchapter-row" key={chapter.id}>
-                      <div className="subchapter-row-info">
-                        <h4 className="subchapter-row-title">{chapter.chapter_name.trim()}</h4>
-                        <p className="subchapter-row-meta">
-                          {tCount > 0 ? `${tCount} topics · ` : ""}{qCount} questions
+                    <div className="chapter-row" key={c.id}>
+                      <div>
+                        <p className="chapter-title">{c.chapter_name.trim()}</p>
+                        <p className="chapter-meta">
+                          {tCount > 0 ? `${tCount} topic` : "1 topic"} &middot; {qCount} questions
                         </p>
                       </div>
-                      <Link className="subchapter-start-btn" to={`/quiz/${chapter.id}`}>
-                        Start →
+                      <Link className="start-btn" to={`/quiz/${c.id}`}>
+                        Start test &rarr;
                       </Link>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )
-        )}
+            )
+          )}
+        </div>
       </div>
     </div>
   );
