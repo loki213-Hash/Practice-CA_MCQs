@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 import { supabase } from "../supabase/supabase";
+import Loading from "../components/Loading";
 
 function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
   const [revealed, setRevealed] = useState(0);
@@ -450,8 +451,7 @@ function Home() {
   if (loading) {
     return (
       <div className="loader-container">
-        <div className="loader-spinner"></div>
-        <p className="loader-text">Loading CA Quiz Platform…</p>
+        <Loading text="Loading CA Quiz Platform…" />
       </div>
     );
   }

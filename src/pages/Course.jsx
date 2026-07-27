@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { getCourseBySlug } from "../services/courseService";
 import { getSetTypes } from "../services/chapterService";
+import Loading from "../components/Loading";
 
 function Course() {
   const { courseSlug } = useParams();
@@ -49,8 +50,7 @@ function Course() {
   if (!course) {
     return (
       <div className="loader-container">
-        <div className="loader-spinner"></div>
-        <p className="loader-text">Loading course…</p>
+        <Loading text="Loading course…" />
       </div>
     );
   }

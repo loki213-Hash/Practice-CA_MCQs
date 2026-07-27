@@ -8,6 +8,7 @@ import { getCasesForCourse } from "../services/caseService";
 import { saveQuizAttempt } from "../services/progressService";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
+import Loading from "../components/Loading";
 
 function getSubjectIcon(name) {
   const n = (name || "").toLowerCase();
@@ -163,8 +164,7 @@ function ChapterList() {
   if (!course) {
     return (
       <div className="loader-container">
-        <div className="loader-spinner"></div>
-        <p className="loader-text">Loading subjects & case scenarios…</p>
+        <Loading text="Loading subjects & case scenarios…" />
       </div>
     );
   }
