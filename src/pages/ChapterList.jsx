@@ -28,6 +28,7 @@ function ChapterList() {
   const [selectedIndex, setSelectedIndex] = useState(null); // number | 'cases' | null
   const [questionCounts, setQuestionCounts] = useState({});
   const [topicCounts, setTopicCounts] = useState({});
+  const [userProgressMap, setUserProgressMap] = useState({});
   const [error, setError] = useState("");
 
   // Case Scenario Views & State
@@ -38,6 +39,53 @@ function ChapterList() {
   const [caseAnswers, setCaseAnswers] = useState({}); // { [qIdx]: chosenLetter }
   const [caseTestFinished, setCaseTestFinished] = useState(false);
   const [showFullCaseModal, setShowFullCaseModal] = useState(false);
+
+  async function loadUserProgress() {
+    try {
+      const progMap = {};
+
+      // 1. Read from localStorage
+      const localAttempts = JSON.parse(localStorage.getItem("ca_quiz_local_attempts") || "[]");
+      localAttempts.forEach((att) => {
+        if (att.chapter_id) {
+          const cid = String(att.chapter_id);
+          const prevScore = progMap[cid]?.score || 0;
+          progMap[cid] = {
+            score: Math.max(prevScore, att.score || 0),
+            total: att.total_questions || 0,
+            percentage: att.percentage || 0,
+          };
+        }
+      });
+
+      // 2. Read from Supabase if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: dbAttempts } = await supabase
+          .from("user_progress")
+          .select("*")
+          .eq("user_id", user.id);
+
+        if (dbAttempts) {
+          dbAttempts.forEach((att) => {
+            if (att.chapter_id) {
+              const cid = String(att.chapter_id);
+              const prevScore = progMap[cid]?.score || 0;
+              progMap[cid] = {
+                score: Math.max(prevScore, att.score || 0),
+                total: att.total_questions || 0,
+                percentage: att.percentage || 0,
+              };
+            }
+          });
+        }
+      }
+
+      setUserProgressMap(progMap);
+    } catch (e) {
+      console.warn("Failed to load user progress:", e);
+    }
+  }
 
   useEffect(() => {
     async function loadChaptersAndCases() {
@@ -84,6 +132,8 @@ function ChapterList() {
 
         setQuestionCounts(qCounts);
         setTopicCounts(tCounts || {});
+
+        await loadUserProgress();
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
         setError("Chapters and Case Scenarios could not be loaded.");
@@ -91,6 +141,15 @@ function ChapterList() {
     }
 
     loadChaptersAndCases();
+
+    // Listen for progress updates
+    const handleProgressUpdate = () => {
+      loadUserProgress();
+    };
+    window.addEventListener("ca_quiz_progress_updated", handleProgressUpdate);
+    return () => {
+      window.removeEventListener("ca_quiz_progress_updated", handleProgressUpdate);
+    };
   }, [courseSlug, setType]);
 
   if (error) {
@@ -121,9 +180,29 @@ function ChapterList() {
     ? chapters.filter((ch) => String(ch.subject_id) === String(selectedSubject.id))
     : [];
 
-  const getSubjectTotalQuestions = (subId) => {
+  const getSubjectMetrics = (subId) => {
     const subChs = chapters.filter((ch) => String(ch.subject_id) === String(subId));
-    return subChs.reduce((sum, ch) => sum + (questionCounts[ch.id] || 0), 0);
+    const totalQ = subChs.reduce((sum, ch) => sum + (questionCounts[ch.id] || 0), 0);
+    
+    // Calculate answered questions for subject
+    const answeredQ = subChs.reduce((sum, ch) => {
+      const prog = userProgressMap[String(ch.id)];
+      return sum + (prog?.score || 0);
+    }, 0);
+
+    const progressPct = totalQ > 0 ? Math.min(Math.round((answeredQ / totalQ) * 100), 100) : 0;
+    return { totalQ, answeredQ, progressPct };
+  };
+
+  const getCaseScenariosMetrics = () => {
+    const totalQ = totalCaseQuestions;
+    const answeredQ = casesList.reduce((sum, c) => {
+      const prog = userProgressMap[`case_${c.id}`];
+      return sum + (prog?.score || 0);
+    }, 0);
+
+    const progressPct = totalQ > 0 ? Math.min(Math.round((answeredQ / totalQ) * 100), 100) : 0;
+    return { totalQ, answeredQ, progressPct };
   };
 
   const handleCardClick = (index) => {
@@ -155,16 +234,19 @@ function ChapterList() {
   const currentQ = activeCaseQuestions[caseCurrentQIndex];
   const isLastQuestion = caseCurrentQIndex === activeCaseQuestions.length - 1;
 
-  const handleNextOrSubmit = () => {
+  const handleNextOrSubmit = async () => {
     if (isLastQuestion) {
       setCaseTestFinished(true);
       const totalQ = activeCaseQuestions.length;
       const finalScore = caseCorrectCount;
-      saveQuizAttempt({
+
+      await saveQuizAttempt({
         chapterId: `case_${activeCase?.id || activeCaseIndex}`,
         score: finalScore,
         totalQuestions: totalQ,
       });
+
+      await loadUserProgress();
     } else {
       setCaseCurrentQIndex((prev) => prev + 1);
     }
@@ -192,13 +274,13 @@ function ChapterList() {
               </button>
             </div>
 
-            {/* 3D Flip Cards Grid with Identical Case Scenarios Card */}
+            {/* 3D Flip Cards Grid with Realtime Progress Bars on Every Card */}
             <div className="grid">
               {subjects.map((s, i) => {
                 const isSelected = selectedIndex === i;
                 const subChs = chapters.filter((ch) => String(ch.subject_id) === String(s.id));
                 const chCount = subChs.length;
-                const subQCount = getSubjectTotalQuestions(s.id);
+                const { totalQ, answeredQ, progressPct } = getSubjectMetrics(s.id);
                 const icon = getSubjectIcon(s.subject_name);
 
                 return (
@@ -222,7 +304,11 @@ function ChapterList() {
                         <div>
                           <div className="subj-name" title={s.subject_name}>{s.subject_name}</div>
                           <div className="subj-meta">
-                            {chCount} {chCount === 1 ? "chapter" : "chapters"}
+                            {chCount} {chCount === 1 ? "chapter" : "chapters"} &middot; {progressPct}%
+                          </div>
+                          {/* Subject Realtime Progress Bar Track */}
+                          <div className="subject-progress-track">
+                            <div className="subject-progress-fill" style={{ width: `${progressPct}%` }}></div>
                           </div>
                         </div>
                       </div>
@@ -232,7 +318,10 @@ function ChapterList() {
                         <span className="icon">✓</span>
                         <div>
                           <div className="subj-name">Selected</div>
-                          <div className="subj-meta">{subQCount} questions</div>
+                          <div className="subj-meta">{answeredQ} of {totalQ} answered</div>
+                          <div className="subject-progress-track subject-progress-track-back">
+                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${progressPct}%` }}></div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -240,43 +329,52 @@ function ChapterList() {
                 );
               })}
 
-              {/* Case Scenarios Card - Identical 3D Flip Pattern */}
-              {casesList.length > 0 && (
-                <div
-                  className={`card-outer ${isSelectedCases ? "selected" : ""}`}
-                  onClick={() => handleCardClick("cases")}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleCardClick("cases");
-                    }
-                  }}
-                >
-                  <div className="card-inner">
-                    {/* Card Front */}
-                    <div className="card-face card-front">
-                      <span className="icon">📄</span>
-                      <div>
-                        <div className="subj-name" title="Case scenarios">Case scenarios</div>
-                        <div className="subj-meta">
-                          {casesList.length} {casesList.length === 1 ? "case" : "cases"}
+              {/* Case Scenarios Card with Realtime Progress Bar */}
+              {casesList.length > 0 && (() => {
+                const { totalQ, answeredQ, progressPct } = getCaseScenariosMetrics();
+                return (
+                  <div
+                    className={`card-outer ${isSelectedCases ? "selected" : ""}`}
+                    onClick={() => handleCardClick("cases")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleCardClick("cases");
+                      }
+                    }}
+                  >
+                    <div className="card-inner">
+                      {/* Card Front */}
+                      <div className="card-face card-front">
+                        <span className="icon">📄</span>
+                        <div>
+                          <div className="subj-name" title="Case scenarios">Case scenarios</div>
+                          <div className="subj-meta">
+                            {casesList.length} {casesList.length === 1 ? "case" : "cases"} &middot; {progressPct}%
+                          </div>
+                          <div className="subject-progress-track">
+                            <div className="subject-progress-fill" style={{ width: `${progressPct}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Back */}
+                      <div className="card-face card-back">
+                        <span className="icon">✓</span>
+                        <div>
+                          <div className="subj-name">Selected</div>
+                          <div className="subj-meta">{answeredQ} of {totalQ} answered</div>
+                          <div className="subject-progress-track subject-progress-track-back">
+                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${progressPct}%` }}></div>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Card Back */}
-                    <div className="card-face card-back">
-                      <span className="icon">✓</span>
-                      <div>
-                        <div className="subj-name">Selected</div>
-                        <div className="subj-meta">{totalCaseQuestions} questions</div>
-                      </div>
-                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Clean Full-Width Container Panel Directly Below Grid */}
@@ -288,23 +386,29 @@ function ChapterList() {
                     <span className="panel-subject-badge">{casesList.length} cases available</span>
                   </div>
                   <div className="subchapter-rows-list">
-                    {casesList.map((c, idx) => (
-                      <div className="subchapter-row" key={c.id || idx}>
-                        <div className="subchapter-row-info">
-                          <h4 className="subchapter-row-title">{c.title}</h4>
-                          <p className="subchapter-row-meta">
-                            1 topic &middot; {c.questions?.length || 0} questions
-                          </p>
+                    {casesList.map((c, idx) => {
+                      const caseProg = userProgressMap[`case_${c.id}`];
+                      let countLabel = `1 topic · ${c.questions?.length || 0} questions`;
+                      if (caseProg && caseProg.score > 0) {
+                        countLabel = `${caseProg.score} of ${c.questions?.length || caseProg.total} answered (${caseProg.percentage}%)`;
+                      }
+
+                      return (
+                        <div className="subchapter-row" key={c.id || idx}>
+                          <div className="subchapter-row-info">
+                            <h4 className="subchapter-row-title">{c.title}</h4>
+                            <p className="subchapter-row-meta">{countLabel}</p>
+                          </div>
+                          <button
+                            type="button"
+                            className="subchapter-start-btn"
+                            onClick={() => openCaseDetail(idx)}
+                          >
+                            Start test &rarr;
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="subchapter-start-btn"
-                          onClick={() => openCaseDetail(idx)}
-                        >
-                          Start test &rarr;
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : selectedSubject ? (
@@ -322,14 +426,24 @@ function ChapterList() {
                       {selectedSubjectChapters.map((c) => {
                         const qCount = questionCounts[c.id] ?? 0;
                         const tCount = topicCounts[c.id] ?? 0;
+                        const prog = userProgressMap[String(c.id)];
+
+                        let countLabel;
+                        if (prog && prog.score > 0) {
+                          countLabel = `${prog.score} of ${qCount || prog.total} answered (${prog.percentage}%)`;
+                        } else if (tCount > 0 && qCount > 0) {
+                          countLabel = `${tCount} ${tCount === 1 ? "topic" : "topics"} · ${qCount} questions`;
+                        } else if (qCount > 0) {
+                          countLabel = `${qCount} questions`;
+                        } else {
+                          countLabel = `1 topic · ${qCount} questions`;
+                        }
 
                         return (
                           <div className="subchapter-row" key={c.id}>
                             <div className="subchapter-row-info">
                               <h4 className="subchapter-row-title">{c.chapter_name.trim()}</h4>
-                              <p className="subchapter-row-meta">
-                                {tCount > 0 ? `${tCount} topic` : "1 topic"} &middot; {qCount} questions
-                              </p>
+                              <p className="subchapter-row-meta">{countLabel}</p>
                             </div>
                             <Link className="subchapter-start-btn" to={`/quiz/${c.id}`}>
                               Start test &rarr;

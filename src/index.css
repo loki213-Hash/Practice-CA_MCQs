@@ -3858,6 +3858,31 @@ img { max-width: 100%; display: block; }
   color: #fff;
 }
 
+/* --- SUBJECT CARD REALTIME PROGRESS BAR --- */
+.subject-progress-track {
+  width: 100%;
+  height: 4px;
+  background: #e0e2dc;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.subject-progress-fill {
+  height: 100%;
+  background: #0f3d33;
+  border-radius: 2px;
+  transition: width 300ms ease;
+}
+
+.subject-progress-track-back {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.subject-progress-fill-back {
+  background: #ffffff;
+}
+
 /* --- FULL-WIDTH SUB-CHAPTERS CONTAINER PANEL BELOW GRID --- */
 .panel {
   max-height: 0;
