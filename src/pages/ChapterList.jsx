@@ -184,7 +184,6 @@ function ChapterList() {
     const subChs = chapters.filter((ch) => String(ch.subject_id) === String(subId));
     const totalQ = subChs.reduce((sum, ch) => sum + (questionCounts[ch.id] || 0), 0);
     
-    // Calculate answered questions for subject
     const answeredQ = subChs.reduce((sum, ch) => {
       const prog = userProgressMap[String(ch.id)];
       return sum + (prog?.score || 0);
@@ -252,6 +251,8 @@ function ChapterList() {
     }
   };
 
+  const caseMetrics = getCaseScenariosMetrics();
+
   return (
     <div className="proto-body">
       <div className="proto-wrap">
@@ -270,7 +271,7 @@ function ChapterList() {
 
             <div className="pills">
               <button type="button" className="pill active">
-                All subjects ({subjects.length + (casesList.length > 0 ? 1 : 0)})
+                All subjects ({subjects.length + 1})
               </button>
             </div>
 
@@ -329,52 +330,47 @@ function ChapterList() {
                 );
               })}
 
-              {/* Case Scenarios Card with Realtime Progress Bar */}
-              {casesList.length > 0 && (() => {
-                const { totalQ, answeredQ, progressPct } = getCaseScenariosMetrics();
-                return (
-                  <div
-                    className={`card-outer ${isSelectedCases ? "selected" : ""}`}
-                    onClick={() => handleCardClick("cases")}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleCardClick("cases");
-                      }
-                    }}
-                  >
-                    <div className="card-inner">
-                      {/* Card Front */}
-                      <div className="card-face card-front">
-                        <span className="icon">📄</span>
-                        <div>
-                          <div className="subj-name" title="Case scenarios">Case scenarios</div>
-                          <div className="subj-meta">
-                            {casesList.length} {casesList.length === 1 ? "case" : "cases"} &middot; {progressPct}%
-                          </div>
-                          <div className="subject-progress-track">
-                            <div className="subject-progress-fill" style={{ width: `${progressPct}%` }}></div>
-                          </div>
-                        </div>
+              {/* Case Scenarios Card - ALWAYS RENDERED in Grid */}
+              <div
+                className={`card-outer ${isSelectedCases ? "selected" : ""}`}
+                onClick={() => handleCardClick("cases")}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleCardClick("cases");
+                  }
+                }}
+              >
+                <div className="card-inner">
+                  {/* Card Front */}
+                  <div className="card-face card-front">
+                    <span className="icon">📄</span>
+                    <div>
+                      <div className="subj-name" title="Case scenarios">Case scenarios</div>
+                      <div className="subj-meta">
+                        {casesList.length} {casesList.length === 1 ? "case" : "cases"} &middot; {caseMetrics.progressPct}%
                       </div>
-
-                      {/* Card Back */}
-                      <div className="card-face card-back">
-                        <span className="icon">✓</span>
-                        <div>
-                          <div className="subj-name">Selected</div>
-                          <div className="subj-meta">{answeredQ} of {totalQ} answered</div>
-                          <div className="subject-progress-track subject-progress-track-back">
-                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${progressPct}%` }}></div>
-                          </div>
-                        </div>
+                      <div className="subject-progress-track">
+                        <div className="subject-progress-fill" style={{ width: `${caseMetrics.progressPct}%` }}></div>
                       </div>
                     </div>
                   </div>
-                );
-              })()}
+
+                  {/* Card Back */}
+                  <div className="card-face card-back">
+                    <span className="icon">✓</span>
+                    <div>
+                      <div className="subj-name">Selected</div>
+                      <div className="subj-meta">{caseMetrics.answeredQ} of {caseMetrics.totalQ} answered</div>
+                      <div className="subject-progress-track subject-progress-track-back">
+                        <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${caseMetrics.progressPct}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Clean Full-Width Container Panel Directly Below Grid */}
@@ -385,31 +381,37 @@ function ChapterList() {
                     <h3 className="panel-subject-title">Case Scenarios</h3>
                     <span className="panel-subject-badge">{casesList.length} cases available</span>
                   </div>
-                  <div className="subchapter-rows-list">
-                    {casesList.map((c, idx) => {
-                      const caseProg = userProgressMap[`case_${c.id}`];
-                      let countLabel = `1 topic · ${c.questions?.length || 0} questions`;
-                      if (caseProg && caseProg.score > 0) {
-                        countLabel = `${caseProg.score} of ${c.questions?.length || caseProg.total} answered (${caseProg.percentage}%)`;
-                      }
+                  {casesList.length === 0 ? (
+                    <div className="subchapter-empty-state">
+                      <p>No case scenarios published under <strong>{course.course_name}</strong> yet.</p>
+                    </div>
+                  ) : (
+                    <div className="subchapter-rows-list">
+                      {casesList.map((c, idx) => {
+                        const caseProg = userProgressMap[`case_${c.id}`];
+                        let countLabel = `1 topic · ${c.questions?.length || 0} questions`;
+                        if (caseProg && caseProg.score > 0) {
+                          countLabel = `${caseProg.score} of ${c.questions?.length || caseProg.total} answered (${caseProg.percentage}%)`;
+                        }
 
-                      return (
-                        <div className="subchapter-row" key={c.id || idx}>
-                          <div className="subchapter-row-info">
-                            <h4 className="subchapter-row-title">{c.title}</h4>
-                            <p className="subchapter-row-meta">{countLabel}</p>
+                        return (
+                          <div className="subchapter-row" key={c.id || idx}>
+                            <div className="subchapter-row-info">
+                              <h4 className="subchapter-row-title">{c.title}</h4>
+                              <p className="subchapter-row-meta">{countLabel}</p>
+                            </div>
+                            <button
+                              type="button"
+                              className="subchapter-start-btn"
+                              onClick={() => openCaseDetail(idx)}
+                            >
+                              Start test &rarr;
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className="subchapter-start-btn"
-                            onClick={() => openCaseDetail(idx)}
-                          >
-                            Start test &rarr;
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : selectedSubject ? (
                 <div className="subchapters-container-panel">
@@ -464,141 +466,149 @@ function ChapterList() {
               ← Back to case scenarios
             </button>
 
-            <div className="case-file">
-              <div className="case-meta">
-                <span className="case-tag">{activeCase.tag || "CASE SCENARIO"}</span>
-              </div>
-              <h2 className="case-title">{activeCase.title}</h2>
-              <div className="case-body collapsed">
-                {activeCase.paragraphs?.slice(0, 2).map((p, idx) => (
-                  <p key={idx}>{p}</p>
-                ))}
-              </div>
-              <div className="case-actions">
-                <button type="button" className="btn-view-case" onClick={() => setShowFullCaseModal(true)}>
-                  View full case
-                </button>
-                <span className="case-note">
-                  {activeCaseQuestions.length} questions based on this case
-                </span>
-              </div>
-            </div>
-
-            <div className="section-label">
-              <span>Related questions</span>
-            </div>
-
-            {/* Test Completed Summary & Percentage Calculation */}
-            {caseTestFinished ? (
-              <div className="case-complete-card">
-                <div className="complete-badge">🎉 CASE COMPLETE</div>
-                <h3>Case Scenario Submitted Successfully</h3>
-                <div className="score-percentage-block">
-                  <span className="score-number">{caseCorrectCount} / {activeCaseQuestions.length} Correct</span>
-                  <span className="score-percentage">
-                    {Math.round((caseCorrectCount / Math.max(activeCaseQuestions.length, 1)) * 100)}% Score
-                  </span>
-                </div>
-                <p className="score-status-msg">
-                  {Math.round((caseCorrectCount / Math.max(activeCaseQuestions.length, 1)) * 100) >= 60
-                    ? "Great performance! You passed this case scenario practice."
-                    : "Keep practicing to strengthen your concept mastery."}
-                </p>
-                <div className="complete-actions">
-                  <button
-                    type="button"
-                    className="start-btn"
-                    onClick={() => openCaseDetail(activeCaseIndex)}
-                  >
-                    Retake Case Scenario
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-view-case"
-                    onClick={() => setViewMode("grid")}
-                  >
-                    Back to Case Scenarios
-                  </button>
-                </div>
-              </div>
-            ) : currentQ ? (
-              <div className="question-card">
-                {/* Question Progress Dots */}
-                <div className="q-progress">
-                  {activeCaseQuestions.map((_, i) => {
-                    let cls = "q-dot";
-                    if (i < caseCurrentQIndex) cls += " done";
-                    if (i === caseCurrentQIndex) cls += " active";
-                    return <span key={i} className={cls}></span>;
-                  })}
-                  <span className="q-progress-label">
-                    Question {caseCurrentQIndex + 1} of {activeCaseQuestions.length}
-                  </span>
+            {activeCase ? (
+              <>
+                <div className="case-file">
+                  <div className="case-meta">
+                    <span className="case-tag">{activeCase.tag || "CASE SCENARIO"}</span>
+                  </div>
+                  <h2 className="case-title">{activeCase.title}</h2>
+                  <div className="case-body collapsed">
+                    {activeCase.paragraphs?.slice(0, 2).map((p, idx) => (
+                      <p key={idx}>{p}</p>
+                    ))}
+                  </div>
+                  <div className="case-actions">
+                    <button type="button" className="btn-view-case" onClick={() => setShowFullCaseModal(true)}>
+                      View full case
+                    </button>
+                    <span className="case-note">
+                      {activeCaseQuestions.length} questions based on this case
+                    </span>
+                  </div>
                 </div>
 
-                <div className="q-head">
-                  <span className="q-number">Q{caseCurrentQIndex + 1}.</span>
-                  <span className="q-text">{currentQ.text}</span>
+                <div className="section-label">
+                  <span>Related questions</span>
                 </div>
 
-                {/* Options List */}
-                <div className="options">
-                  {currentQ.options?.map((o) => {
-                    const chosen = caseAnswers[caseCurrentQIndex];
-                    const isAnswered = chosen !== undefined;
-                    const isCorrect = o.letter === currentQ.correctLetter;
-                    const isChosen = o.letter === chosen;
-
-                    let optCls = "option";
-                    if (isAnswered) {
-                      if (isCorrect) optCls += " correct";
-                      if (isChosen && !isCorrect) optCls += " incorrect";
-                    }
-
-                    return (
+                {/* Test Completed Summary & Percentage Calculation */}
+                {caseTestFinished ? (
+                  <div className="case-complete-card">
+                    <div className="complete-badge">🎉 CASE COMPLETE</div>
+                    <h3>Case Scenario Submitted Successfully</h3>
+                    <div className="score-percentage-block">
+                      <span className="score-number">{caseCorrectCount} / {activeCaseQuestions.length} Correct</span>
+                      <span className="score-percentage">
+                        {Math.round((caseCorrectCount / Math.max(activeCaseQuestions.length, 1)) * 100)}% Score
+                      </span>
+                    </div>
+                    <p className="score-status-msg">
+                      {Math.round((caseCorrectCount / Math.max(activeCaseQuestions.length, 1)) * 100) >= 60
+                        ? "Great performance! You passed this case scenario practice."
+                        : "Keep practicing to strengthen your concept mastery."}
+                    </p>
+                    <div className="complete-actions">
                       <button
-                        key={o.letter}
                         type="button"
-                        className={optCls}
-                        disabled={isAnswered}
-                        onClick={() => handleCaseAnswer(caseCurrentQIndex, o.letter, currentQ.correctLetter)}
+                        className="start-btn"
+                        onClick={() => openCaseDetail(activeCaseIndex)}
                       >
-                        <span className="opt-letter">{o.letter}</span>
-                        <span>{o.text}</span>
+                        Retake Case Scenario
                       </button>
-                    );
-                  })}
-                </div>
-
-                {/* Result Tag & Explanation */}
-                {caseAnswers[caseCurrentQIndex] !== undefined && (
-                  <>
-                    <div className={`result-tag show ${caseAnswers[caseCurrentQIndex] === currentQ.correctLetter ? "correct-tag" : "incorrect-tag"}`}>
-                      {caseAnswers[caseCurrentQIndex] === currentQ.correctLetter
-                        ? "✓ Correct"
-                        : `✕ Incorrect — Correct answer is ${currentQ.correctLetter}`}
+                      <button
+                        type="button"
+                        className="btn-view-case"
+                        onClick={() => setViewMode("grid")}
+                      >
+                        Back to Case Scenarios
+                      </button>
+                    </div>
+                  </div>
+                ) : currentQ ? (
+                  <div className="question-card">
+                    {/* Question Progress Dots */}
+                    <div className="q-progress">
+                      {activeCaseQuestions.map((_, i) => {
+                        let cls = "q-dot";
+                        if (i < caseCurrentQIndex) cls += " done";
+                        if (i === caseCurrentQIndex) cls += " active";
+                        return <span key={i} className={cls}></span>;
+                      })}
+                      <span className="q-progress-label">
+                        Question {caseCurrentQIndex + 1} of {activeCaseQuestions.length}
+                      </span>
                     </div>
 
-                    {currentQ.explanation && (
-                      <div className="explanation show">
-                        <strong>Explanation:</strong> {currentQ.explanation}
-                      </div>
+                    <div className="q-head">
+                      <span className="q-number">Q{caseCurrentQIndex + 1}.</span>
+                      <span className="q-text">{currentQ.text}</span>
+                    </div>
+
+                    {/* Options List */}
+                    <div className="options">
+                      {currentQ.options?.map((o) => {
+                        const chosen = caseAnswers[caseCurrentQIndex];
+                        const isAnswered = chosen !== undefined;
+                        const isCorrect = o.letter === currentQ.correctLetter;
+                        const isChosen = o.letter === chosen;
+
+                        let optCls = "option";
+                        if (isAnswered) {
+                          if (isCorrect) optCls += " correct";
+                          if (isChosen && !isCorrect) optCls += " incorrect";
+                        }
+
+                        return (
+                          <button
+                            key={o.letter}
+                            type="button"
+                            className={optCls}
+                            disabled={isAnswered}
+                            onClick={() => handleCaseAnswer(caseCurrentQIndex, o.letter, currentQ.correctLetter)}
+                          >
+                            <span className="opt-letter">{o.letter}</span>
+                            <span>{o.text}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Result Tag & Explanation */}
+                    {caseAnswers[caseCurrentQIndex] !== undefined && (
+                      <>
+                        <div className={`result-tag show ${caseAnswers[caseCurrentQIndex] === currentQ.correctLetter ? "correct-tag" : "incorrect-tag"}`}>
+                          {caseAnswers[caseCurrentQIndex] === currentQ.correctLetter
+                            ? "✓ Correct"
+                            : `✕ Incorrect — Correct answer is ${currentQ.correctLetter}`}
+                        </div>
+
+                        {currentQ.explanation && (
+                          <div className="explanation show">
+                            <strong>Explanation:</strong> {currentQ.explanation}
+                          </div>
+                        )}
+
+                        {/* Next / Submit Button */}
+                        <div style={{ marginTop: 18, marginLeft: 29 }}>
+                          <button
+                            type="button"
+                            className="btn-next show"
+                            onClick={handleNextOrSubmit}
+                          >
+                            <span>{isLastQuestion ? "Submit Test & View Results" : "Next Question →"}</span>
+                          </button>
+                        </div>
+                      </>
                     )}
-
-                    {/* Next / Submit Button */}
-                    <div style={{ marginTop: 18, marginLeft: 29 }}>
-                      <button
-                        type="button"
-                        className="btn-next show"
-                        onClick={handleNextOrSubmit}
-                      >
-                        <span>{isLastQuestion ? "Submit Test & View Results" : "Next Question →"}</span>
-                      </button>
-                    </div>
-                  </>
-                )}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="subchapter-empty-state" style={{ background: "#fff", borderRadius: 14, padding: 32 }}>
+                <p>No case scenarios published yet.</p>
               </div>
-            ) : null}
+            )}
           </div>
         )}
 
