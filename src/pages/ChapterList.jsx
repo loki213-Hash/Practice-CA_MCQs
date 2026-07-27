@@ -127,11 +127,7 @@ function ChapterList() {
   };
 
   const handleCardClick = (index) => {
-    if (selectedIndex === index) {
-      setSelectedIndex(null);
-    } else {
-      setSelectedIndex(index);
-    }
+    setSelectedIndex((prev) => (prev === index ? null : index));
   };
 
   const openCaseDetail = (idx) => {
@@ -188,7 +184,7 @@ function ChapterList() {
             </div>
 
             <h1>Select subject &amp; chapter</h1>
-            <p className="sub">Tap a subject or Case Scenarios card to view options below.</p>
+            <p className="sub">Tap a subject to flip it and reveal its chapters below.</p>
 
             <div className="pills">
               <button type="button" className="pill active">
@@ -196,8 +192,8 @@ function ChapterList() {
               </button>
             </div>
 
-            {/* Slightly Enlarged 3D Flip Cards Grid with Case Scenario Card */}
-            <div className="grid grid-enlarged">
+            {/* 3D Flip Cards Grid with Identical Case Scenarios Card */}
+            <div className="grid">
               {subjects.map((s, i) => {
                 const isSelected = selectedIndex === i;
                 const subChs = chapters.filter((ch) => String(ch.subject_id) === String(s.id));
@@ -208,7 +204,7 @@ function ChapterList() {
                 return (
                   <div
                     key={s.id}
-                    className={`card-outer card-enlarged ${isSelected ? "selected" : ""}`}
+                    className={`card-outer ${isSelected ? "selected" : ""}`}
                     onClick={() => handleCardClick(i)}
                     role="button"
                     tabIndex={0}
@@ -244,10 +240,10 @@ function ChapterList() {
                 );
               })}
 
-              {/* Case Scenarios Card (Gold Border Accent as in Image 2) */}
+              {/* Case Scenarios Card - Identical 3D Flip Pattern */}
               {casesList.length > 0 && (
                 <div
-                  className={`card-outer card-enlarged case-card-outer ${isSelectedCases ? "selected" : ""}`}
+                  className={`card-outer ${isSelectedCases ? "selected" : ""}`}
                   onClick={() => handleCardClick("cases")}
                   role="button"
                   tabIndex={0}
@@ -259,23 +255,23 @@ function ChapterList() {
                   }}
                 >
                   <div className="card-inner">
-                    <div className="card-face card-front case-card-front-gold">
-                      <span className="icon" style={{ color: "#A8762C" }}>📄</span>
+                    {/* Card Front */}
+                    <div className="card-face card-front">
+                      <span className="icon">📄</span>
                       <div>
-                        <div className="subj-name" style={{ color: "#16241A", fontSize: "16px", fontWeight: "700" }}>
-                          Case scenarios
-                        </div>
-                        <div className="subj-meta" style={{ color: "#A8762C", fontWeight: "600" }}>
-                          {casesList.length} {casesList.length === 1 ? "case" : "cases"} &middot; {totalCaseQuestions} questions
+                        <div className="subj-name" title="Case scenarios">Case scenarios</div>
+                        <div className="subj-meta">
+                          {casesList.length} {casesList.length === 1 ? "case" : "cases"}
                         </div>
                       </div>
                     </div>
 
-                    <div className="card-face card-back case-card-back-gold">
+                    {/* Card Back */}
+                    <div className="card-face card-back">
                       <span className="icon">✓</span>
                       <div>
-                        <div className="subj-name">Case Scenarios</div>
-                        <div className="subj-meta">{totalCaseQuestions} case questions</div>
+                        <div className="subj-name">Selected</div>
+                        <div className="subj-meta">{totalCaseQuestions} questions</div>
                       </div>
                     </div>
                   </div>
@@ -283,28 +279,27 @@ function ChapterList() {
               )}
             </div>
 
-            {/* Expandable Chapter Panel or Case Scenarios List Panel */}
+            {/* Expandable Chapter / Case Scenarios Panel */}
             <div className={`panel ${selectedIndex !== null ? "open" : ""}`}>
               {isSelectedCases ? (
-                <div className="panel-inner case-panel-inner">
-                  <div className="case-grid-list">
-                    {casesList.map((c, idx) => (
-                      <div
-                        key={c.id || idx}
-                        className="case-list-card"
+                <div className="panel-inner">
+                  {casesList.map((c, idx) => (
+                    <div className="chapter-row" key={c.id || idx}>
+                      <div>
+                        <p className="chapter-title">{c.title}</p>
+                        <p className="chapter-meta">
+                          1 topic &middot; {c.questions?.length || 0} questions
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="start-btn"
                         onClick={() => openCaseDetail(idx)}
                       >
-                        <span className="case-list-icon">📄</span>
-                        <div className="case-list-info">
-                          <h4 className="case-list-title">{c.title}</h4>
-                          <p className="case-list-meta">{c.questions?.length || 0} questions based on case</p>
-                        </div>
-                        <button type="button" className="start-btn case-start-btn">
-                          Open Case &rarr;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                        Start test &rarr;
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ) : selectedSubject ? (
                 selectedSubjectChapters.length === 0 ? (
@@ -338,9 +333,9 @@ function ChapterList() {
           </>
         ) : (
           /* Case Scenario Detail View */
-          <div id="detailView">
+          <div id="detailView" style={{ display: "block" }}>
             <button type="button" className="back-link" onClick={() => setViewMode("grid")} style={{ border: "none", background: "transparent", padding: 0 }}>
-              ← Back to subjects
+              ← Back to case scenarios
             </button>
 
             <div className="case-file">
@@ -396,7 +391,7 @@ function ChapterList() {
                     className="btn-view-case"
                     onClick={() => setViewMode("grid")}
                   >
-                    Back to Subjects
+                    Back to Case Scenarios
                   </button>
                 </div>
               </div>
