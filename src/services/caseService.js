@@ -31,13 +31,32 @@ export async function getCasesForCourse(courseId) {
       casesData.map(async (c) => {
         const cId = c.id || c.case_code || c.code;
 
-        const { data: qData, error: qErr } = await supabase
-          .from("case_questions")
-          .select("*")
-          .or(`case_id.eq.${cId},case_code.eq.${c.case_code || cId}`);
+        let qData = null;
+        try {
+          const { data, error: qErr } = await supabase
+            .from("case_questions")
+            .select("*")
+            .or(`case_id.eq.${cId},case_code.eq.${c.case_code || cId}`);
+          if (!qErr && data && data.length > 0) {
+            qData = data;
+          }
+        } catch (e) {
+          console.warn("Notice querying case_questions with .or():", e);
+        }
 
-        if (qErr) {
-          console.warn(`Notice querying case_questions for case ${cId}:`, qErr.message);
+        // JS Fallback if .or() filter returned no rows
+        if (!qData || qData.length === 0) {
+          const { data: allQ } = await supabase.from("case_questions").select("*");
+          if (allQ && allQ.length > 0) {
+            qData = allQ.filter(
+              (q) =>
+                String(q.case_id) === String(c.id) ||
+                String(q.case_id) === String(cId) ||
+                String(q.case_code) === String(c.case_code) ||
+                String(q.case_code) === String(cId) ||
+                !q.case_id // attach if case_id column is omitted
+            );
+          }
         }
 
         const rawQuestions = qData || [];
