@@ -184,7 +184,7 @@ function ChapterList() {
             </div>
 
             <h1>Select subject &amp; chapter</h1>
-            <p className="sub">Tap a subject to flip it and reveal its chapters below.</p>
+            <p className="sub">Tap any subject card to reveal its sub-chapters in a full-width panel below.</p>
 
             <div className="pills">
               <button type="button" className="pill active">
@@ -279,55 +279,67 @@ function ChapterList() {
               )}
             </div>
 
-            {/* Expandable Chapter / Case Scenarios Panel */}
+            {/* Clean Full-Width Container Panel Directly Below Grid */}
             <div className={`panel ${selectedIndex !== null ? "open" : ""}`}>
               {isSelectedCases ? (
-                <div className="panel-inner">
-                  {casesList.map((c, idx) => (
-                    <div className="chapter-row" key={c.id || idx}>
-                      <div>
-                        <p className="chapter-title">{c.title}</p>
-                        <p className="chapter-meta">
-                          1 topic &middot; {c.questions?.length || 0} questions
-                        </p>
+                <div className="subchapters-container-panel">
+                  <div className="panel-header">
+                    <h3 className="panel-subject-title">Case Scenarios</h3>
+                    <span className="panel-subject-badge">{casesList.length} cases available</span>
+                  </div>
+                  <div className="subchapter-rows-list">
+                    {casesList.map((c, idx) => (
+                      <div className="subchapter-row" key={c.id || idx}>
+                        <div className="subchapter-row-info">
+                          <h4 className="subchapter-row-title">{c.title}</h4>
+                          <p className="subchapter-row-meta">
+                            1 topic &middot; {c.questions?.length || 0} questions
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="subchapter-start-btn"
+                          onClick={() => openCaseDetail(idx)}
+                        >
+                          Start test &rarr;
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="start-btn"
-                        onClick={() => openCaseDetail(idx)}
-                      >
-                        Start test &rarr;
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : selectedSubject ? (
-                selectedSubjectChapters.length === 0 ? (
-                  <div className="panel-empty">
-                    No chapters added yet for {selectedSubject.subject_name}.
+                <div className="subchapters-container-panel">
+                  <div className="panel-header">
+                    <h3 className="panel-subject-title">{selectedSubject.subject_name}</h3>
+                    <span className="panel-subject-badge">{selectedSubjectChapters.length} sub-chapters</span>
                   </div>
-                ) : (
-                  <div className="panel-inner">
-                    {selectedSubjectChapters.map((c) => {
-                      const qCount = questionCounts[c.id] ?? 0;
-                      const tCount = topicCounts[c.id] ?? 0;
+                  {selectedSubjectChapters.length === 0 ? (
+                    <div className="subchapter-empty-state">
+                      <p>No sub-chapters available under <strong>{selectedSubject.subject_name}</strong> yet.</p>
+                    </div>
+                  ) : (
+                    <div className="subchapter-rows-list">
+                      {selectedSubjectChapters.map((c) => {
+                        const qCount = questionCounts[c.id] ?? 0;
+                        const tCount = topicCounts[c.id] ?? 0;
 
-                      return (
-                        <div className="chapter-row" key={c.id}>
-                          <div>
-                            <p className="chapter-title">{c.chapter_name.trim()}</p>
-                            <p className="chapter-meta">
-                              {tCount > 0 ? `${tCount} topic` : "1 topic"} &middot; {qCount} questions
-                            </p>
+                        return (
+                          <div className="subchapter-row" key={c.id}>
+                            <div className="subchapter-row-info">
+                              <h4 className="subchapter-row-title">{c.chapter_name.trim()}</h4>
+                              <p className="subchapter-row-meta">
+                                {tCount > 0 ? `${tCount} topic` : "1 topic"} &middot; {qCount} questions
+                              </p>
+                            </div>
+                            <Link className="subchapter-start-btn" to={`/quiz/${c.id}`}>
+                              Start test &rarr;
+                            </Link>
                           </div>
-                          <Link className="start-btn" to={`/quiz/${c.id}`}>
-                            Start test &rarr;
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               ) : null}
             </div>
           </>
