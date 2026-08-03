@@ -8,6 +8,86 @@ import { supabase } from "../supabase/supabase";
 
 import { getTopicsForChapter } from "../services/topicService";
 
+function QuestionBody({ q, className = "qtext" }) {
+  const { question, question_intro, table_data, question_outro, has_table, is_priority } = q;
+  
+  if (!has_table || !table_data) {
+    return (
+      <p className={className}>
+        {question}
+        {is_priority && (
+          <span 
+            style={{ 
+              color: "#D35400", 
+              fontWeight: "800", 
+              marginLeft: "8px",
+              fontFamily: "var(--ff-serif)"
+            }}
+            title="Priority Topic — Appeared in Official Exam"
+          >
+            (***)
+          </span>
+        )}
+      </p>
+    );
+  }
+
+  let rows = [];
+  try {
+    if (typeof table_data === "string") {
+      rows = JSON.parse(table_data);
+    } else if (Array.isArray(table_data)) {
+      rows = table_data;
+    } else if (typeof table_data === "object" && table_data !== null) {
+      rows = [table_data];
+    }
+  } catch (e) {
+    console.warn("Failed to parse table_data:", e);
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return (
+      <p className={className} style={{ whiteSpace: 'pre-line' }}>
+        {question}
+      </p>
+    );
+  }
+
+  const columns = Object.keys(rows[0] || {});
+
+  return (
+    <div className={className} style={{ display: "block" }}>
+      {question_intro && <p style={{ whiteSpace: 'pre-line', marginBottom: '12px' }}>{question_intro}</p>}
+      
+      <div className="case-table-wrapper" style={{ margin: "14px 0", borderRadius: "8px", overflow: "hidden", border: "1px solid #e0e2dc" }}>
+        <table className="icai-case-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+          <thead>
+            <tr style={{ background: "#173b2a" }}>
+              {columns.map(c => (
+                <th key={c} style={{ padding: "8px 12px", background: "#173b2a", color: "#eaf0e6", textAlign: "left", textTransform: "capitalize", fontWeight: "600", borderBottom: "2px solid #0f2e20" }}>
+                  {c.replace(/_/g, ' ')}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} style={{ borderBottom: "1px solid #edf2f7", background: i % 2 === 0 ? "#ffffff" : "#fbfdf9" }}>
+                {columns.map(c => (
+                  <td key={c} style={{ padding: "8px 12px", color: "#16241a" }}>{row[c]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {question_outro && <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>{question_outro}</p>}
+      {question && !question_intro && !question_outro && <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>{question}</p>}
+    </div>
+  );
+}
+
 export default function Quiz() {
   const { chapterId } = useParams();
   const { username } = useAuth();
@@ -780,22 +860,7 @@ export default function Quiz() {
                   </span>
                   <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
                 </div>
-                <p className="qtext">
-                  {q.question}
-                  {q.is_priority && (
-                    <span 
-                      style={{ 
-                        color: "#D35400", 
-                        fontWeight: "800", 
-                        marginLeft: "8px",
-                        fontFamily: "var(--ff-serif)"
-                      }}
-                      title="Priority Topic — Appeared in Official Exam"
-                    >
-                      (***)
-                    </span>
-                  )}
-                </p>
+                <QuestionBody q={q} className="qtext" />
                 <div className="options">
                   {["A", "B", "C", "D"].map((letter) => {
                     const optKey = `option_${letter.toLowerCase()}`;
@@ -1138,7 +1203,7 @@ export default function Quiz() {
                       </span>
                       <span className={`status-tag ${status}`}>{statusLabel}</span>
                     </div>
-                    <p className="rq">{q.question}</p>
+                    <QuestionBody q={q} className="rq" />
                     <div className="ropt-list">
                       {["A", "B", "C", "D"].map((letter) => {
                         let cls = "ropt";
