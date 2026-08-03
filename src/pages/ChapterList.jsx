@@ -67,11 +67,13 @@ function SubjectBgSvg({ name }) {
           <line x1="25" y1="130" x2="175" y2="130" stroke="var(--border)" strokeWidth="0.5" opacity="0.5"/>
           <line x1="25" y1="98" x2="175" y2="98" stroke="var(--border)" strokeWidth="0.5" opacity="0.5"/>
           <line x1="25" y1="66" x2="175" y2="66" stroke="var(--border)" strokeWidth="0.5" opacity="0.5"/>
+          {/* Live trend line — bold vibrant blue */}
           <polyline className="graph-line" points="25,118 45,102 65,108 85,72 105,78 125,48 145,54 165,32 175,38"
-            fill="none" stroke="var(--accent-blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle className="graph-dot" cx="85" cy="72" r="3.5" fill="var(--accent-blue)"/>
-          <circle className="graph-dot" cx="125" cy="48" r="3.5" fill="var(--accent-blue)" style={{ animationDelay: "0.35s" }}/>
-          <circle className="graph-dot" cx="165" cy="32" r="3.5" fill="var(--accent-blue)" style={{ animationDelay: "0.7s" }}/>
+            fill="none" stroke="#2563eb" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95"/>
+          {/* Pulse dots */}
+          <circle className="graph-dot" cx="85" cy="72" r="4" fill="#2563eb"/>
+          <circle className="graph-dot" cx="125" cy="48" r="4" fill="#2563eb" style={{ animationDelay: "0.35s" }}/>
+          <circle className="graph-dot" cx="165" cy="32" r="4" fill="#2563eb" style={{ animationDelay: "0.7s" }}/>
           <rect x="38" y="112" width="5" height="14" fill="var(--accent-red)" opacity="0.35"/>
           <rect x="98" y="88" width="5" height="38" fill="var(--accent-red)" opacity="0.35"/>
           <rect x="158" y="55" width="5" height="71" fill="var(--accent-red)" opacity="0.35"/>
