@@ -4860,4 +4860,73 @@ img { max-width: 100%; display: block; }
   z-index: 10;
 }
 
+/* ===== STYLED ICAI CASE TABLES ===== */
+.case-tables-container {
+  margin: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.case-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--proto-border, #e0e2dc);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.icai-case-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  font-family: 'Inter', system-ui, sans-serif;
+  text-align: left;
+  background: #ffffff;
+}
+
+.icai-case-table th {
+  background: #173b2a;
+  color: #eaf0e6;
+  font-weight: 600;
+  padding: 10px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #0f2e20;
+}
+
+.icai-case-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef1ea;
+  color: #16241a;
+  line-height: 1.45;
+}
+
+.icai-case-table tr:nth-child(even) td {
+  background: #fbfdf9;
+}
+
+.icai-case-table tr:hover td {
+  background: #f2f7ef;
+}
+
+.case-table-text-block {
+  margin: 16px 0;
+  background: #f8f9f5;
+  border: 1px solid #e0e2dc;
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+
+.case-table-pre {
+  margin: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: #16241a;
+  white-space: pre-wrap;
+}
+
+
 

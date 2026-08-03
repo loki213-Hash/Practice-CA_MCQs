@@ -9,6 +9,7 @@ import { saveQuizAttempt } from "../services/progressService";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
+import CaseTableRenderer from "../components/CaseTableRenderer";
 
 function getSubjectIcon(name) {
   const n = (name || "").toLowerCase();
@@ -801,12 +802,7 @@ function ChapterList() {
                 {activeCase.paragraphs?.map((p, idx) => (
                   <p key={idx}>{p}</p>
                 ))}
-                {activeCase.case_table && (
-                  <div className="case-table-box" style={{ marginTop: 18, background: "#f8f9f5", border: "1px solid #e0e2dc", padding: "14px 16px", borderRadius: 10, fontSize: 13.5, fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "pre-wrap", overflowX: "auto" }}>
-                    <strong style={{ color: "#A8762C", display: "block", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>📊 Case Table Data / Schedule:</strong>
-                    {activeCase.case_table}
-                  </div>
-                )}
+                <CaseTableRenderer tableData={activeCase.case_table} />
               </div>
             </div>
           </div>
