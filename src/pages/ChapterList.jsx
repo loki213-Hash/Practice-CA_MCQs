@@ -297,17 +297,21 @@ function ChapterList() {
         const loadedCourse = await getCourseBySlug(courseSlug);
         setCourse(loadedCourse);
 
+        const isSpom = (courseSlug || "").toLowerCase().includes("spom") ||
+                       (loadedCourse?.course_slug || "").toLowerCase().includes("spom") ||
+                       (loadedCourse?.course_name || "").toLowerCase().includes("spom");
+
         const selectedSet = setType === "chapters" ? null : setType;
 
         const [loadedSubjects, loadedChapters, loadedCases] = await Promise.all([
           getSubjects(loadedCourse.id, selectedSet),
           getChapters(loadedCourse.id, selectedSet),
-          getCasesForCourse(loadedCourse.id).catch(() => []),
+          isSpom ? getCasesForCourse(loadedCourse.id).catch(() => []) : Promise.resolve([]),
         ]);
 
         const validSubjects = loadedSubjects || [];
         const validChapters = loadedChapters || [];
-        const validCases = loadedCases || [];
+        const validCases = isSpom ? (loadedCases || []) : [];
 
         setSubjects(validSubjects);
         setChapters(validChapters);
@@ -365,13 +369,17 @@ function ChapterList() {
   if (!course) {
     return (
       <div className="loader-container">
-        <Loading text="Loading subjects & case scenarios…" />
+        <Loading text="Loading subjects & chapters…" />
       </div>
     );
   }
 
+  const isSpomCourse = (courseSlug || "").toLowerCase().includes("spom") ||
+                       (course?.course_slug || "").toLowerCase().includes("spom") ||
+                       (course?.course_name || "").toLowerCase().includes("spom");
+
   const totalCourseQuestions = Object.values(questionCounts).reduce((sum, c) => sum + c, 0);
-  const totalCaseQuestions = casesList.reduce((sum, c) => sum + (c.questions?.length || 0), 0);
+  const totalCaseQuestions = isSpomCourse ? casesList.reduce((sum, c) => sum + (c.questions?.length || 0), 0) : 0;
 
   const selectedSubject = typeof selectedIndex === "number" ? subjects[selectedIndex] : null;
   const isSelectedCases = selectedIndex === "cases";
@@ -398,7 +406,7 @@ function ChapterList() {
   };
 
   const getCaseScenariosMetrics = () => {
-    if (!user) {
+    if (!user || !isSpomCourse) {
       return { totalQ: 0, answeredQ: 0, progressPct: 0 };
     }
 
@@ -411,6 +419,8 @@ function ChapterList() {
     const progressPct = totalQ > 0 ? Math.min(Math.round((answeredQ / totalQ) * 100), 100) : 0;
     return { totalQ, answeredQ, progressPct };
   };
+
+  const caseMetrics = getCaseScenariosMetrics();
 
   const handleCardClick = (index) => {
     setSelectedIndex((prev) => (prev === index ? null : index));
@@ -494,8 +504,6 @@ function ChapterList() {
     }
   };
 
-  const caseMetrics = getCaseScenariosMetrics();
-
   return (
     <div className="proto-body">
       <div className="proto-wrap">
@@ -506,7 +514,7 @@ function ChapterList() {
         {viewMode === "grid" ? (
           <>
             <div className="eyebrow">
-              {course.course_name} &middot; {setType !== "chapters" ? setType : "PRACTICE"} &middot; {totalCourseQuestions + totalCaseQuestions} MCQS
+              {course.course_name} &middot; {setType !== "chapters" ? setType : "PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS
             </div>
 
             <h1>Select subject &amp; chapter</h1>
@@ -514,7 +522,7 @@ function ChapterList() {
 
             <div className="pills">
               <button type="button" className="pill active">
-                All subjects ({subjects.length + 1})
+                All subjects ({subjects.length + (isSpomCourse ? 1 : 0)})
               </button>
             </div>
 
@@ -577,52 +585,54 @@ function ChapterList() {
                 );
               })}
 
-              {/* Case Scenarios Card */}
-              <div
-                className={`card-outer ${isSelectedCases ? "selected" : ""}`}
-                onClick={() => handleCardClick("cases")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleCardClick("cases");
-                  }
-                }}
-              >
-                <div className="card-inner">
-                  {/* Card Front */}
-                  <div className="card-face card-front">
-                    <SubjectBgSvg name="case scenarios" />
-                    <span className="icon" style={{ zIndex: 2, position: "relative" }}>📄</span>
-                    <div className="card-content-wrap">
-                      <div className="subj-name" title="Case scenarios">Case scenarios</div>
-                      <div className="subj-meta">
-                        {casesList.length} {casesList.length === 1 ? "case" : "cases"} {user ? `· ${caseMetrics.progressPct}%` : ""}
+              {/* Case Scenarios Card (SPOM Courses Only) */}
+              {isSpomCourse && (
+                <div
+                  className={`card-outer ${isSelectedCases ? "selected" : ""}`}
+                  onClick={() => handleCardClick("cases")}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCardClick("cases");
+                    }
+                  }}
+                >
+                  <div className="card-inner">
+                    {/* Card Front */}
+                    <div className="card-face card-front">
+                      <SubjectBgSvg name="case scenarios" />
+                      <span className="icon" style={{ zIndex: 2, position: "relative" }}>📄</span>
+                      <div className="card-content-wrap">
+                        <div className="subj-name" title="Case scenarios">Case scenarios</div>
+                        <div className="subj-meta">
+                          {casesList.length} {casesList.length === 1 ? "case" : "cases"} {user ? `· ${caseMetrics.progressPct}%` : ""}
+                        </div>
+                        {user && (
+                          <div className="subject-progress-track">
+                            <div className="subject-progress-fill" style={{ width: `${caseMetrics.progressPct}%` }}></div>
+                          </div>
+                        )}
                       </div>
-                      {user && (
-                        <div className="subject-progress-track">
-                          <div className="subject-progress-fill" style={{ width: `${caseMetrics.progressPct}%` }}></div>
-                        </div>
-                      )}
                     </div>
-                  </div>
 
-                  {/* Card Back */}
-                  <div className="card-face card-back">
-                    <span className="icon">✓</span>
-                    <div>
-                      <div className="subj-name">Selected</div>
-                      <div className="subj-meta">{user ? `${caseMetrics.answeredQ} of ${caseMetrics.totalQ} answered` : "Tap to view cases"}</div>
-                      {user && (
-                        <div className="subject-progress-track subject-progress-track-back">
-                          <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${caseMetrics.progressPct}%` }}></div>
-                        </div>
-                      )}
+                    {/* Card Back */}
+                    <div className="card-face card-back">
+                      <span className="icon">✓</span>
+                      <div>
+                        <div className="subj-name">Selected</div>
+                        <div className="subj-meta">{user ? `${caseMetrics.answeredQ} of ${caseMetrics.totalQ} answered` : "Tap to view cases"}</div>
+                        {user && (
+                          <div className="subject-progress-track subject-progress-track-back">
+                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${caseMetrics.progressPct}%` }}></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Clean Full-Width Container Panel Directly Below Grid */}
