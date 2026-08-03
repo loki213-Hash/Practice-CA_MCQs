@@ -4103,11 +4103,12 @@ img { max-width: 100%; display: block; }
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(22,36,26,0.65);
+  background: rgba(14, 26, 18, 0.72);
+  backdrop-filter: blur(4px);
   z-index: 1000;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 24px 16px;
   overflow-y: auto;
 }
 
@@ -4117,61 +4118,82 @@ img { max-width: 100%; display: block; }
 
 .modal-doc {
   background: #FFFFFF;
-  max-width: 680px;
-  width: 100%;
-  border-radius: 14px;
+  max-width: 920px;
+  width: min(94vw, 920px);
+  max-height: 88vh;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
-  margin-top: 20px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
 }
 
 .modal-head {
-  background: #0f3d33;
+  background: #173b2a;
   color: #EAF0E6;
-  padding: 18px 26px;
+  padding: 20px 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid #0f2e20;
+  flex-shrink: 0;
 }
 
 .modal-head .lbl {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 11.5px;
-  letter-spacing: .06em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
   text-transform: uppercase;
+  color: #f0d38a;
 }
 
 .modal-close {
   background: transparent;
   border: 1px solid rgba(234,240,230,0.4);
   color: #EAF0E6;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .modal-close:hover {
-  background: rgba(234,240,230,0.15);
+  background: rgba(234,240,230,0.18);
+  transform: scale(1.08);
 }
 
 .modal-body {
-  padding: 26px 28px 30px;
-  font-size: 15.5px;
-  line-height: 1.75;
-  color: #324A38;
-  max-height: 65vh;
+  padding: 32px 36px 36px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #1c2b20;
+  max-height: calc(88vh - 76px);
   overflow-y: auto;
 }
 
 .modal-body h3 {
-  font-size: 19px;
-  color: var(--proto-text-primary);
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #16241a;
   margin-top: 0;
+  margin-bottom: 22px;
+  line-height: 1.35;
+  border-bottom: 1px solid #eef1ea;
+  padding-bottom: 14px;
+}
+
+.modal-body p {
+  margin: 0 0 18px;
+  color: #273b2d;
+  line-height: 1.8;
 }
 
 .modal-body p {

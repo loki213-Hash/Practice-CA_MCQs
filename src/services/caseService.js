@@ -6,6 +6,7 @@ export async function getCasesForCourse() {
     const { data: casesData, error: casesErr } = await supabase
       .from("cases")
       .select("*")
+      .range(0, 1000)
       .order("created_at", { ascending: true });
 
     if (casesErr) {
@@ -21,7 +22,8 @@ export async function getCasesForCourse() {
     try {
       const { data: qData, error: qErr } = await supabase
         .from("case_questions")
-        .select("*");
+        .select("*")
+        .range(0, 5000);
       if (!qErr && qData) {
         allQuestions = qData;
       }
