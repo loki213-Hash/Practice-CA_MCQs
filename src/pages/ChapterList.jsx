@@ -30,50 +30,40 @@ function SubjectBgSvg({ name }) {
         <svg viewBox="0 0 200 170" preserveAspectRatio="xMidYMid slice">
           <rect x="0" y="0" width="200" height="170" fill="transparent"/>
 
-          {/* Hammer — left side, swings down from top-left */}
+          {/* Judge's Sound Block / Bench at Bottom Left */}
+          <g className="gavel-bench">
+            {/* Base Plinth */}
+            <rect x="26" y="118" width="64" height="10" rx="3" fill="var(--text-secondary)" opacity="0.3"/>
+            {/* Top Sound Plate */}
+            <rect x="31" y="113" width="54" height="6" rx="1.5" fill="var(--text-primary)" opacity="0.45"/>
+            {/* Support Legs */}
+            <rect x="30" y="128" width="7" height="8" rx="1" fill="var(--text-tertiary)" opacity="0.25"/>
+            <rect x="77" y="128" width="7" height="8" rx="1" fill="var(--text-tertiary)" opacity="0.25"/>
+          </g>
+
+          {/* Judge's Gavel / Hammer — falls DOWN onto the bench */}
           <g className="hammer-group">
             {/* Handle */}
-            <rect x="30" y="30" width="8" height="58" rx="3"
-              fill="var(--text-secondary)" opacity="0.45"
-              transform="rotate(-20 34 30)"
+            <rect x="54" y="55" width="8" height="52" rx="3"
+              fill="var(--text-secondary)" opacity="0.5"
+              transform="rotate(45, 58, 108)"
             />
-            {/* Head */}
-            <rect x="14" y="20" width="28" height="16" rx="3"
-              fill="var(--text-primary)" opacity="0.55"
-              transform="rotate(-20 34 30)"
+            {/* Gavel Head */}
+            <rect x="42" y="94" width="32" height="18" rx="3"
+              fill="var(--text-primary)" opacity="0.65"
             />
-            {/* Head shine */}
-            <rect x="16" y="22" width="10" height="12" rx="1.5"
-              fill="var(--text-quaternary)" opacity="0.3"
-              transform="rotate(-20 34 30)"
+            {/* Metallic Head Ring / Accent */}
+            <rect x="46" y="96" width="6" height="14" rx="1"
+              fill="var(--text-quaternary)" opacity="0.45"
             />
           </g>
 
-          {/* Impact lines — appear near hammer strike point (bottom of swing arc) */}
+          {/* Impact Sparks / Sound Waves upon Gavel Strike */}
           <g className="impact-lines">
-            <line x1="42" y1="92" x2="22" y2="84" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="40" y1="100" x2="18" y2="100" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="42" y1="108" x2="22" y2="116" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-          </g>
-
-          {/* Bench / Sound-block — falls in from below at bottom-right */}
-          <g className="bench-fall">
-            {/* Sound block (rectangular plinth) */}
-            <rect x="132" y="126" width="42" height="10" rx="2"
-              fill="var(--text-primary)" opacity="0.22"
-            />
-            {/* Bench top surface */}
-            <rect x="128" y="118" width="50" height="8" rx="2"
-              fill="var(--text-secondary)" opacity="0.32"
-            />
-            {/* Bench left leg */}
-            <rect x="132" y="136" width="6" height="14" rx="1.5"
-              fill="var(--text-tertiary)" opacity="0.25"
-            />
-            {/* Bench right leg */}
-            <rect x="170" y="136" width="6" height="14" rx="1.5"
-              fill="var(--text-tertiary)" opacity="0.25"
-            />
+            <line x1="38" y1="92" x2="24" y2="82" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+            <line x1="32" y1="102" x2="16" y2="102" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+            <line x1="78" y1="92" x2="92" y2="82" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+            <line x1="84" y1="102" x2="100" y2="102" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
           </g>
         </svg>
       </div>
