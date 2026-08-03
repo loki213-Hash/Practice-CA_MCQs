@@ -784,23 +784,42 @@ function ChapterList() {
 
         {/* Modal Document Overlay for Full Case Reading */}
         {showFullCaseModal && activeCase && (
-          <div className="modal-overlay open" onClick={() => setShowFullCaseModal(false)}>
-            <div className="modal-doc" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-head">
-                <span className="lbl">{activeCase.tag || "CASE FILE"}</span>
+          <div className="modal-overlay open" onClick={() => setShowFullCaseModal(false)} style={{ alignItems: "center" }}>
+            <div
+              className="modal-doc"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: 960,
+                width: "94vw",
+                maxHeight: "90vh",
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <div className="modal-head" style={{ padding: "20px 32px", background: "#173b2a" }}>
+                <span className="lbl" style={{ color: "#f0d38a", fontSize: 13, letterSpacing: "1.2px", fontWeight: 600 }}>
+                  {activeCase.tag || "CASE FILE"}
+                </span>
                 <button
                   type="button"
                   className="modal-close"
                   onClick={() => setShowFullCaseModal(false)}
                   aria-label="Close"
+                  style={{ width: 36, height: 36, fontSize: 20 }}
                 >
                   &times;
                 </button>
               </div>
-              <div className="modal-body">
-                <h3>{activeCase.title}</h3>
+              <div className="modal-body" style={{ maxHeight: "calc(90vh - 76px)", overflowY: "auto", padding: "32px 36px 36px" }}>
+                <h3 style={{ fontSize: 24, fontWeight: 700, marginTop: 0, marginBottom: 22, borderBottom: "1px solid #eef1ea", paddingBottom: 14 }}>
+                  {activeCase.title}
+                </h3>
                 {activeCase.paragraphs?.map((p, idx) => (
-                  <p key={idx}>{p}</p>
+                  <p key={idx} style={{ fontSize: 16, lineHeight: 1.8, marginBottom: 18, color: "#1c2b20" }}>
+                    {p}
+                  </p>
                 ))}
                 <CaseTableRenderer tableData={activeCase.case_table} />
               </div>

@@ -1,13 +1,13 @@
 import { supabase } from "../supabase/supabase";
 
-export async function getCasesForCourse() {
+// eslint-disable-next-line no-unused-vars
+export async function getCasesForCourse(courseId) {
   try {
-    // 1. Single ultra-fast batch query for ALL cases from Supabase
+    // 1. Single ultra-fast batch query with explicit range(0, 1000) override
     const { data: casesData, error: casesErr } = await supabase
       .from("cases")
       .select("*")
-      .range(0, 1000)
-      .order("created_at", { ascending: true });
+      .range(0, 1000);
 
     if (casesErr) {
       console.warn("Notice querying cases table:", casesErr.message);
@@ -16,6 +16,13 @@ export async function getCasesForCourse() {
     if (!casesData || casesData.length === 0) {
       return [];
     }
+
+    // Sort cases numerically by number in case_code or tag (CASE_1, CASE_2, ..., CASE_65)
+    casesData.sort((a, b) => {
+      const numA = parseInt((a.case_code || a.tag || "").replace(/\D/g, ""), 10) || 0;
+      const numB = parseInt((b.case_code || b.tag || "").replace(/\D/g, ""), 10) || 0;
+      return numA - numB;
+    });
 
     // 2. Single batch query for ALL case_questions from Supabase
     let allQuestions = [];
