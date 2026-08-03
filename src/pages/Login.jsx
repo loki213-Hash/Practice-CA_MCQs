@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabase/supabase";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,6 +25,17 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPopover, setShowForgotPopover] = useState(false);
+
+  // Password Recovery Flow States
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryWord1, setRecoveryWord1] = useState("");
+  const [recoveryWord2, setRecoveryWord2] = useState("");
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState("");
+  const [isRecoveryVerified, setIsRecoveryVerified] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoverySuccess, setRecoverySuccess] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const birdLayerRef = useRef(null);
 
@@ -178,6 +190,107 @@ export default function Login() {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyRecovery = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryUsername.trim()) {
+        setRecoveryError("Please enter your username.");
+        return;
+      }
+      if (!recoveryWord1.trim()) {
+        setRecoveryError("Please enter Recovery Word 1 (Favourite Place).");
+        return;
+      }
+      if (!recoveryWord2.trim()) {
+        setRecoveryError("Please enter Recovery Word 2 (Firstname_Year of Birth).");
+        return;
+      }
+
+      // Check registered_users for matching username & recovery answers
+      const { data, error: fetchErr } = await supabase
+        .from("registered_users")
+        .select("id")
+        .ilike("username", recoveryUsername.trim())
+        .ilike("favourite_place", recoveryWord1.trim())
+        .ilike("firstname_yob", recoveryWord2.trim())
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+
+      if (!data) {
+        setRecoveryError("Security recovery words or username do not match. Please verify your details.");
+      } else {
+        setIsRecoveryVerified(true);
+        setRecoverySuccess("Identity verified! Please set your new password below.");
+      }
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || "Failed to verify details. Please try again.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryNewPassword) {
+        setRecoveryError("Please enter a new password.");
+        return;
+      }
+      if (recoveryNewPassword.length < 6) {
+        setRecoveryError("New password must be at least 6 characters.");
+        return;
+      }
+      if (recoveryNewPassword !== recoveryConfirmPassword) {
+        setRecoveryError("Passwords do not match.");
+        return;
+      }
+
+      // Invoke reset_student_password secure RPC definition
+      const { data: isSuccess, error: rpcErr } = await supabase.rpc("reset_student_password", {
+        target_username: recoveryUsername.trim(),
+        recovery_word1: recoveryWord1.trim(),
+        recovery_word2: recoveryWord2.trim(),
+        new_password: recoveryNewPassword
+      });
+
+      if (rpcErr) throw rpcErr;
+
+      if (isSuccess) {
+        setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
+        // Reset states after brief delay
+        setTimeout(() => {
+          setShowForgotPopover(false);
+          // Clear all states
+          setRecoveryUsername("");
+          setRecoveryWord1("");
+          setRecoveryWord2("");
+          setRecoveryNewPassword("");
+          setRecoveryConfirmPassword("");
+          setIsRecoveryVerified(false);
+          setRecoverySuccess("");
+          setRecoveryError("");
+        }, 3000);
+      } else {
+        setRecoveryError("Password reset failed. Please ensure recovery details are correct.");
+      }
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || "Password reset failed. Make sure database function is deployed.");
+    } finally {
+      setRecoveryLoading(false);
     }
   };
 
@@ -484,7 +597,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Forgot Password Recovery Explanation Modal */}
+      {/* Forgot Password Recovery Popover */}
       {showForgotPopover && (
         <div style={{
           position: "fixed",
@@ -506,25 +619,205 @@ export default function Login() {
             maxWidth: "440px",
             width: "100%",
             boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            textAlign: "center"
+            position: "relative",
+            textAlign: "left"
           }}>
-            <span style={{ fontSize: "36px" }}>🔑</span>
-            <h3 style={{ margin: "14px 0 10px", fontSize: "18px", color: "var(--navy)", fontWeight: 700 }}>Password Recovery</h3>
-            <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 20px" }}>
-              Since this platform uses <strong>username-only registration</strong> (without collecting your real email or phone number for security and privacy), automatic password recovery emails cannot be sent.
-            </p>
-            <div style={{ background: "#f8f9fa", border: "1px solid #e9ecef", borderRadius: "8px", padding: "14px", fontSize: "12.5px", color: "#444", textAlign: "left", marginBottom: "20px", lineHeight: "1.5" }}>
-              <strong>To reset your password:</strong><br />
-              Please contact the platform administrator directly via Telegram at <strong>@IsAiDangerous</strong> with your registered username. The admin will verify your identity by asking for your recovery phrases before resetting your password.
-            </div>
-            <button
+            <button 
               type="button"
-              className="btn"
-              onClick={() => setShowForgotPopover(false)}
-              style={{ width: "100%", height: "42px", fontWeight: 600 }}
+              onClick={() => {
+                setShowForgotPopover(false);
+                setIsRecoveryVerified(false);
+                setRecoveryUsername("");
+                setRecoveryWord1("");
+                setRecoveryWord2("");
+                setRecoveryNewPassword("");
+                setRecoveryConfirmPassword("");
+                setRecoveryError("");
+                setRecoverySuccess("");
+              }}
+              style={{
+                position: "absolute",
+                top: "14px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                fontSize: "22px",
+                cursor: "pointer",
+                color: "#999",
+                lineHeight: "1"
+              }}
             >
-              I Understand
+              &times;
             </button>
+
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <span style={{ fontSize: "36px" }}>🔑</span>
+              <h3 style={{ margin: "8px 0 4px", fontSize: "18px", color: "var(--navy)", fontWeight: 700 }}>
+                Password Recovery
+              </h3>
+              <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
+                Reset your password instantly using your security recovery words.
+              </p>
+            </div>
+
+            {recoveryError && (
+              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12.5px", padding: "10px 12px", borderRadius: "6px", marginBottom: "16px" }}>
+                ⚠️ {recoveryError}
+              </div>
+            )}
+
+            {recoverySuccess && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", color: "#166534", fontSize: "12.5px", padding: "10px 12px", borderRadius: "6px", marginBottom: "16px" }}>
+                ✅ {recoverySuccess}
+              </div>
+            )}
+
+            {!isRecoveryVerified ? (
+              <form onSubmit={handleVerifyRecovery}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your username"
+                    value={recoveryUsername}
+                    onChange={(e) => setRecoveryUsername(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Recovery Word 1: Favourite Place
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. New Delhi"
+                    value={recoveryWord1}
+                    onChange={(e) => setRecoveryWord1(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Recovery Word 2: Firstname_Year of Birth
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John_1998"
+                    value={recoveryWord2}
+                    onChange={(e) => setRecoveryWord2(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "var(--navy)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "13.5px"
+                  }}
+                >
+                  {recoveryLoading ? "Verifying..." : "Verify Details"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Enter new password (min. 6 characters)"
+                    value={recoveryNewPassword}
+                    onChange={(e) => setRecoveryNewPassword(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={recoveryConfirmPassword}
+                    onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "#0f3d33",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "13.5px"
+                  }}
+                >
+                  {recoveryLoading ? "Saving Password..." : "Save New Password"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
