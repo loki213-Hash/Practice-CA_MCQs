@@ -205,7 +205,7 @@ export default function Login() {
       <nav className="inner-navbar auth-nav">
         <Link className="brand" to="/">
           <img src="/ca-logo.png" alt="CA" />
-          <span className="brand-title">CA Quiz Platform</span>
+          <span className="brand-title">CAmcqs-Practice</span>
         </Link>
       </nav>
 

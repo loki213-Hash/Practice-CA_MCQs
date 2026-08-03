@@ -535,7 +535,7 @@ export default function Quiz() {
 
   useEffect(() => {
     if (chapter?.chapter_name) {
-      document.title = `${chapter.chapter_name} | CA Quiz Platform`;
+      document.title = `${chapter.chapter_name} | CAmcqs-Practice`;
     }
   }, [chapter]);
 

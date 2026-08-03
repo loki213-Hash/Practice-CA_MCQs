@@ -451,7 +451,7 @@ function Home() {
   if (loading) {
     return (
       <div className="loader-container">
-        <Loading text="Loading CA Quiz Platform…" />
+        <Loading text="Loading CAmcqs-Practice…" />
       </div>
     );
   }
@@ -471,7 +471,7 @@ function Home() {
             <img src="/ca-logo.png" alt="CA Logo" className="emblem-img" />
           </div>
           <div className="brand-name">
-            <span className="top">CA MCQ Practice</span>
+            <span className="top">CAmcqs-Practice</span>
             <span className="bottom">Made preparation Easy</span>
           </div>
         </Link>

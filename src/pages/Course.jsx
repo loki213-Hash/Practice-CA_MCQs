@@ -36,7 +36,7 @@ function Course() {
         <nav className="inner-navbar">
           <Link className="brand" to="/">
             <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
+            <span className="brand-title">CAmcqs-Practice</span>
           </Link>
         </nav>
         <div className="page-shell">
@@ -80,7 +80,7 @@ function Course() {
         <nav className="inner-navbar">
           <Link className="brand" to="/">
             <img src="/ca-logo.png" alt="CA" />
-            <span className="brand-title">CA Quiz Platform</span>
+            <span className="brand-title">CAmcqs-Practice</span>
           </Link>
         </nav>
       )}
