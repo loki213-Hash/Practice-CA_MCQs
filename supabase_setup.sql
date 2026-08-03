@@ -1,7 +1,10 @@
 -- SUPABASE SETUP SCRIPT FOR SELF-SERVICE PASSWORD RECOVERY
 -- Run this in the Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
 
--- 1. Create the public registered_users profile table if not exists
+-- 1. Ensure pgcrypto extension is installed in extensions schema
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+-- 2. Create the public registered_users profile table if not exists
 CREATE TABLE IF NOT EXISTS public.registered_users (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username text UNIQUE NOT NULL,
@@ -10,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.registered_users (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Enable RLS and set public select policy
+-- Enable RLS and set public policies
 ALTER TABLE public.registered_users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public select on registered_users" ON public.registered_users;
@@ -21,7 +24,7 @@ DROP POLICY IF EXISTS "Allow public insert on registered_users" ON public.regist
 CREATE POLICY "Allow public insert on registered_users" 
   ON public.registered_users FOR INSERT WITH CHECK (true);
 
--- 2. Sync all existing users from auth.users (extracting metadata)
+-- 3. Sync all existing users from auth.users (extracting metadata)
 INSERT INTO public.registered_users (id, username, favourite_place, firstname_yob)
 SELECT 
   id, 
@@ -35,7 +38,7 @@ SET
   favourite_place = EXCLUDED.favourite_place,
   firstname_yob = EXCLUDED.firstname_yob;
 
--- 3. Create the secure password reset function
+-- 4. Create the secure password reset function (explicitly using extensions.crypt & extensions.gen_salt)
 CREATE OR REPLACE FUNCTION public.reset_student_password(
   target_username text,
   recovery_word1 text,
@@ -45,7 +48,7 @@ CREATE OR REPLACE FUNCTION public.reset_student_password(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER -- Runs with elevated admin privileges to modify auth.users
-SET search_path = public, auth
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   user_uuid uuid;
@@ -62,9 +65,9 @@ BEGIN
     RETURN false;
   END IF;
 
-  -- Update the user's password in auth.users using bcrypt encryption (crypt)
+  -- Update the user's password in auth.users using bcrypt encryption from extensions schema
   UPDATE auth.users
-  SET encrypted_password = crypt(new_password, gen_salt('bf'))
+  SET encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf'))
   WHERE id = user_uuid;
 
   RETURN true;
