@@ -480,7 +480,7 @@ export default function Quiz() {
     // Filter only wrong and unattempted questions from the last test
     const retryList = activeQuestions.filter((q, i) => {
       const chosen = answers[i];
-      return chosen === null || chosen !== q.correct_option;
+      return chosen === null || (chosen || "").toUpperCase() !== (q.correct_option || "").toUpperCase();
     });
     if (retryList.length === 0) return;
     sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
@@ -555,7 +555,7 @@ export default function Quiz() {
 
       if (chosen === null) {
         unattempted++;
-      } else if (chosen === q.correct_option) {
+      } else if ((chosen || "").toUpperCase() === (q.correct_option || "").toUpperCase()) {
         correct++;
         topicStats[topic].correct++;
       } else {
@@ -907,7 +907,7 @@ export default function Quiz() {
 
                     if (isAnswered) {
                       cls += " locked";
-                      if (letter === q.correct_option) {
+                      if (letter === (q.correct_option || "").toUpperCase()) {
                         cls += " correct-fb";
                         tagHtml = <span className="tag">Correct answer</span>;
                       } else if (letter === answers[current]) {
@@ -937,14 +937,14 @@ export default function Quiz() {
                   <div id="qFeedback">
                     <div
                       className={`feedback-panel ${
-                        answers[current] === q.correct_option ? "is-correct" : "is-wrong"
+                        (answers[current] || "").toUpperCase() === (q.correct_option || "").toUpperCase() ? "is-correct" : "is-wrong"
                       }`}
                     >
                       <div className="fb-head">
                         <span className="fb-icon">
-                          {answers[current] === q.correct_option ? "✓" : "✕"}
+                          {(answers[current] || "").toUpperCase() === (q.correct_option || "").toUpperCase() ? "✓" : "✕"}
                         </span>
-                        {answers[current] === q.correct_option ? "Correct!" : "Wrong answer"}
+                        {(answers[current] || "").toUpperCase() === (q.correct_option || "").toUpperCase() ? "Correct!" : "Wrong answer"}
                       </div>
                       <div className="fb-body">
                         <b>Explanation: </b>
@@ -1240,7 +1240,7 @@ export default function Quiz() {
               <div>
                 {activeQuestions.map((q, i) => {
                   const chosen = answers[i];
-                  const isCorrect = chosen === q.correct_option;
+                  const isCorrect = (chosen || "").toUpperCase() === (q.correct_option || "").toUpperCase();
                   const isUnattempted = chosen === null;
                   const status = isUnattempted ? "unattempted" : isCorrect ? "correct" : "incorrect";
 
@@ -1260,7 +1260,7 @@ export default function Quiz() {
                       <div className="ropt-list">
                         {["A", "B", "C", "D"].map((letter) => {
                           let cls = "ropt";
-                          if (letter === q.correct_option) cls += " correct-answer";
+                          if (letter === (q.correct_option || "").toUpperCase()) cls += " correct-answer";
                           else if (letter === chosen) cls += " wrong-choice";
                           
                           return (
