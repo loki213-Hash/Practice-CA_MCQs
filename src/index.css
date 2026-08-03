@@ -3930,53 +3930,24 @@ img { max-width: 100%; display: block; }
 }
 
 /* ─── Subject Card SVG Background Animations ─── */
-/* 1. Judge Gavel Falling Down onto Bench */
-@keyframes hammer-fall-down {
-  0% {
-    transform: translate(-12px, -45px) rotate(-42deg);
-    animation-timing-function: cubic-bezier(0.55, 0.05, 0.85, 0.35);
-  }
-  38% {
-    transform: translate(0px, 0px) rotate(0deg);
-    animation-timing-function: ease-out;
-  }
-  44% {
-    transform: translate(0px, 3px) rotate(3deg);
-    animation-timing-function: ease-in-out;
-  }
-  50%, 75% {
-    transform: translate(0px, 0px) rotate(0deg);
-    animation-timing-function: ease-in-out;
-  }
-  100% {
-    transform: translate(-12px, -45px) rotate(-42deg);
-  }
+/* 1. Hammer Swing — Left side */
+@keyframes hammer-swing {
+  0%, 50% { transform: rotate(-70deg); animation-timing-function: cubic-bezier(0.6, 0.05, 0.9, 0.4); }
+  60%     { transform: rotate(6deg);   animation-timing-function: ease-out; }
+  66%     { transform: rotate(-2deg);  animation-timing-function: ease-in-out; }
+  72%, 86% { transform: rotate(0deg);  animation-timing-function: ease-in-out; }
+  100%    { transform: rotate(-70deg); }
 }
 .hammer-group {
-  transform-origin: 58px 103px;
-  animation: hammer-fall-down 2.6s infinite;
+  transform-origin: 48px 38px;
+  animation: hammer-swing 3s infinite;
 }
-
 @keyframes impact-flash {
-  0%, 35%  { opacity: 0; transform: scale(0.6); }
-  39%      { opacity: 1; transform: scale(1.15); }
-  52%, 100%{ opacity: 0; transform: scale(1); }
+  0%, 57% { opacity: 0; }
+  61%     { opacity: 1; }
+  70%, 100% { opacity: 0; }
 }
-.impact-lines {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: impact-flash 2.6s ease-out infinite;
-}
-
-@keyframes bench-shake {
-  0%, 37%  { transform: translateY(0); }
-  39%      { transform: translateY(2px); }
-  43%      { transform: translateY(-1px); }
-  47%, 100%{ transform: translateY(0); }
-}
-.gavel-bench {
-  animation: bench-shake 2.6s ease-out infinite;
-}
+.impact-lines { animation: impact-flash 3s ease-out infinite; }
 
 /* 2. SEBI Live Graph Drawing & Pulse */
 @keyframes graph-draw {

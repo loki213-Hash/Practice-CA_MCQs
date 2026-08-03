@@ -29,41 +29,19 @@ function SubjectBgSvg({ name }) {
       <div className="card-bg">
         <svg viewBox="0 0 200 170" preserveAspectRatio="xMidYMid slice">
           <rect x="0" y="0" width="200" height="170" fill="transparent"/>
-
-          {/* Judge's Sound Block / Bench at Bottom Left */}
-          <g className="gavel-bench">
-            {/* Base Plinth */}
-            <rect x="26" y="118" width="64" height="10" rx="3" fill="var(--text-secondary)" opacity="0.3"/>
-            {/* Top Sound Plate */}
-            <rect x="31" y="113" width="54" height="6" rx="1.5" fill="var(--text-primary)" opacity="0.45"/>
-            {/* Support Legs */}
-            <rect x="30" y="128" width="7" height="8" rx="1" fill="var(--text-tertiary)" opacity="0.25"/>
-            <rect x="77" y="128" width="7" height="8" rx="1" fill="var(--text-tertiary)" opacity="0.25"/>
-          </g>
-
-          {/* Judge's Gavel / Hammer — falls DOWN onto the bench */}
+          <rect x="15" y="115" width="80" height="12" rx="2" fill="var(--text-quaternary)" opacity="0.3"/>
+          <rect x="23" y="127" width="64" height="6" rx="1" fill="var(--text-quaternary)" opacity="0.2"/>
           <g className="hammer-group">
-            {/* Handle */}
-            <rect x="54" y="55" width="8" height="52" rx="3"
-              fill="var(--text-secondary)" opacity="0.5"
-              transform="rotate(45, 58, 108)"
-            />
-            {/* Gavel Head */}
-            <rect x="42" y="94" width="32" height="18" rx="3"
-              fill="var(--text-primary)" opacity="0.65"
-            />
-            {/* Metallic Head Ring / Accent */}
-            <rect x="46" y="96" width="6" height="14" rx="1"
-              fill="var(--text-quaternary)" opacity="0.45"
-            />
+            <g transform="translate(18,62) rotate(45)">
+              <rect x="-3" y="-4" width="53" height="8" rx="3" fill="var(--text-secondary)" opacity="0.45"/>
+              <rect x="44" y="-13" width="14" height="26" rx="3" fill="var(--text-primary)" opacity="0.55"/>
+              <rect x="48" y="-9" width="6" height="18" rx="1" fill="var(--text-quaternary)" opacity="0.35"/>
+            </g>
           </g>
-
-          {/* Impact Sparks / Sound Waves upon Gavel Strike */}
           <g className="impact-lines">
-            <line x1="38" y1="92" x2="24" y2="82" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-            <line x1="32" y1="102" x2="16" y2="102" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-            <line x1="78" y1="92" x2="92" y2="82" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-            <line x1="84" y1="102" x2="100" y2="102" stroke="var(--accent-orange)" strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+            <line x1="62" y1="110" x2="80" y2="101" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="64" y1="117" x2="86" y2="117" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="62" y1="124" x2="80" y2="132" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
           </g>
         </svg>
       </div>
