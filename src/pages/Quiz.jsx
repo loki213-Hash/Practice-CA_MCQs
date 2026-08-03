@@ -10,24 +10,26 @@ import { getTopicsForChapter } from "../services/topicService";
 
 function QuestionBody({ q, className = "qtext" }) {
   const { question, question_intro, table_data, question_outro, has_table, is_priority } = q;
+
+  const priorityMarker = is_priority ? (
+    <span 
+      style={{ 
+        color: "#D35400", 
+        fontWeight: "800", 
+        marginLeft: "8px",
+        fontFamily: "var(--ff-serif)"
+      }}
+      title="Priority Topic — Appeared in Official Exam"
+    >
+      (***)
+    </span>
+  ) : null;
   
   if (!has_table || !table_data) {
     return (
       <p className={className}>
         {question}
-        {is_priority && (
-          <span 
-            style={{ 
-              color: "#D35400", 
-              fontWeight: "800", 
-              marginLeft: "8px",
-              fontFamily: "var(--ff-serif)"
-            }}
-            title="Priority Topic — Appeared in Official Exam"
-          >
-            (***)
-          </span>
-        )}
+        {priorityMarker}
       </p>
     );
   }
@@ -49,6 +51,7 @@ function QuestionBody({ q, className = "qtext" }) {
     return (
       <p className={className} style={{ whiteSpace: 'pre-line' }}>
         {question}
+        {priorityMarker}
       </p>
     );
   }
@@ -82,8 +85,19 @@ function QuestionBody({ q, className = "qtext" }) {
         </table>
       </div>
       
-      {question_outro && <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>{question_outro}</p>}
-      {question && !question_intro && !question_outro && <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>{question}</p>}
+      {question_outro ? (
+        <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>
+          {question_outro}
+          {priorityMarker}
+        </p>
+      ) : (
+        question && (
+          <p style={{ whiteSpace: 'pre-line', marginTop: '12px' }}>
+            {question}
+            {priorityMarker}
+          </p>
+        )
+      )}
     </div>
   );
 }
