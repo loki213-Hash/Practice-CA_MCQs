@@ -545,8 +545,8 @@ function ChapterList() {
                       {/* Card Front */}
                       <div className="card-face card-front">
                         <SubjectBgSvg name={s.subject_name} />
-                        <span className="icon" style={{ zIndex: 1, position: "relative" }}>{icon}</span>
-                        <div style={{ zIndex: 1, position: "relative" }}>
+                        <span className="icon" style={{ zIndex: 2, position: "relative" }}>{icon}</span>
+                        <div className="card-content-wrap">
                           <div className="subj-name" title={s.subject_name}>{s.subject_name}</div>
                           <div className="subj-meta">
                             {chCount} {chCount === 1 ? "chapter" : "chapters"} {user ? `· ${progressPct}%` : ""}
@@ -594,8 +594,8 @@ function ChapterList() {
                   {/* Card Front */}
                   <div className="card-face card-front">
                     <SubjectBgSvg name="case scenarios" />
-                    <span className="icon" style={{ zIndex: 1, position: "relative" }}>📄</span>
-                    <div style={{ zIndex: 1, position: "relative" }}>
+                    <span className="icon" style={{ zIndex: 2, position: "relative" }}>📄</span>
+                    <div className="card-content-wrap">
                       <div className="subj-name" title="Case scenarios">Case scenarios</div>
                       <div className="subj-meta">
                         {casesList.length} {casesList.length === 1 ? "case" : "cases"} {user ? `· ${caseMetrics.progressPct}%` : ""}

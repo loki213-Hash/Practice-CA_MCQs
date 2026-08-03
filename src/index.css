@@ -3800,7 +3800,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   inset: 0;
   z-index: 0;
-  opacity: 0.38;
+  opacity: 0.55;
   pointer-events: none;
 }
 .card-bg svg {
@@ -3814,6 +3814,15 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   transition: border-color 150ms ease, box-shadow 200ms ease;
   transform: rotateY(0deg);
+}
+
+.card-content-wrap {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 60%, rgba(255, 255, 255, 0.85) 85%, transparent 100%);
+  margin: -6px -16px -16px -16px;
+  padding: 10px 16px 14px 16px;
+  border-radius: 0 0 14px 14px;
 }
 
 .card-outer.selected .card-front {
@@ -3840,7 +3849,8 @@ img { max-width: 100%; display: block; }
 
 .card-face .icon {
   font-size: 24px;
-  opacity: 0.85;
+  opacity: 0.9;
+  z-index: 2;
 }
 
 .card-back .icon {
@@ -3866,6 +3876,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ─── Subject Card SVG Background Animations ─── */
+/* 1. Hammer Swing */
 @keyframes hammer-swing {
   0%, 50% { transform: rotate(-70deg); animation-timing-function: cubic-bezier(0.6, 0.05, 0.9, 0.4); }
   60%     { transform: rotate(6deg);   animation-timing-function: ease-out; }
@@ -3874,7 +3885,7 @@ img { max-width: 100%; display: block; }
   100%    { transform: rotate(-70deg); }
 }
 .hammer-group {
-  transform-origin: 58px 62px;
+  transform-origin: 88px 38px;
   animation: hammer-swing 3s infinite;
 }
 @keyframes impact-flash {
@@ -3884,40 +3895,44 @@ img { max-width: 100%; display: block; }
 }
 .impact-lines { animation: impact-flash 3s ease-out infinite; }
 
+/* 2. SEBI Live Graph Drawing & Pulse */
 @keyframes graph-draw {
-  0% { stroke-dashoffset: 220; }
+  0% { stroke-dashoffset: 260; }
   100% { stroke-dashoffset: 0; }
 }
 @keyframes graph-pulse {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
 }
 .graph-line {
-  stroke-dasharray: 220;
-  animation: graph-draw 2.2s ease-out infinite alternate;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: graph-draw 2.8s ease-in-out infinite alternate;
 }
 .graph-dot {
+  transform-box: fill-box;
+  transform-origin: center;
   animation: graph-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes currency-swap {
-  0%, 38% { opacity: 1; transform: translateY(0); }
-  48%, 92% { opacity: 0; transform: translateY(-10px); }
-  100% { opacity: 1; transform: translateY(0); }
+/* 3. Forex Currency Floating & Flow */
+@keyframes currency-float-1 {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.85; }
+  50% { transform: translateY(-5px) scale(1.08); opacity: 1; }
 }
-@keyframes currency-swap-2 {
-  0%, 38% { opacity: 0; transform: translateY(10px); }
-  48%, 92% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(10px); }
+@keyframes currency-float-2 {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.85; }
+  50% { transform: translateY(5px) scale(0.92); opacity: 0.6; }
 }
-@keyframes arrow-bounce {
+@keyframes arrow-flow {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5px); }
+  50% { transform: translateX(4px); }
 }
-.curr-1 { animation: currency-swap 4s ease-in-out infinite; }
-.curr-2 { animation: currency-swap-2 4s ease-in-out infinite; }
-.curr-arrow { animation: arrow-bounce 1.2s ease-in-out infinite; }
+.curr-1 { animation: currency-float-1 3s ease-in-out infinite; }
+.curr-2 { animation: currency-float-2 3s ease-in-out infinite; }
+.curr-arrow { animation: arrow-flow 1.5s ease-in-out infinite; }
 
+/* 4. Globe Scroll */
 @keyframes globe-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(130px); }
@@ -3929,68 +3944,58 @@ img { max-width: 100%; display: block; }
   75%, 100% { transform: scale(2.4); opacity: 0; }
 }
 .india-ping {
-  transform-origin: 113px 57px;
+  transform-origin: 155px 50px;
   animation: marker-ping 2.4s ease-out infinite;
 }
 
-@keyframes arc-flow {
-  to { stroke-dashoffset: -24; }
-}
-.route-arc {
-  stroke-dasharray: 2.5 3.5;
-  animation: arc-flow 2s linear infinite;
-}
-
-@keyframes money-fly {
-  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { transform: translate(-45px, 25px) scale(0.35); opacity: 0; }
-}
-@keyframes money-fly-2 {
-  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { transform: translate(-35px, 35px) scale(0.35); opacity: 0; }
-}
-@keyframes money-fly-3 {
-  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { transform: translate(-55px, 12px) scale(0.35); opacity: 0; }
-}
-.money-1 { animation: money-fly 3.2s ease-out infinite; }
-.money-2 { animation: money-fly-2 3.2s ease-out 1.1s infinite; }
-.money-3 { animation: money-fly-3 3.2s ease-out 2.2s infinite; }
-
+/* 5. Building Blocks Fall */
 @keyframes block-fall {
   0%, 58% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  78% { transform: translateY(20px) rotate(10deg); opacity: 0.65; }
-  100% { transform: translateY(40px) rotate(18deg); opacity: 0; }
+  78% { transform: translateY(18px) rotate(8deg); opacity: 0.65; }
+  100% { transform: translateY(35px) rotate(16deg); opacity: 0; }
 }
 @keyframes block-fall-2 {
   0%, 48% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  68% { transform: translateY(16px) rotate(-7deg); opacity: 0.65; }
-  100% { transform: translateY(32px) rotate(-14deg); opacity: 0; }
+  68% { transform: translateY(14px) rotate(-6deg); opacity: 0.65; }
+  100% { transform: translateY(28px) rotate(-12deg); opacity: 0; }
 }
 @keyframes block-fall-3 {
   0%, 38% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  58% { transform: translateY(12px) rotate(6deg); opacity: 0.65; }
-  100% { transform: translateY(26px) rotate(12deg); opacity: 0; }
+  58% { transform: translateY(10px) rotate(5deg); opacity: 0.65; }
+  100% { transform: translateY(22px) rotate(10deg); opacity: 0; }
 }
 @keyframes dust-puff {
   0%, 70% { opacity: 0; transform: scale(0.4); }
   85% { opacity: 0.35; transform: scale(1.3); }
   100% { opacity: 0; transform: scale(1.6); }
 }
-.block-top { animation: block-fall 4.2s ease-in infinite; transform-origin: 100px 44px; }
-.block-mid { animation: block-fall-2 4.2s ease-in infinite; transform-origin: 100px 59px; }
-.block-bot { animation: block-fall-3 4.2s ease-in infinite; transform-origin: 100px 77px; }
-.dust { animation: dust-puff 4.2s ease-out infinite; transform-origin: 100px 104px; }
+.block-top { animation: block-fall 4.2s ease-in infinite; transform-origin: 140px 40px; }
+.block-mid { animation: block-fall-2 4.2s ease-in infinite; transform-origin: 140px 54px; }
+.block-bot { animation: block-fall-3 4.2s ease-in infinite; transform-origin: 140px 70px; }
+.dust { animation: dust-puff 4.2s ease-out infinite; transform-origin: 140px 98px; }
 
+/* 6. Case Card Floating Doc & Stamp */
+@keyframes doc-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-1.5deg); }
+}
+@keyframes stamp-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
 @keyframes doc-pulse {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
+}
+.case-doc-animated {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: doc-float 3.5s ease-in-out infinite;
+}
+.case-stamp {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: stamp-bounce 2s ease-in-out infinite;
 }
 .doc-line { animation: doc-pulse 2s ease-in-out infinite; }
 
