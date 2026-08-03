@@ -29,19 +29,51 @@ function SubjectBgSvg({ name }) {
       <div className="card-bg">
         <svg viewBox="0 0 200 170" preserveAspectRatio="xMidYMid slice">
           <rect x="0" y="0" width="200" height="170" fill="transparent"/>
-          <rect x="55" y="115" width="90" height="12" rx="2" fill="var(--text-quaternary)" opacity="0.3"/>
-          <rect x="65" y="127" width="70" height="6" rx="1" fill="var(--text-quaternary)" opacity="0.2"/>
+
+          {/* Hammer — left side, swings down from top-left */}
           <g className="hammer-group">
-            <g transform="translate(58,62) rotate(45)">
-              <rect x="-3" y="-4" width="53" height="8" rx="3" fill="var(--text-secondary)" opacity="0.45"/>
-              <rect x="44" y="-13" width="14" height="26" rx="3" fill="var(--text-primary)" opacity="0.55"/>
-              <rect x="48" y="-9" width="6" height="18" rx="1" fill="var(--text-quaternary)" opacity="0.35"/>
-            </g>
+            {/* Handle */}
+            <rect x="30" y="30" width="8" height="58" rx="3"
+              fill="var(--text-secondary)" opacity="0.45"
+              transform="rotate(-20 34 30)"
+            />
+            {/* Head */}
+            <rect x="14" y="20" width="28" height="16" rx="3"
+              fill="var(--text-primary)" opacity="0.55"
+              transform="rotate(-20 34 30)"
+            />
+            {/* Head shine */}
+            <rect x="16" y="22" width="10" height="12" rx="1.5"
+              fill="var(--text-quaternary)" opacity="0.3"
+              transform="rotate(-20 34 30)"
+            />
           </g>
+
+          {/* Impact lines — appear near hammer strike point (bottom of swing arc) */}
           <g className="impact-lines">
-            <line x1="102" y1="110" x2="120" y2="101" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="104" y1="117" x2="126" y2="117" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="102" y1="124" x2="120" y2="132" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="42" y1="92" x2="22" y2="84" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="40" y1="100" x2="18" y2="100" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="42" y1="108" x2="22" y2="116" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+          </g>
+
+          {/* Bench / Sound-block — falls in from below at bottom-right */}
+          <g className="bench-fall">
+            {/* Sound block (rectangular plinth) */}
+            <rect x="132" y="126" width="42" height="10" rx="2"
+              fill="var(--text-primary)" opacity="0.22"
+            />
+            {/* Bench top surface */}
+            <rect x="128" y="118" width="50" height="8" rx="2"
+              fill="var(--text-secondary)" opacity="0.32"
+            />
+            {/* Bench left leg */}
+            <rect x="132" y="136" width="6" height="14" rx="1.5"
+              fill="var(--text-tertiary)" opacity="0.25"
+            />
+            {/* Bench right leg */}
+            <rect x="170" y="136" width="6" height="14" rx="1.5"
+              fill="var(--text-tertiary)" opacity="0.25"
+            />
           </g>
         </svg>
       </div>
