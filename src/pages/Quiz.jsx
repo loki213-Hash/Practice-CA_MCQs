@@ -127,7 +127,7 @@ export default function Quiz() {
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [shuffleQuestions, setShuffleQuestions] = useState(true);
-  const [reviewFilter, setReviewFilter] = useState("all");
+  const [reviewFilter, setReviewFilter] = useState(null);
   const [flaggedQuestions, setFlaggedQuestions] = useState({});
   const [selectedTopics, setSelectedTopics] = useState({});
   
@@ -473,6 +473,29 @@ export default function Quiz() {
     localStorage.removeItem("ca_quiz_interrupted_session");
     setScreen("start");
     setRemainingSeconds(10800);
+    window.scrollTo(0, 0);
+  };
+
+  const retryWrongSkipped = () => {
+    // Filter only wrong and unattempted questions from the last test
+    const retryList = activeQuestions.filter((q, i) => {
+      const chosen = answers[i];
+      return chosen === null || chosen !== q.correct_option;
+    });
+    if (retryList.length === 0) return;
+    sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
+    sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+    localStorage.removeItem("ca_quiz_interrupted_session");
+    setActiveQuestions(retryList);
+    setAnswers(new Array(retryList.length).fill(null));
+    setMarked(new Array(retryList.length).fill(false));
+    const iv = new Array(retryList.length).fill(false);
+    iv[0] = true;
+    setVisited(iv);
+    setCurrent(0);
+    setRemainingSeconds(10800);
+    setReviewFilter(null);
+    setScreen("quiz");
     window.scrollTo(0, 0);
   };
 
@@ -1111,6 +1134,16 @@ export default function Quiz() {
               <button type="button" className="btn" onClick={restartTest}>
                 Restart Test
               </button>
+              {(stats.incorrect > 0 || stats.unattempted > 0) && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={retryWrongSkipped}
+                  style={{ border: "1px solid #c0564f", color: "#c0564f", background: "none", fontWeight: 600 }}
+                >
+                  🔁 Retry Wrong / Skipped ({stats.incorrect + stats.unattempted})
+                </button>
+              )}
               <button
                 type="button"
                 className="btn"
@@ -1172,79 +1205,96 @@ export default function Quiz() {
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "all" ? "active" : ""}`}
-                onClick={() => setReviewFilter("all")}
+                onClick={() => setReviewFilter(reviewFilter === "all" ? null : "all")}
               >
                 All ({TOTAL})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "incorrect" ? "active" : ""}`}
-                onClick={() => setReviewFilter("incorrect")}
+                onClick={() => setReviewFilter(reviewFilter === "incorrect" ? null : "incorrect")}
               >
                 Incorrect ({stats.incorrect})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "correct" ? "active" : ""}`}
-                onClick={() => setReviewFilter("correct")}
+                onClick={() => setReviewFilter(reviewFilter === "correct" ? null : "correct")}
               >
                 Correct ({stats.correct})
               </button>
               <button
                 type="button"
                 className={`filter-btn ${reviewFilter === "unattempted" ? "active" : ""}`}
-                onClick={() => setReviewFilter("unattempted")}
+                onClick={() => setReviewFilter(reviewFilter === "unattempted" ? null : "unattempted")}
               >
                 Unattempted ({stats.unattempted})
               </button>
             </div>
-            <div>
-              {activeQuestions.map((q, i) => {
-                const chosen = answers[i];
-                const isCorrect = chosen === q.correct_option;
-                const isUnattempted = chosen === null;
-                const status = isUnattempted ? "unattempted" : isCorrect ? "correct" : "incorrect";
+            {reviewFilter === null && (
+              <div style={{ padding: "18px 20px", background: "#f8f9f5", borderRadius: "8px", border: "1px dashed #d5d9cd", textAlign: "center", color: "var(--ink-soft)", fontSize: "13.5px", marginTop: "12px" }}>
+                👆 Select a filter above to view answers
+              </div>
+            )}
+            {reviewFilter !== null && (
+              <div>
+                {activeQuestions.map((q, i) => {
+                  const chosen = answers[i];
+                  const isCorrect = chosen === q.correct_option;
+                  const isUnattempted = chosen === null;
+                  const status = isUnattempted ? "unattempted" : isCorrect ? "correct" : "incorrect";
 
-                if (reviewFilter !== "all" && reviewFilter !== status) return null;
+                  if (reviewFilter !== "all" && reviewFilter !== status) return null;
 
-                const statusLabel = isUnattempted ? "Unattempted" : isCorrect ? "Correct" : "Incorrect";
+                  const statusLabel = isUnattempted ? "Unattempted" : isCorrect ? "Correct" : "Incorrect";
 
-                return (
-                  <div key={i} className="review-card">
-                    <div className="rtop">
-                      <span className="qnum mono" style={{ color: "var(--brass)" }}>
-                        Q{i + 1} &middot; {q.topic || "General"}
-                      </span>
-                      <span className={`status-tag ${status}`}>{statusLabel}</span>
+                  return (
+                    <div key={i} className="review-card">
+                      <div className="rtop">
+                        <span className="qnum mono" style={{ color: "var(--brass)" }}>
+                          Q{i + 1} &middot; {q.topic || "General"}
+                        </span>
+                        <span className={`status-tag ${status}`}>{statusLabel}</span>
+                      </div>
+                      <QuestionBody q={q} className="rq" />
+                      <div className="ropt-list">
+                        {["A", "B", "C", "D"].map((letter) => {
+                          let cls = "ropt";
+                          if (letter === q.correct_option) cls += " correct-answer";
+                          else if (letter === chosen) cls += " wrong-choice";
+                          
+                          return (
+                            <div key={letter} className={cls}>
+                              <span className="rb">{letter}</span>
+                              <span>{q[`option_${letter.toLowerCase()}`]}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="explain">
+                        <b>Explanation: </b>
+                        {q.explanation}
+                      </div>
                     </div>
-                    <QuestionBody q={q} className="rq" />
-                    <div className="ropt-list">
-                      {["A", "B", "C", "D"].map((letter) => {
-                        let cls = "ropt";
-                        if (letter === q.correct_option) cls += " correct-answer";
-                        else if (letter === chosen) cls += " wrong-choice";
-                        
-                        return (
-                          <div key={letter} className={cls}>
-                            <span className="rb">{letter}</span>
-                            <span>{q[`option_${letter.toLowerCase()}`]}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="explain">
-                      <b>Explanation: </b>
-                      {q.explanation}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="restart-row">
               <button type="button" className="btn primary" onClick={restartTest}>
                 Restart Test
               </button>
+              {(stats.incorrect > 0 || stats.unattempted > 0) && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={retryWrongSkipped}
+                  style={{ marginLeft: "10px", border: "1px solid #c0564f", color: "#c0564f", background: "none", fontWeight: 600 }}
+                >
+                  🔁 Retry Wrong / Skipped
+                </button>
+              )}
               <Link to="/" style={{ textDecoration: 'none' }}>
                 <button type="button" className="btn" style={{ marginLeft: "10px" }}>
                   Back to Home
