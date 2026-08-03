@@ -3930,16 +3930,16 @@ img { max-width: 100%; display: block; }
 }
 
 /* ─── Subject Card SVG Background Animations ─── */
-/* 1. Hammer Swing — Left side */
+/* 1. Hammer Swing — lifts up-right and swings down onto the bench */
 @keyframes hammer-swing {
-  0%, 50% { transform: rotate(-70deg); animation-timing-function: cubic-bezier(0.6, 0.05, 0.9, 0.4); }
-  60%     { transform: rotate(6deg);   animation-timing-function: ease-out; }
-  66%     { transform: rotate(-2deg);  animation-timing-function: ease-in-out; }
+  0%, 50% { transform: rotate(70deg); animation-timing-function: cubic-bezier(0.6, 0.05, 0.9, 0.4); }
+  60%     { transform: rotate(-6deg);  animation-timing-function: ease-out; }
+  66%     { transform: rotate(2deg);   animation-timing-function: ease-in-out; }
   72%, 86% { transform: rotate(0deg);  animation-timing-function: ease-in-out; }
-  100%    { transform: rotate(-70deg); }
+  100%    { transform: rotate(70deg); }
 }
 .hammer-group {
-  transform-origin: 48px 38px;
+  transform-origin: 58px 62px;
   animation: hammer-swing 3s infinite;
 }
 @keyframes impact-flash {

@@ -29,19 +29,25 @@ function SubjectBgSvg({ name }) {
       <div className="card-bg">
         <svg viewBox="0 0 200 170" preserveAspectRatio="xMidYMid slice">
           <rect x="0" y="0" width="200" height="170" fill="transparent"/>
-          <rect x="15" y="115" width="80" height="12" rx="2" fill="var(--text-quaternary)" opacity="0.3"/>
-          <rect x="23" y="127" width="64" height="6" rx="1" fill="var(--text-quaternary)" opacity="0.2"/>
+          {/* Bench */}
+          <rect x="55" y="115" width="90" height="12" rx="2" fill="var(--text-quaternary)" opacity="0.3"/>
+          <rect x="65" y="127" width="70" height="6" rx="1" fill="var(--text-quaternary)" opacity="0.2"/>
+          {/* Hammer: drawn at 45° strike pose, animated rotation lifts it up-right and swings it down onto the bench */}
           <g className="hammer-group">
-            <g transform="translate(18,62) rotate(45)">
-              <rect x="-3" y="-4" width="53" height="8" rx="3" fill="var(--text-secondary)" opacity="0.45"/>
+            <g transform="translate(62,58) rotate(45)">
+              {/* Handle */}
+              <rect x="-4" y="-4" width="53" height="8" rx="3" fill="var(--text-secondary)" opacity="0.45"/>
+              {/* Head (perpendicular to handle, at the end) */}
               <rect x="44" y="-13" width="14" height="26" rx="3" fill="var(--text-primary)" opacity="0.55"/>
+              {/* Head band detail */}
               <rect x="48" y="-9" width="6" height="18" rx="1" fill="var(--text-quaternary)" opacity="0.35"/>
             </g>
           </g>
+          {/* Impact lines (flash in sync with the strike) */}
           <g className="impact-lines">
-            <line x1="62" y1="110" x2="80" y2="101" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="64" y1="117" x2="86" y2="117" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
-            <line x1="62" y1="124" x2="80" y2="132" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="102" y1="110" x2="120" y2="101" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="104" y1="117" x2="126" y2="117" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
+            <line x1="102" y1="124" x2="120" y2="132" stroke="var(--text-quaternary)" strokeWidth="1.5" opacity="0.5"/>
           </g>
         </svg>
       </div>
