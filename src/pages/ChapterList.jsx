@@ -43,6 +43,10 @@ function ChapterList() {
   const [caseAnswers, setCaseAnswers] = useState({}); // { [qIdx]: chosenLetter }
   const [caseTestFinished, setCaseTestFinished] = useState(false);
   const [showFullCaseModal, setShowFullCaseModal] = useState(false);
+  const [caseSearch, setCaseSearch] = useState("");
+  const [casePage, setCasePage] = useState(1);
+  const [showAllCases, setShowAllCases] = useState(false);
+  const casesPerPage = 15;
 
   // Guest Auth Popup State
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -427,42 +431,147 @@ function ChapterList() {
             <div className={`panel ${selectedIndex !== null ? "open" : ""}`}>
               {isSelectedCases ? (
                 <div className="subchapters-container-panel">
-                  <div className="panel-header">
-                    <h3 className="panel-subject-title">Case Scenarios</h3>
-                    <span className="panel-subject-badge">{casesList.length} cases available</span>
+                  <div className="panel-header" style={{ flexWrap: "wrap", gap: 12 }}>
+                    <div>
+                      <h3 className="panel-subject-title">Case Scenarios</h3>
+                      <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7268" }}>
+                        All 65 ICAI SPOM Case Scenarios with questions &amp; full schedules.
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <span className="panel-subject-badge">{casesList.length} cases total</span>
+                      <button
+                        type="button"
+                        className="pill"
+                        onClick={() => setShowAllCases(!showAllCases)}
+                        style={{ fontSize: 12, padding: "4px 12px" }}
+                      >
+                        {showAllCases ? "Show Paginated" : "Show All 65 Cases"}
+                      </button>
+                    </div>
                   </div>
-                  {casesList.length === 0 ? (
-                    <div className="subchapter-empty-state">
-                      <p>No case scenarios published under <strong>{course.course_name}</strong> yet.</p>
-                    </div>
-                  ) : (
-                    <div className="subchapter-rows-list">
-                      {casesList.map((c, idx) => {
-                        const caseProg = userProgressMap[`case_${c.id}`];
-                        const qLength = c.questions && c.questions.length > 0 ? c.questions.length : 5;
-                        let countLabel = `1 topic · ${qLength} questions`;
-                        if (user && caseProg && caseProg.score > 0) {
-                          countLabel = `${caseProg.score} of ${c.questions?.length || caseProg.total || 5} answered (${caseProg.percentage}%)`;
-                        }
 
-                        return (
-                          <div className="subchapter-row" key={c.id || idx}>
-                            <div className="subchapter-row-info">
-                              <h4 className="subchapter-row-title">{c.title}</h4>
-                              <p className="subchapter-row-meta">{countLabel}</p>
+                  {/* Search Bar */}
+                  <div style={{ margin: "10px 0 16px" }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Search among all 65 case scenarios by title, number, or topic..."
+                      value={caseSearch}
+                      onChange={(e) => {
+                        setCaseSearch(e.target.value);
+                        setCasePage(1);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "1px solid #e0e2dc",
+                        fontSize: 14,
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    />
+                  </div>
+
+                  {(() => {
+                    const filteredCases = casesList.filter((c, originalIdx) => {
+                      if (!caseSearch.trim()) return true;
+                      const q = caseSearch.toLowerCase();
+                      const num = originalIdx + 1;
+                      return (
+                        (c.title || "").toLowerCase().includes(q) ||
+                        (c.tag || "").toLowerCase().includes(q) ||
+                        (c.topic || "").toLowerCase().includes(q) ||
+                        `case ${num}`.includes(q) ||
+                        `case scenario ${num}`.includes(q)
+                      );
+                    });
+
+                    if (filteredCases.length === 0) {
+                      return (
+                        <div className="subchapter-empty-state">
+                          <p>No case scenarios found matching &quot;{caseSearch}&quot;.</p>
+                        </div>
+                      );
+                    }
+
+                    const totalPages = Math.ceil(filteredCases.length / casesPerPage);
+                    const currentPage = Math.min(casePage, totalPages);
+                    const startIndex = (currentPage - 1) * casesPerPage;
+                    const displayedCases = showAllCases || caseSearch.trim()
+                      ? filteredCases
+                      : filteredCases.slice(startIndex, startIndex + casesPerPage);
+
+                    return (
+                      <>
+                        <div className="subchapter-rows-list">
+                          {displayedCases.map((c) => {
+                            // Find original index in casesList
+                            const originalIdx = casesList.findIndex((item) => item.id === c.id);
+                            const caseNum = originalIdx >= 0 ? originalIdx + 1 : 1;
+                            const caseProg = userProgressMap[`case_${c.id}`];
+                            const qLength = c.questions && c.questions.length > 0 ? c.questions.length : 5;
+                            let countLabel = `Topic: ${c.topic || "General"} · ${qLength} questions`;
+                            if (user && caseProg && caseProg.score > 0) {
+                              countLabel = `${caseProg.score} of ${c.questions?.length || caseProg.total || 5} answered (${caseProg.percentage}%)`;
+                            }
+
+                            return (
+                              <div className="subchapter-row" key={c.id || originalIdx}>
+                                <div className="subchapter-row-info">
+                                  <h4 className="subchapter-row-title">
+                                    <span style={{ color: "#A8762C", fontWeight: 700, marginRight: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
+                                      Case {caseNum}:
+                                    </span>
+                                    {c.title}
+                                  </h4>
+                                  <p className="subchapter-row-meta">{countLabel}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="subchapter-start-btn"
+                                  onClick={() => openCaseDetail(originalIdx)}
+                                >
+                                  Start test &rarr;
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Pagination Bar */}
+                        {!showAllCases && !caseSearch.trim() && totalPages > 1 && (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                            <span style={{ fontSize: 13, color: "#6b7268", fontFamily: "'IBM Plex Mono', monospace" }}>
+                              Showing {startIndex + 1}–{Math.min(startIndex + casesPerPage, filteredCases.length)} of {filteredCases.length} cases
+                            </span>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                type="button"
+                                className="pill"
+                                disabled={currentPage === 1}
+                                onClick={() => setCasePage((prev) => Math.max(1, prev - 1))}
+                                style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? "default" : "pointer" }}
+                              >
+                                &larr; Previous
+                              </button>
+                              <span style={{ padding: "6px 10px", fontSize: 13, fontWeight: 600, color: "#0f3d33" }}>
+                                Page {currentPage} of {totalPages}
+                              </span>
+                              <button
+                                type="button"
+                                className="pill"
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCasePage((prev) => Math.min(totalPages, prev + 1))}
+                                style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? "default" : "pointer" }}
+                              >
+                                Next &rarr;
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              className="subchapter-start-btn"
-                              onClick={() => openCaseDetail(idx)}
-                            >
-                              Start test &rarr;
-                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               ) : selectedSubject ? (
                 <div className="subchapters-container-panel">
