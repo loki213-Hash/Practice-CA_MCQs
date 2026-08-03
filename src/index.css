@@ -3887,13 +3887,13 @@ img { max-width: 100%; display: block; }
 .panel {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 450ms cubic-bezier(.4,.2,.2,1), opacity 350ms ease;
+  transition: max-height 600ms cubic-bezier(.4,.2,.2,1), opacity 350ms ease;
   opacity: 0;
   margin-top: 4px;
 }
 
 .panel.open {
-  max-height: 800px;
+  max-height: 12000px;
   opacity: 1;
 }
 
