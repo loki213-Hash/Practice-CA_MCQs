@@ -661,8 +661,35 @@ export default function Login() {
             </div>
 
             {recoveryError && (
-              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12.5px", padding: "10px 12px", borderRadius: "6px", marginBottom: "16px" }}>
-                ⚠️ {recoveryError}
+              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12.5px", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
+                <div style={{ marginBottom: "8px", fontWeight: 500 }}>⚠️ {recoveryError}</div>
+                <a
+                  href="https://t.me/IsAIdangerous"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "#ffffff",
+                    background: "#24A1DE",
+                    padding: "8px 14px",
+                    borderRadius: "6px",
+                    textDecoration: "none",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    marginTop: "4px",
+                    boxShadow: "0 2px 4px rgba(36,161,222,0.2)",
+                    transition: "opacity 0.15s ease"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = 0.9}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = 1}
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: "14px", height: "14px", fill: "currentColor" }}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.35-.49.96-.75 3.78-1.65 6.31-2.74 7.58-3.27 3.61-1.5 4.36-1.76 4.85-1.77.11 0 .35.03.5.15.13.1.17.24.18.35-.01.08 0 .23-.02.34z"/>
+                  </svg>
+                  Contact Admin via Telegram
+                </a>
               </div>
             )}
 
