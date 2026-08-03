@@ -104,19 +104,30 @@ export async function getCasesForCourse(courseId) {
           };
         });
 
-        const bodyText = c.body || c.description || c.content || c.case_text || c.paragraphs || "";
-        const paragraphs = Array.isArray(bodyText)
+        const bodyText = c.body || c.case_scenario || c.description || c.content || c.case_text || c.paragraphs || "";
+        const tableText = c.case_table || c.Case_table || c.table_content || c.table_data || c.tables || "";
+
+        let paragraphs = Array.isArray(bodyText)
           ? bodyText
           : typeof bodyText === "string"
           ? bodyText.split(/\n\s*\n/).filter((p) => p.trim().length > 0)
           : [String(bodyText)];
+
+        if (paragraphs.length === 0 && !tableText) {
+          paragraphs = ["No case description available."];
+        }
+
+        const fullBody = [Array.isArray(bodyText) ? bodyText.join("\n\n") : bodyText, tableText]
+          .filter(Boolean)
+          .join("\n\n---\n\n");
 
         return {
           id: c.id,
           case_code: c.case_code || c.id,
           tag: c.tag || c.subject_name || "CASE SCENARIO",
           title: c.title || c.name || "Case Scenario",
-          body: Array.isArray(bodyText) ? bodyText.join("\n\n") : bodyText,
+          body: fullBody,
+          case_table: tableText || null,
           paragraphs: paragraphs.length > 0 ? paragraphs : ["No case description available."],
           questions: formattedQuestions,
         };
