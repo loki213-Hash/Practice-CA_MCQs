@@ -34,6 +34,7 @@ function ChapterList() {
   const [topicCounts, setTopicCounts] = useState({});
   const [userProgressMap, setUserProgressMap] = useState({});
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Case Scenario Views & State
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'case_detail'
@@ -96,6 +97,7 @@ function ChapterList() {
   useEffect(() => {
     async function loadChaptersAndCases() {
       setError("");
+      setIsLoading(true);
 
       try {
         const loadedCourse = await getCourseBySlug(courseSlug);
@@ -163,9 +165,11 @@ function ChapterList() {
         } catch (e) {
           console.warn("Failed to restore case test session:", e);
         }
+        setIsLoading(false);
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
         setError("Chapters and Case Scenarios could not be loaded.");
+        setIsLoading(false);
       }
     }
 
@@ -180,19 +184,29 @@ function ChapterList() {
     };
   }, [courseSlug, setType, user]);
 
-  if (error) {
+  if (isLoading || !course) {
     return (
-      <div className="proto-wrap">
-        <p className="error-message">{error}</p>
-        <Link className="start-btn" to="/" style={{ display: "inline-block", marginTop: 16 }}>Back to Home</Link>
+      <div className="proto-body">
+        <div className="proto-wrap">
+          <Link className="back-link" to={`/course/${courseSlug}`} style={{ marginBottom: 12, display: "inline-block" }}>
+            ← Back
+          </Link>
+          <div className="loader-container" style={{ paddingTop: 40 }}>
+            <Loading text="Loading subjects & chapters…" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!course) {
+  if (error) {
     return (
-      <div className="loader-container">
-        <Loading text="Loading subjects & chapters…" />
+      <div className="proto-body">
+        <div className="proto-wrap">
+          <Link className="back-link" to={`/course/${courseSlug}`} style={{ marginBottom: 12, display: "inline-block" }}>← Back</Link>
+          <p className="error-message" style={{ marginTop: 24 }}>{error}</p>
+          <Link className="start-btn" to="/" style={{ display: "inline-block", marginTop: 16 }}>Back to Home</Link>
+        </div>
       </div>
     );
   }
@@ -361,7 +375,7 @@ function ChapterList() {
         {viewMode === "grid" ? (
           <>
             <div className="eyebrow">
-              {course.course_name} &middot; {setType !== "chapters" ? setType : "PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS
+              {course.course_name} &middot; {setType && setType !== "chapters" ? decodeURIComponent(setType) : "PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS
             </div>
 
             <h1>Select subject &amp; chapter</h1>
