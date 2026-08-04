@@ -1218,6 +1218,18 @@ export default function Quiz() {
               </button>
               <button
                 type="button"
+                className={`filter-btn ${reviewFilter === "marked" ? "active" : ""}`}
+                style={
+                  reviewFilter === "marked"
+                    ? { background: "#5B4B8A", borderColor: "#5B4B8A", color: "#fff" }
+                    : { color: "#5B4B8A", borderColor: "#5B4B8A" }
+                }
+                onClick={() => setReviewFilter(reviewFilter === "marked" ? null : "marked")}
+              >
+                📌 Marked ({activeQuestions.filter((_, idx) => marked[idx]).length})
+              </button>
+              <button
+                type="button"
                 className={`filter-btn ${reviewFilter === "incorrect" ? "active" : ""}`}
                 onClick={() => setReviewFilter(reviewFilter === "incorrect" ? null : "incorrect")}
               >
@@ -1251,7 +1263,11 @@ export default function Quiz() {
                   const isUnattempted = chosen === null;
                   const status = isUnattempted ? "unattempted" : isCorrect ? "correct" : "incorrect";
 
-                  if (reviewFilter !== "all" && reviewFilter !== status) return null;
+                  if (reviewFilter === "marked") {
+                    if (!marked[i]) return null;
+                  } else if (reviewFilter !== "all" && reviewFilter !== status) {
+                    return null;
+                  }
 
                   const statusLabel = isUnattempted ? "Unattempted" : isCorrect ? "Correct" : "Incorrect";
 
@@ -1261,7 +1277,14 @@ export default function Quiz() {
                         <span className="qnum mono" style={{ color: "var(--brass)" }}>
                           Q{i + 1} &middot; {q.topic || "General"}
                         </span>
-                        <span className={`status-tag ${status}`}>{statusLabel}</span>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          {marked[i] && (
+                            <span className="status-tag" style={{ background: "#ECE6F6", color: "#5B4B8A", borderColor: "#5B4B8A", fontWeight: 600 }}>
+                              📌 Marked for Review
+                            </span>
+                          )}
+                          <span className={`status-tag ${status}`}>{statusLabel}</span>
+                        </div>
                       </div>
                       <QuestionBody q={q} className="rq" />
                       <div className="ropt-list">

@@ -3580,16 +3580,20 @@ img { max-width: 100%; display: block; }
   border-color: #C9A54B !important;
   color: #1E2A33 !important;
 }
-.quiz-theme-wrapper[data-theme="advitt"] .pnum.notanswered,
+.quiz-theme-wrapper[data-theme="advitt"] .pnum.notanswered {
+  background: #F6E4DF !important;
+  border-color: #A8402F !important;
+  color: #A8402F !important;
+}
 .quiz-theme-wrapper[data-theme="advitt"] .pnum.notvisited {
   background: #FFFFFF !important;
   border-color: #E4DCC8 !important;
   color: #4B5A63 !important;
 }
 .quiz-theme-wrapper[data-theme="advitt"] .pnum.marked {
-  background: #F6E4DF !important;
-  border-color: #A8402F !important;
-  color: #A8402F !important;
+  background: #ECE6F6 !important;
+  border-color: #5B4B8A !important;
+  color: #5B4B8A !important;
 }
 .quiz-theme-wrapper[data-theme="advitt"] .pnum.current {
   border: 2px solid #1E2A33 !important;
