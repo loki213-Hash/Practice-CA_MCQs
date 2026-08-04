@@ -144,6 +144,25 @@ function ChapterList() {
         setTopicCounts(tCounts || {});
 
         await loadUserProgress();
+
+        // Restore active Case Scenario test progress if user refreshed during a test
+        try {
+          const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
+          const savedStr = sessionStorage.getItem(sessionKey);
+          if (savedStr) {
+            const saved = JSON.parse(savedStr);
+            if (saved && saved.viewMode === "case_detail" && typeof saved.activeCaseIndex === "number") {
+              setActiveCaseIndex(saved.activeCaseIndex);
+              setCaseCurrentQIndex(typeof saved.caseCurrentQIndex === "number" ? saved.caseCurrentQIndex : 0);
+              setCaseAnswers(saved.caseAnswers || {});
+              setCaseCorrectCount(typeof saved.caseCorrectCount === "number" ? saved.caseCorrectCount : 0);
+              setCaseTestFinished(Boolean(saved.caseTestFinished));
+              setViewMode("case_detail");
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to restore case test session:", e);
+        }
       } catch (loadError) {
         console.error("Chapter loading error:", loadError);
         setError("Chapters and Case Scenarios could not be loaded.");
@@ -254,6 +273,30 @@ function ChapterList() {
   const activeCaseQuestions = activeCase?.questions || [];
   const currentQ = activeCaseQuestions[caseCurrentQIndex];
   const isLastQuestion = caseCurrentQIndex === activeCaseQuestions.length - 1;
+
+  // Auto-persist active Case Scenario test progress to sessionStorage so browser refresh stays in the test
+  useEffect(() => {
+    if (viewMode === "case_detail" && activeCase) {
+      try {
+        const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
+        const sessionData = {
+          viewMode: "case_detail",
+          activeCaseIndex,
+          caseCurrentQIndex,
+          caseAnswers,
+          caseCorrectCount,
+          caseTestFinished,
+        };
+        sessionStorage.setItem(sessionKey, JSON.stringify(sessionData));
+      } catch (e) {
+        console.warn("Failed to save case test session:", e);
+      }
+    } else if (viewMode === "grid") {
+      try {
+        sessionStorage.removeItem(`ca_case_session_${courseSlug}_${setType}`);
+      } catch (e) {}
+    }
+  }, [viewMode, activeCaseIndex, caseCurrentQIndex, caseAnswers, caseCorrectCount, caseTestFinished, courseSlug, setType, activeCase]);
 
   const handleNextOrSubmit = async () => {
     if (isLastQuestion) {
@@ -715,18 +758,32 @@ function ChapterList() {
                       <span className="q-text">{currentQ.text}</span>
                     </div>
 
-                    {/* Options List */}
+                    {/* Options List — SPOM Visual Style */}
                     <div className="options">
                       {currentQ.options?.map((o) => {
                         const chosen = caseAnswers[caseCurrentQIndex];
                         const isAnswered = chosen !== undefined;
-                        const isCorrect = o.letter === currentQ.correctLetter;
-                        const isChosen = o.letter === chosen;
+                        const letterUpper = (o.letter || "").toUpperCase();
+                        const correctUpper = (currentQ.correctLetter || "").toUpperCase();
+                        const chosenUpper = (chosen || "").toUpperCase();
+
+                        const isCorrect = letterUpper === correctUpper;
+                        const isChosen = letterUpper === chosenUpper;
 
                         let optCls = "option";
+                        let tagHtml = null;
+
                         if (isAnswered) {
-                          if (isCorrect) optCls += " correct";
-                          if (isChosen && !isCorrect) optCls += " incorrect";
+                          optCls += " locked";
+                          if (isCorrect) {
+                            optCls += " correct-fb";
+                            tagHtml = <span className="tag">Correct answer</span>;
+                          } else if (isChosen) {
+                            optCls += " wrong-fb";
+                            tagHtml = <span className="tag">Your choice</span>;
+                          }
+                        } else if (isChosen) {
+                          optCls += " selected";
                         }
 
                         return (
@@ -737,39 +794,58 @@ function ChapterList() {
                             disabled={isAnswered}
                             onClick={() => handleCaseAnswer(caseCurrentQIndex, o.letter, currentQ.correctLetter)}
                           >
-                            <span className="opt-letter">{o.letter}</span>
-                            <span>{o.text}</span>
+                            <span className="bubble">{o.letter}</span>
+                            <span className="otext">{o.text}</span>
+                            {tagHtml}
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Result Tag & Explanation */}
+                    {/* Result Tag & Explanation Feedback Panel — SPOM Visual Style */}
                     {caseAnswers[caseCurrentQIndex] !== undefined && (
-                      <>
-                        <div className={`result-tag show ${caseAnswers[caseCurrentQIndex] === currentQ.correctLetter ? "correct-tag" : "incorrect-tag"}`}>
-                          {caseAnswers[caseCurrentQIndex] === currentQ.correctLetter
-                            ? "✓ Correct"
-                            : `✕ Incorrect — Correct answer is ${currentQ.correctLetter}`}
+                      <div id="qFeedback" style={{ marginTop: 22 }}>
+                        <div
+                          className={`feedback-panel ${
+                            (caseAnswers[caseCurrentQIndex] || "").toUpperCase() === (currentQ.correctLetter || "").toUpperCase()
+                              ? "is-correct"
+                              : "is-wrong"
+                          }`}
+                        >
+                          <div className="fb-head">
+                            <span className="fb-icon">
+                              {(caseAnswers[caseCurrentQIndex] || "").toUpperCase() === (currentQ.correctLetter || "").toUpperCase() ? "✓" : "✕"}
+                            </span>
+                            {(caseAnswers[caseCurrentQIndex] || "").toUpperCase() === (currentQ.correctLetter || "").toUpperCase()
+                              ? "Correct!"
+                              : `Wrong answer — Correct answer is (${currentQ.correctLetter})`}
+                          </div>
+                          <div className="fb-body">
+                            {currentQ.explanation && (
+                              <div style={{ marginBottom: currentQ.explanations ? 12 : 0 }}>
+                                <b>Explanation: </b>{currentQ.explanation}
+                              </div>
+                            )}
+                            {currentQ.explanations && (
+                              <div className="explanation-table-box" style={{ marginTop: 10 }}>
+                                <CaseTableRenderer tableData={currentQ.explanations} />
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {currentQ.explanation && (
-                          <div className="explanation show">
-                            <strong>Explanation:</strong> {currentQ.explanation}
-                          </div>
-                        )}
-
                         {/* Next / Submit Button */}
-                        <div style={{ marginTop: 18, marginLeft: 29 }}>
+                        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
                           <button
                             type="button"
-                            className="btn-next show"
+                            className="btn primary"
+                            style={{ padding: "12px 26px", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}
                             onClick={handleNextOrSubmit}
                           >
                             <span>{isLastQuestion ? "Submit Test & View Results" : "Next Question →"}</span>
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 ) : null}

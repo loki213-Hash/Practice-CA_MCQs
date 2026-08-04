@@ -194,11 +194,18 @@ export default function Quiz() {
               const elapsed = Math.floor((Date.now() - storedStart) / 1000);
               const trueRemaining = Math.max(0, 10800 - elapsed);
 
-              setActiveQuestions(saved.activeQuestions);
+              // Merge fresh questions from Supabase so any rectified spelling / text edits in DB immediately update!
+              const freshMap = new Map((questionsData || []).map((q) => [String(q.id), q]));
+              const freshActiveQuestions = saved.activeQuestions.map((savedQ) => {
+                const freshQ = freshMap.get(String(savedQ.id));
+                return freshQ ? { ...savedQ, ...freshQ } : savedQ;
+              });
+
+              setActiveQuestions(freshActiveQuestions);
               setCurrent(typeof saved.current === "number" ? saved.current : 0);
-              setAnswers(saved.answers || new Array(saved.activeQuestions.length).fill(null));
-              setMarked(saved.marked || new Array(saved.activeQuestions.length).fill(false));
-              setVisited(saved.visited || new Array(saved.activeQuestions.length).fill(false));
+              setAnswers(saved.answers || new Array(freshActiveQuestions.length).fill(null));
+              setMarked(saved.marked || new Array(freshActiveQuestions.length).fill(false));
+              setVisited(saved.visited || new Array(freshActiveQuestions.length).fill(false));
               if (saved.selectedTopics) setSelectedTopics(saved.selectedTopics);
               setRemainingSeconds(trueRemaining);
               setScreen("quiz");

@@ -90,6 +90,7 @@ export async function getCasesForCourse(courseId) {
         ).toString().trim().toUpperCase();
 
         const explanation = q.explanation || q.solution || "";
+        const explanations = q.explanations || q.explanations_json || q.explanation_table || null;
 
         return {
           id: q.id || qIdx + 1,
@@ -97,6 +98,7 @@ export async function getCasesForCourse(courseId) {
           options,
           correctLetter,
           explanation,
+          explanations,
         };
       });
 
