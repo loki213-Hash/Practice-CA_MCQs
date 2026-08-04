@@ -304,22 +304,7 @@ function ChapterList() {
 
   const getChaptersForSubject = (s) => {
     if (!s || !chapters) return [];
-    return chapters.filter((ch) => {
-      if (!ch) return false;
-      if (ch.set_type && s.set_type) {
-        if (ch.set_type.trim().toLowerCase() === s.set_type.trim().toLowerCase()) {
-          return true;
-        }
-        const setBelongsToOther = subjects.some(
-          (otherSub) =>
-            otherSub.id !== s.id &&
-            otherSub.set_type &&
-            otherSub.set_type.trim().toLowerCase() === ch.set_type.trim().toLowerCase()
-        );
-        if (setBelongsToOther) return false;
-      }
-      return String(ch.subject_id) === String(s.id);
-    });
+    return chapters.filter((ch) => ch && String(ch.subject_id) === String(s.id));
   };
 
   const selectedSubjectChapters = selectedSubject ? getChaptersForSubject(selectedSubject) : [];
