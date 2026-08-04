@@ -21,6 +21,23 @@ function getSubjectIcon(name) {
   return "📑";
 }
 
+function safeDecodeURI(str) {
+  if (!str) return "";
+  try {
+    return decodeURIComponent(str);
+  } catch (e) {
+    return str;
+  }
+}
+
+function getParagraphsArray(paragraphs) {
+  if (Array.isArray(paragraphs)) return paragraphs;
+  if (typeof paragraphs === "string" && paragraphs.trim()) {
+    return paragraphs.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
+  }
+  return [];
+}
+
 function ChapterList() {
   const { courseSlug, setType } = useParams();
   const { user, login, register } = useAuth();
@@ -103,11 +120,17 @@ function ChapterList() {
         const loadedCourse = await getCourseBySlug(courseSlug);
         setCourse(loadedCourse);
 
-        const decodedSet = (!setType || setType === "chapters") ? null : decodeURIComponent(setType).trim();
+        const decodedSet = (!setType || setType === "chapters") ? null : safeDecodeURI(setType).trim();
 
         const isSpom = (courseSlug || "").toLowerCase().includes("spom") ||
                        (loadedCourse?.course_slug || "").toLowerCase().includes("spom") ||
                        (loadedCourse?.course_name || "").toLowerCase().includes("spom");
+
+        if (!loadedCourse) {
+          setError(`Course "${courseSlug}" was not found.`);
+          setIsLoading(false);
+          return;
+        }
 
         const [loadedSubjects, loadedChapters, loadedCases] = await Promise.all([
           getSubjects(loadedCourse.id, decodedSet),
@@ -194,12 +217,12 @@ function ChapterList() {
     };
   }, [courseSlug, setType, user]);
 
-  if (isLoading || !course) {
+  if (isLoading) {
     return (
       <div className="proto-body">
         <div className="proto-wrap">
-          <Link className="back-link" to={`/course/${courseSlug}`} style={{ marginBottom: 12, display: "inline-block" }}>
-            ← Back
+          <Link className="back-link" to="/" style={{ marginBottom: 12, display: "inline-block" }}>
+            ← Back to Home
           </Link>
           <div className="loader-container" style={{ paddingTop: 40 }}>
             <Loading text="Loading subjects & chapters…" />
@@ -213,8 +236,21 @@ function ChapterList() {
     return (
       <div className="proto-body">
         <div className="proto-wrap">
-          <Link className="back-link" to={`/course/${courseSlug}`} style={{ marginBottom: 12, display: "inline-block" }}>← Back</Link>
+          <Link className="back-link" to="/" style={{ marginBottom: 12, display: "inline-block" }}>← Back to Home</Link>
           <p className="error-message" style={{ marginTop: 24 }}>{error}</p>
+          <Link className="start-btn" to="/" style={{ display: "inline-block", marginTop: 16 }}>Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="proto-body">
+        <div className="proto-wrap">
+          <Link className="back-link" to="/" style={{ marginBottom: 12, display: "inline-block" }}>← Back to Home</Link>
+          <h2 style={{ marginTop: 24, fontSize: 20 }}>Course Not Found</h2>
+          <p style={{ marginTop: 8, color: "#6b7268" }}>We couldn't find the requested course "{courseSlug}".</p>
           <Link className="start-btn" to="/" style={{ display: "inline-block", marginTop: 16 }}>Back to Home</Link>
         </div>
       </div>
@@ -711,7 +747,7 @@ function ChapterList() {
                   </div>
                   <h2 className="case-title">{activeCase.title}</h2>
                   <div className="case-body collapsed">
-                    {activeCase.paragraphs?.slice(0, 2).map((p, idx) => (
+                    {getParagraphsArray(activeCase?.paragraphs).slice(0, 2).map((p, idx) => (
                       <p key={idx}>{p}</p>
                     ))}
                   </div>
@@ -1035,7 +1071,7 @@ function ChapterList() {
                 <h3 style={{ fontSize: 24, fontWeight: 700, marginTop: 0, marginBottom: 22, borderBottom: "1px solid #eef1ea", paddingBottom: 14 }}>
                   {activeCase.title}
                 </h3>
-                {activeCase.paragraphs?.map((p, idx) => (
+                {getParagraphsArray(activeCase?.paragraphs).map((p, idx) => (
                   <p key={idx} style={{ fontSize: 16, lineHeight: 1.8, marginBottom: 18, color: "#1c2b20" }}>
                     {p}
                   </p>
