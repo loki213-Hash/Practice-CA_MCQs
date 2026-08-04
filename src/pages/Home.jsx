@@ -835,7 +835,7 @@ function Home() {
             <p>
               An independent MCQ practice platform for CA aspirants. Not affiliated with or endorsed by ICAI.
               <span style={{ display: "block", marginTop: "8px", fontWeight: "600", color: "var(--navy)" }}>
-                By Lokesh Yerramsetty ( CA Aspirant)
+                By <a href="https://www.linkedin.com/in/lokeshyerramsetty/" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>Lokesh Yerramsetty ( CA Aspirant )</a>
               </span>
             </p>
           </div>
@@ -858,12 +858,23 @@ function Home() {
                 href="https://t.me/IsAidangerous"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style={{ verticalAlign: "middle" }}>
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.53-1.39.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.46-.42-1.4-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.66-2.88 7.99-3.43 3.8-1.57 4.59-1.85 5.1-.11v-.01z"/>
                 </svg>
                 Support Chat
+              </a>
+              <a
+                href="https://www.linkedin.com/in/lokeshyerramsetty/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style={{ verticalAlign: "middle" }}>
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                </svg>
+                Connect Us
               </a>
             </div>
           </div>
