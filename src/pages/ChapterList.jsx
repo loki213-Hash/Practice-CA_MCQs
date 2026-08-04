@@ -302,16 +302,34 @@ function ChapterList() {
   const selectedSubject = typeof selectedIndex === "number" ? subjects[selectedIndex] : null;
   const isSelectedCases = selectedIndex === "cases";
 
-  const selectedSubjectChapters = selectedSubject
-    ? chapters.filter((ch) => String(ch.subject_id) === String(selectedSubject.id))
-    : [];
+  const getChaptersForSubject = (s) => {
+    if (!s || !chapters) return [];
+    return chapters.filter((ch) => {
+      if (!ch) return false;
+      if (ch.set_type && s.set_type) {
+        if (ch.set_type.trim().toLowerCase() === s.set_type.trim().toLowerCase()) {
+          return true;
+        }
+        const setBelongsToOther = subjects.some(
+          (otherSub) =>
+            otherSub.id !== s.id &&
+            otherSub.set_type &&
+            otherSub.set_type.trim().toLowerCase() === ch.set_type.trim().toLowerCase()
+        );
+        if (setBelongsToOther) return false;
+      }
+      return String(ch.subject_id) === String(s.id);
+    });
+  };
 
-  const getSubjectMetrics = (subId) => {
-    if (!user) {
+  const selectedSubjectChapters = selectedSubject ? getChaptersForSubject(selectedSubject) : [];
+
+  const getSubjectMetrics = (s) => {
+    if (!user || !s) {
       return { totalQ: 0, answeredQ: 0, progressPct: 0 };
     }
 
-    const subChs = chapters.filter((ch) => String(ch.subject_id) === String(subId));
+    const subChs = getChaptersForSubject(s);
     const totalQ = subChs.reduce((sum, ch) => sum + (questionCounts[ch.id] || 0), 0);
     
     const answeredQ = subChs.reduce((sum, ch) => {
@@ -429,7 +447,7 @@ function ChapterList() {
         {viewMode === "grid" ? (
           <>
             <div className="eyebrow">
-              {course.course_name} &middot; {setType && setType !== "chapters" ? decodeURIComponent(setType) : "PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS
+              {course.course_name} &middot; {setType && setType !== "chapters" ? safeDecodeURI(setType) : "PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS
             </div>
 
             <h1>Select subject &amp; chapter</h1>
@@ -445,9 +463,9 @@ function ChapterList() {
             <div className="grid">
               {subjects.map((s, i) => {
                 const isSelected = selectedIndex === i;
-                const subChs = chapters.filter((ch) => String(ch.subject_id) === String(s.id));
+                const subChs = getChaptersForSubject(s);
                 const chCount = subChs.length;
-                const { totalQ, answeredQ, progressPct } = getSubjectMetrics(s.id);
+                const { totalQ, answeredQ, progressPct } = getSubjectMetrics(s);
                 const icon = getSubjectIcon(s.subject_name);
 
                 return (
