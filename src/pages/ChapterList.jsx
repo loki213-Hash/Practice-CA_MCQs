@@ -217,6 +217,35 @@ function ChapterList() {
     };
   }, [courseSlug, setType, user]);
 
+  const activeCase = casesList[activeCaseIndex] || casesList[0];
+  const activeCaseQuestions = activeCase?.questions || [];
+  const currentQ = activeCaseQuestions[caseCurrentQIndex];
+  const isLastQuestion = caseCurrentQIndex === activeCaseQuestions.length - 1;
+
+  // Auto-persist active Case Scenario test progress to sessionStorage so browser refresh stays in the test
+  useEffect(() => {
+    if (viewMode === "case_detail" && activeCase) {
+      try {
+        const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
+        const sessionData = {
+          viewMode: "case_detail",
+          activeCaseIndex,
+          caseCurrentQIndex,
+          caseAnswers,
+          caseCorrectCount,
+          caseTestFinished,
+        };
+        sessionStorage.setItem(sessionKey, JSON.stringify(sessionData));
+      } catch (e) {
+        console.warn("Failed to save case test session:", e);
+      }
+    } else if (viewMode === "grid") {
+      try {
+        sessionStorage.removeItem(`ca_case_session_${courseSlug}_${setType}`);
+      } catch (e) {}
+    }
+  }, [viewMode, activeCaseIndex, caseCurrentQIndex, caseAnswers, caseCorrectCount, caseTestFinished, courseSlug, setType, activeCase]);
+
   if (isLoading) {
     return (
       <div className="proto-body">
@@ -329,34 +358,7 @@ function ChapterList() {
     }
   };
 
-  const activeCase = casesList[activeCaseIndex] || casesList[0];
-  const activeCaseQuestions = activeCase?.questions || [];
-  const currentQ = activeCaseQuestions[caseCurrentQIndex];
-  const isLastQuestion = caseCurrentQIndex === activeCaseQuestions.length - 1;
 
-  // Auto-persist active Case Scenario test progress to sessionStorage so browser refresh stays in the test
-  useEffect(() => {
-    if (viewMode === "case_detail" && activeCase) {
-      try {
-        const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
-        const sessionData = {
-          viewMode: "case_detail",
-          activeCaseIndex,
-          caseCurrentQIndex,
-          caseAnswers,
-          caseCorrectCount,
-          caseTestFinished,
-        };
-        sessionStorage.setItem(sessionKey, JSON.stringify(sessionData));
-      } catch (e) {
-        console.warn("Failed to save case test session:", e);
-      }
-    } else if (viewMode === "grid") {
-      try {
-        sessionStorage.removeItem(`ca_case_session_${courseSlug}_${setType}`);
-      } catch (e) {}
-    }
-  }, [viewMode, activeCaseIndex, caseCurrentQIndex, caseAnswers, caseCorrectCount, caseTestFinished, courseSlug, setType, activeCase]);
 
   const handleNextOrSubmit = async () => {
     if (isLastQuestion) {
