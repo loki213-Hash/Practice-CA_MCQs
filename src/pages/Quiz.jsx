@@ -1085,6 +1085,11 @@ export default function Quiz() {
                   <div className="rbit unattempted">
                     <b>{stats.unattempted}</b>Unattempted
                   </div>
+                  {activeQuestions.filter((_, idx) => marked[idx]).length > 0 && (
+                    <div className="rbit" style={{ borderColor: "#5B4B8A" }}>
+                      <b style={{ color: "#5B4B8A" }}>{activeQuestions.filter((_, idx) => marked[idx]).length}</b>Marked
+                    </div>
+                  )}
                   <div className="rbit">
                     <b>{formatDuration(totalTimeTakenSeconds)}</b>Time taken
                   </div>
@@ -1141,6 +1146,20 @@ export default function Quiz() {
               <button type="button" className="btn" onClick={restartTest}>
                 Restart Test
               </button>
+              {activeQuestions.filter((_, idx) => marked[idx]).length > 0 && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setReviewFilter("marked");
+                    const el = document.getElementById("full-answer-review-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  style={{ border: "1px solid #5B4B8A", color: "#5B4B8A", background: "#ECE6F6", fontWeight: 600 }}
+                >
+                  📌 Review Marked ({activeQuestions.filter((_, idx) => marked[idx]).length})
+                </button>
+              )}
               {(stats.incorrect > 0 || stats.unattempted > 0) && (
                 <button
                   type="button"
@@ -1205,7 +1224,7 @@ export default function Quiz() {
               </tbody>
             </table>
 
-            <div className="panel-title" style={{ marginTop: "38px" }}>
+            <div id="full-answer-review-section" className="panel-title" style={{ marginTop: "38px" }}>
               Full answer review <span className="rule"></span>
             </div>
             <div className="filter-row">
