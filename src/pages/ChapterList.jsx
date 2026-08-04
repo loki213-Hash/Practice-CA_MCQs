@@ -172,8 +172,9 @@ function ChapterList() {
 
         // Restore active Case Scenario test progress if user refreshed during a test
         try {
-          const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
-          const savedStr = sessionStorage.getItem(sessionKey);
+          const decoded = safeDecodeURI(setType);
+          const sessionKey = `ca_case_session_${courseSlug}_${decoded}`;
+          const savedStr = sessionStorage.getItem(sessionKey) || localStorage.getItem(sessionKey);
           if (savedStr) {
             const saved = JSON.parse(savedStr);
             const savedIdx = typeof saved?.activeCaseIndex === "number" ? saved.activeCaseIndex : 0;
@@ -189,10 +190,8 @@ function ChapterList() {
               setCaseAnswers(saved.caseAnswers || {});
               setCaseCorrectCount(typeof saved.caseCorrectCount === "number" ? saved.caseCorrectCount : 0);
               setCaseTestFinished(Boolean(saved.caseTestFinished));
+              setSelectedIndex("cases");
               setViewMode("case_detail");
-            } else {
-              // Stale/invalid session — clear it
-              sessionStorage.removeItem(sessionKey);
             }
           }
         } catch (e) {
@@ -222,11 +221,15 @@ function ChapterList() {
   const currentQ = activeCaseQuestions[caseCurrentQIndex];
   const isLastQuestion = caseCurrentQIndex === activeCaseQuestions.length - 1;
 
-  // Auto-persist active Case Scenario test progress to sessionStorage so browser refresh stays in the test
+  // Auto-persist active Case Scenario test progress to sessionStorage and localStorage so browser refresh stays in the test
   useEffect(() => {
+    if (isLoading) return; // Do NOT touch storage while data is still loading!
+
+    const decoded = safeDecodeURI(setType);
+    const sessionKey = `ca_case_session_${courseSlug}_${decoded}`;
+
     if (viewMode === "case_detail" && activeCase) {
       try {
-        const sessionKey = `ca_case_session_${courseSlug}_${setType}`;
         const sessionData = {
           viewMode: "case_detail",
           activeCaseIndex,
@@ -235,16 +238,19 @@ function ChapterList() {
           caseCorrectCount,
           caseTestFinished,
         };
-        sessionStorage.setItem(sessionKey, JSON.stringify(sessionData));
+        const strData = JSON.stringify(sessionData);
+        sessionStorage.setItem(sessionKey, strData);
+        localStorage.setItem(sessionKey, strData);
       } catch (e) {
         console.warn("Failed to save case test session:", e);
       }
     } else if (viewMode === "grid") {
       try {
-        sessionStorage.removeItem(`ca_case_session_${courseSlug}_${setType}`);
+        sessionStorage.removeItem(sessionKey);
+        localStorage.removeItem(sessionKey);
       } catch (e) {}
     }
-  }, [viewMode, activeCaseIndex, caseCurrentQIndex, caseAnswers, caseCorrectCount, caseTestFinished, courseSlug, setType, activeCase]);
+  }, [isLoading, viewMode, activeCaseIndex, caseCurrentQIndex, caseAnswers, caseCorrectCount, caseTestFinished, courseSlug, setType, activeCase]);
 
   if (isLoading) {
     return (
