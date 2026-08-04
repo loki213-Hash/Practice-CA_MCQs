@@ -101,15 +101,15 @@ function ChapterList() {
         const loadedCourse = await getCourseBySlug(courseSlug);
         setCourse(loadedCourse);
 
+        const decodedSet = (!setType || setType === "chapters") ? null : decodeURIComponent(setType).trim();
+
         const isSpom = (courseSlug || "").toLowerCase().includes("spom") ||
                        (loadedCourse?.course_slug || "").toLowerCase().includes("spom") ||
                        (loadedCourse?.course_name || "").toLowerCase().includes("spom");
 
-        const selectedSet = setType === "chapters" ? null : setType;
-
         const [loadedSubjects, loadedChapters, loadedCases] = await Promise.all([
-          getSubjects(loadedCourse.id, selectedSet),
-          getChapters(loadedCourse.id, selectedSet),
+          getSubjects(loadedCourse.id, decodedSet),
+          getChapters(loadedCourse.id, decodedSet),
           isSpom ? getCasesForCourse(loadedCourse.id).catch(() => []) : Promise.resolve([]),
         ]);
 

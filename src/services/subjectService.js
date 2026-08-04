@@ -31,22 +31,39 @@ export async function getSetTypes(courseId) {
 }
 
 export async function getSubjects(courseId, setType) {
+  const decodedSet = setType && setType !== "chapters" ? decodeURIComponent(setType).trim() : null;
+
   let query = supabase
     .from("subjects")
     .select("*")
     .eq("course_id", courseId)
     .order("display_order", { ascending: true });
 
-  if (setType && setType !== "chapters") {
-    query = query.eq("set_type", setType);
+  if (decodedSet) {
+    query = query.ilike("set_type", decodedSet);
   }
 
   const { data, error } = await query;
   if (error) {
     console.warn("getSubjects notice:", error.message);
+  }
+
+  if (data && data.length > 0) {
+    return data;
+  }
+
+  // Fallback: If querying with set_type returned empty array, fetch ALL subjects for the course
+  const { data: fallbackData, error: fbErr } = await supabase
+    .from("subjects")
+    .select("*")
+    .eq("course_id", courseId)
+    .order("display_order", { ascending: true });
+
+  if (fbErr) {
+    console.warn("getSubjects fallback notice:", fbErr.message);
     return [];
   }
-  return data || [];
+  return fallbackData || [];
 }
 
 export async function getSubjectById(subjectId) {

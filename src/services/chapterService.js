@@ -4,18 +4,24 @@ import { getSetTypes, getSubjects } from "./subjectService";
 export { getSetTypes };
 
 export async function getChapters(courseId, setType) {
+  const decodedSet = setType && setType !== "chapters" ? decodeURIComponent(setType).trim() : null;
+
   // 1. Check if there are subjects for this course and setType
   const subjects = await getSubjects(courseId, setType);
-  if (subjects.length > 0) {
+  if (subjects && subjects.length > 0) {
     const subjectIds = subjects.map((s) => s.id);
-    // Fetch chapters for these subjects
-    const { data: chaptersBySubject, error: subErr } = await supabase
+    let subQuery = supabase
       .from("chapters")
       .select("*")
       .in("subject_id", subjectIds)
       .eq("available", true)
       .order("display_order");
 
+    if (decodedSet) {
+      subQuery = subQuery.ilike("set_type", decodedSet);
+    }
+
+    const { data: chaptersBySubject, error: subErr } = await subQuery;
     if (!subErr && chaptersBySubject && chaptersBySubject.length > 0) {
       return chaptersBySubject;
     }
@@ -23,9 +29,14 @@ export async function getChapters(courseId, setType) {
 
   // 2. Direct fallback: query chapters by course_id and set_type
   let query = supabase.from("chapters").select("*").eq("course_id", courseId).eq("available", true).order("display_order");
-  query = setType && setType !== "chapters" ? query.eq("set_type", setType) : query;
+  if (decodedSet) {
+    query = query.ilike("set_type", decodedSet);
+  }
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.warn("getChapters notice:", error.message);
+    return [];
+  }
   return data || [];
 }
 
