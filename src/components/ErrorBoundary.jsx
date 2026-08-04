@@ -78,11 +78,13 @@ class ErrorBoundary extends Component {
                 Go to Home
               </a>
             </div>
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <details style={{ marginTop: 24, textAlign: "left" }}>
+            {this.state.error && (
+              <details style={{ marginTop: 24, textAlign: "left" }} open>
                 <summary style={{ cursor: "pointer", color: "#888", fontSize: 12 }}>Error details</summary>
-                <pre style={{ fontSize: 11, color: "#cc0000", marginTop: 8, overflow: "auto", maxHeight: 200 }}>
+                <pre style={{ fontSize: 11, color: "#cc0000", marginTop: 8, overflow: "auto", maxHeight: 250, whiteSpace: "pre-wrap", background: "#f8f8f8", padding: 10, borderRadius: 6 }}>
                   {this.state.error.toString()}
+                  {"\n\n"}
+                  {this.state.error.stack}
                 </pre>
               </details>
             )}
