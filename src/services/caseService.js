@@ -122,17 +122,25 @@ async function formatCasesWithQuestions(casesData) {
         };
       });
 
-      const bodyText = c.body || c.case_scenario || c.description || c.content || c.case_text || "";
       const tableData = c.case_table || null;
 
-      let paragraphs = Array.isArray(bodyText)
-        ? bodyText
-        : typeof bodyText === "string"
-        ? bodyText.split(/\n\s*\n/).filter((p) => p.trim().length > 0)
-        : [String(bodyText)];
+      // Use case_intro for the text BEFORE the table.
+      // Fall back to body/case_scenario only if case_intro is absent.
+      const introText = c.case_intro || c.body || c.case_scenario || c.description || c.content || c.case_text || "";
+      const outroText = c.case_outro || null;
+
+      const toParagraphs = (text) => {
+        if (Array.isArray(text)) return text;
+        if (typeof text === "string" && text.trim())
+          return text.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
+        return [];
+      };
+
+      const paragraphs = toParagraphs(introText);
+      const outroParagraphs = outroText ? toParagraphs(outroText) : [];
 
       if (paragraphs.length === 0 && !tableData) {
-        paragraphs = ["No case description available."];
+        paragraphs.push("No case description available.");
       }
 
       return {
@@ -140,10 +148,13 @@ async function formatCasesWithQuestions(casesData) {
         case_code: caseCode,
         tag: c.tag || `Case Scenario ${idx + 1}`,
         title: c.title || c.name || `Case Scenario ${idx + 1}`,
-        body: typeof bodyText === "string" ? bodyText : JSON.stringify(bodyText),
+        body: introText,
+        case_intro: introText,
         case_table: tableData,
+        case_outro: outroText,
         topic: c.topic || "Case Scenario",
         paragraphs,
+        outro_paragraphs: outroParagraphs,
         questions: formattedQuestions,
       };
     });

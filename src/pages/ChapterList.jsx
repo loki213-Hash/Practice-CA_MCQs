@@ -1082,12 +1082,29 @@ function ChapterList() {
                 <h3 style={{ fontSize: 24, fontWeight: 700, marginTop: 0, marginBottom: 22, borderBottom: "1px solid #eef1ea", paddingBottom: 14 }}>
                   {activeCase.title}
                 </h3>
+
+                {/* 1. INTRO paragraphs (before the table) */}
                 {getParagraphsArray(activeCase?.paragraphs).map((p, idx) => (
-                  <p key={idx} style={{ fontSize: 16, lineHeight: 1.8, marginBottom: 18, color: "#1c2b20" }}>
+                  <p key={`intro-${idx}`} style={{ fontSize: 16, lineHeight: 1.8, marginBottom: 18, color: "#1c2b20" }}>
                     {p}
                   </p>
                 ))}
-                <CaseTableRenderer tableData={activeCase.case_table} />
+
+                {/* 2. TABLE (between intro and outro) */}
+                {activeCase.case_table && (
+                  <CaseTableRenderer tableData={activeCase.case_table} />
+                )}
+
+                {/* 3. OUTRO paragraphs (after the table) */}
+                {activeCase.outro_paragraphs && activeCase.outro_paragraphs.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    {activeCase.outro_paragraphs.map((p, idx) => (
+                      <p key={`outro-${idx}`} style={{ fontSize: 16, lineHeight: 1.8, marginBottom: 18, color: "#1c2b20" }}>
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
