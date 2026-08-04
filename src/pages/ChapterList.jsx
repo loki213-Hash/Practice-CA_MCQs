@@ -153,13 +153,23 @@ function ChapterList() {
           const savedStr = sessionStorage.getItem(sessionKey);
           if (savedStr) {
             const saved = JSON.parse(savedStr);
-            if (saved && saved.viewMode === "case_detail" && typeof saved.activeCaseIndex === "number") {
-              setActiveCaseIndex(saved.activeCaseIndex);
+            const savedIdx = typeof saved?.activeCaseIndex === "number" ? saved.activeCaseIndex : 0;
+            // Only restore if we have cases loaded AND the saved index is valid
+            if (
+              saved &&
+              saved.viewMode === "case_detail" &&
+              validCases.length > 0 &&
+              savedIdx < validCases.length
+            ) {
+              setActiveCaseIndex(savedIdx);
               setCaseCurrentQIndex(typeof saved.caseCurrentQIndex === "number" ? saved.caseCurrentQIndex : 0);
               setCaseAnswers(saved.caseAnswers || {});
               setCaseCorrectCount(typeof saved.caseCorrectCount === "number" ? saved.caseCorrectCount : 0);
               setCaseTestFinished(Boolean(saved.caseTestFinished));
               setViewMode("case_detail");
+            } else {
+              // Stale/invalid session — clear it
+              sessionStorage.removeItem(sessionKey);
             }
           }
         } catch (e) {
@@ -671,7 +681,7 @@ function ChapterList() {
                         return (
                           <div className="subchapter-row" key={c.id}>
                             <div className="subchapter-row-info">
-                              <h4 className="subchapter-row-title">{c.chapter_name.trim()}</h4>
+                              <h4 className="subchapter-row-title">{(c.chapter_name || "").trim() || "Untitled Chapter"}</h4>
                               <p className="subchapter-row-meta">{countLabel}</p>
                             </div>
                             <Link className="subchapter-start-btn" to={`/quiz/${c.id}`}>
