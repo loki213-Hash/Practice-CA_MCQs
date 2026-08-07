@@ -170,7 +170,7 @@ function ChapterList() {
 
         await loadUserProgress();
 
-        // Restore active Case Scenario test progress if user refreshed during a test
+        // Restore active Case Scenario test progress if user refreshed during an active test
         try {
           const decoded = safeDecodeURI(setType);
           const sessionKey = `ca_case_session_${courseSlug}_${decoded}`;
@@ -178,8 +178,14 @@ function ChapterList() {
           if (savedStr) {
             const saved = JSON.parse(savedStr);
             const savedIdx = typeof saved?.activeCaseIndex === "number" ? saved.activeCaseIndex : 0;
-            // Only restore if we have cases loaded AND the saved index is valid
-            if (
+            const startTime = saved.timestamp || saved.startTime || Date.now();
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+            // Expire session if test finished or older than 3 hours (10800s)
+            if (elapsed >= 10800 || saved.caseTestFinished) {
+              sessionStorage.removeItem(sessionKey);
+              localStorage.removeItem(sessionKey);
+            } else if (
               saved &&
               saved.viewMode === "case_detail" &&
               validCases.length > 0 &&
@@ -231,6 +237,7 @@ function ChapterList() {
     if (viewMode === "case_detail" && activeCase) {
       try {
         const sessionData = {
+          timestamp: Date.now(),
           viewMode: "case_detail",
           activeCaseIndex,
           caseCurrentQIndex,

@@ -179,7 +179,7 @@ export default function Quiz() {
         // Check for active quiz session in localStorage / sessionStorage to restore progress on refresh or return
         try {
           const sessionKey = `ca_quiz_session_${chapterId}`;
-          const savedStr = localStorage.getItem("ca_quiz_interrupted_session") || sessionStorage.getItem(sessionKey);
+          const savedStr = sessionStorage.getItem(sessionKey) || localStorage.getItem("ca_quiz_interrupted_session");
           if (savedStr) {
             const saved = JSON.parse(savedStr);
             if (
@@ -192,23 +192,36 @@ export default function Quiz() {
               const startKey = `ca_quiz_start_${chapterId}`;
               const storedStart = parseInt(sessionStorage.getItem(startKey) || saved.startTime || Date.now());
               const elapsed = Math.floor((Date.now() - storedStart) / 1000);
-              const trueRemaining = Math.max(0, 10800 - elapsed);
 
-              // Merge fresh questions from Supabase so any rectified spelling / text edits in DB immediately update!
-              const freshMap = new Map((questionsData || []).map((q) => [String(q.id), q]));
-              const freshActiveQuestions = saved.activeQuestions.map((savedQ) => {
-                const freshQ = freshMap.get(String(savedQ.id));
-                return freshQ ? { ...savedQ, ...freshQ } : savedQ;
-              });
+              // If test is older than 3 hours (10800s), expire & remove stale session data
+              if (elapsed >= 10800) {
+                sessionStorage.removeItem(sessionKey);
+                sessionStorage.removeItem(startKey);
+                localStorage.removeItem("ca_quiz_interrupted_session");
+                setScreen("start");
+              } else {
+                const trueRemaining = Math.max(0, 10800 - elapsed);
 
-              setActiveQuestions(freshActiveQuestions);
-              setCurrent(typeof saved.current === "number" ? saved.current : 0);
-              setAnswers(saved.answers || new Array(freshActiveQuestions.length).fill(null));
-              setMarked(saved.marked || new Array(freshActiveQuestions.length).fill(false));
-              setVisited(saved.visited || new Array(freshActiveQuestions.length).fill(false));
-              if (saved.selectedTopics) setSelectedTopics(saved.selectedTopics);
-              setRemainingSeconds(trueRemaining);
-              setScreen("quiz");
+                // Merge fresh questions from Supabase so any rectified spelling / text edits in DB immediately update!
+                const freshMap = new Map((questionsData || []).map((q) => [String(q.id), q]));
+                const freshActiveQuestions = saved.activeQuestions.map((savedQ) => {
+                  const freshQ = freshMap.get(String(savedQ.id));
+                  return freshQ ? { ...savedQ, ...freshQ } : savedQ;
+                });
+
+                setActiveQuestions(freshActiveQuestions);
+                setCurrent(typeof saved.current === "number" ? saved.current : 0);
+                setAnswers(saved.answers || new Array(freshActiveQuestions.length).fill(null));
+                setMarked(saved.marked || new Array(freshActiveQuestions.length).fill(false));
+                setVisited(saved.visited || new Array(freshActiveQuestions.length).fill(false));
+                if (saved.selectedTopics) setSelectedTopics(saved.selectedTopics);
+                setRemainingSeconds(trueRemaining);
+                setScreen("quiz");
+              }
+            } else {
+              // Stale / un-matching session data clean up
+              sessionStorage.removeItem(sessionKey);
+              localStorage.removeItem("ca_quiz_interrupted_session");
             }
           }
         } catch (e) {
