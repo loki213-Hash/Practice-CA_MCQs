@@ -7,16 +7,17 @@ import { getNotificationsForUser, markAsRead } from "../services/notificationSer
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
 
-function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
+function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
   const [revealed, setRevealed] = useState(0);
   const [pct, setPct] = useState(0);
   const dialRef = useRef(null);
 
-  const total = totalChapters;
-  const mastered = masteredCount;
+  const total = Math.max(1, totalChapters);
+  const mastered = Math.min(masteredCount, total);
   const targetPct = accuracy;
 
   useEffect(() => {
+    setRevealed(0);
     const interval = setInterval(() => {
       setRevealed((prev) => {
         if (prev >= total) {
@@ -25,7 +26,7 @@ function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
         }
         return prev + 1;
       });
-    }, 55);
+    }, Math.max(15, Math.floor(1200 / total)));
 
     return () => clearInterval(interval);
   }, [total]);
@@ -44,7 +45,7 @@ function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
       } else {
         setPct(currentPct);
       }
-    }, Math.max(10, 1400 / targetPct));
+    }, Math.max(10, Math.floor(1400 / targetPct)));
 
     return () => clearInterval(interval);
   }, [targetPct]);
@@ -75,6 +76,7 @@ function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
 
   const spokes = useMemo(() => {
     const arr = [];
+    const spokeWidth = Math.max(2, Math.min(5, Math.floor(120 / total)));
     for (let i = 0; i < total; i++) {
       const angle = (i / total) * 2 * Math.PI - Math.PI / 2;
       const x1 = cx + rInner * Math.cos(angle);
@@ -91,13 +93,13 @@ function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
           y1={y1}
           x2={x2}
           y2={y2}
-          strokeWidth="5"
+          strokeWidth={spokeWidth}
           strokeLinecap="round"
           stroke={isMastered ? "#1F6E43" : "rgba(11, 37, 69, 0.14)"}
           strokeDasharray={rOuter - rInner}
           strokeDashoffset={isRevealed ? 0 : rOuter - rInner}
           style={{
-            transition: "stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: "stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       );
@@ -127,7 +129,7 @@ function ChakraDial({ masteredCount = 15, totalChapters = 24, accuracy = 63 }) {
           <div className="sub">Accuracy this week</div>
           <div className="score">{mastered} / {total} chapters mastered</div>
         </div>
-        <div className="dial-caption">Live progress — {total} chapters, {total} spokes</div>
+        <div className="dial-caption">Live progress &mdash; {total} chapters, {total} spokes</div>
       </div>
     </div>
   );
@@ -146,6 +148,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [interruptedSession, setInterruptedSession] = useState(null);
   const [showInterruptedModal, setShowInterruptedModal] = useState(false);
+  const [totalChaptersInDb, setTotalChaptersInDb] = useState(5);
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -275,6 +278,10 @@ function Home() {
           supabase.from("chapters").select("id, course_id, subject_id, set_type"),
           supabase.from("subjects").select("id, course_id, set_type"),
         ]);
+
+        if (allChapters) {
+          setTotalChaptersInDb(allChapters.length);
+        }
 
         const subjectCourseMap = {};
         const setTypesByCourse = {};
@@ -669,9 +676,9 @@ function Home() {
         </div>
 
         <ChakraDial
-          masteredCount={userStats ? userStats.chapterCount : 15}
-          totalChapters={24}
-          accuracy={userStats ? userStats.averageAccuracy : 63}
+          masteredCount={userStats ? Math.min(userStats.chapterCount, totalChaptersInDb) : 0}
+          totalChapters={totalChaptersInDb}
+          accuracy={userStats ? userStats.averageAccuracy : 0}
         />
       </main>
 

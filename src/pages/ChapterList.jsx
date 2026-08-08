@@ -480,28 +480,28 @@ function ChapterList() {
                         <span className="icon" style={{ zIndex: 2, position: "relative" }}>{icon}</span>
                         <div className="card-content-wrap">
                           <div className="subj-name" title={s.subject_name}>{s.subject_name}</div>
-                          <div className="subj-meta">
-                            {chCount} {chCount === 1 ? "chapter" : "chapters"} {user ? `· ${progressPct}%` : ""}
+                          <div className="subj-meta" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                            <span>{chCount} {chCount === 1 ? "chapter" : "chapters"}</span>
+                            <span className="subject-pct-badge">{progressPct}% Completed</span>
                           </div>
-                          {user && (
-                            <div className="subject-progress-track">
-                              <div className="subject-progress-fill" style={{ width: `${progressPct}%` }}></div>
-                            </div>
-                          )}
+                          <div className="subject-progress-track" style={{ marginTop: 6 }}>
+                            <div className="subject-progress-fill" style={{ width: `${progressPct}%` }}></div>
+                          </div>
                         </div>
                       </div>
 
                       {/* Card Back */}
                       <div className="card-face card-back">
                         <span className="icon">✓</span>
-                        <div>
+                        <div style={{ width: "100%" }}>
                           <div className="subj-name">Selected</div>
-                          <div className="subj-meta">{user ? `${answeredQ} of ${totalQ} answered` : "Tap to view chapters"}</div>
-                          {user && (
-                            <div className="subject-progress-track subject-progress-track-back">
-                              <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${progressPct}%` }}></div>
-                            </div>
-                          )}
+                          <div className="subj-meta" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                            <span>{totalQ > 0 ? `${answeredQ} of ${totalQ} answered` : "Tap to view chapters"}</span>
+                            <span className="subject-pct-badge">{progressPct}%</span>
+                          </div>
+                          <div className="subject-progress-track subject-progress-track-back" style={{ marginTop: 6 }}>
+                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${progressPct}%` }}></div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -529,28 +529,28 @@ function ChapterList() {
                       <span className="icon" style={{ zIndex: 2, position: "relative" }}>📄</span>
                       <div className="card-content-wrap">
                         <div className="subj-name" title="Case scenarios">Case scenarios</div>
-                        <div className="subj-meta">
-                          {casesList.length} {casesList.length === 1 ? "case" : "cases"} {user ? `· ${caseMetrics.progressPct}%` : ""}
+                        <div className="subj-meta" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                          <span>{casesList.length} {casesList.length === 1 ? "case" : "cases"}</span>
+                          <span className="subject-pct-badge">{caseMetrics.progressPct}% Completed</span>
                         </div>
-                        {user && (
-                          <div className="subject-progress-track">
-                            <div className="subject-progress-fill" style={{ width: `${caseMetrics.progressPct}%` }}></div>
-                          </div>
-                        )}
+                        <div className="subject-progress-track" style={{ marginTop: 6 }}>
+                          <div className="subject-progress-fill" style={{ width: `${caseMetrics.progressPct}%` }}></div>
+                        </div>
                       </div>
                     </div>
 
                     {/* Card Back */}
                     <div className="card-face card-back">
                       <span className="icon">✓</span>
-                      <div>
+                      <div style={{ width: "100%" }}>
                         <div className="subj-name">Selected</div>
-                        <div className="subj-meta">{user ? `${caseMetrics.answeredQ} of ${caseMetrics.totalQ} answered` : "Tap to view cases"}</div>
-                        {user && (
-                          <div className="subject-progress-track subject-progress-track-back">
-                            <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${caseMetrics.progressPct}%` }}></div>
-                          </div>
-                        )}
+                        <div className="subj-meta" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                          <span>{caseMetrics.totalQ > 0 ? `${caseMetrics.answeredQ} of ${caseMetrics.totalQ} answered` : "Tap to view cases"}</span>
+                          <span className="subject-pct-badge">{caseMetrics.progressPct}%</span>
+                        </div>
+                        <div className="subject-progress-track subject-progress-track-back" style={{ marginTop: 6 }}>
+                          <div className="subject-progress-fill subject-progress-fill-back" style={{ width: `${caseMetrics.progressPct}%` }}></div>
+                        </div>
                       </div>
                     </div>
                   </div>
