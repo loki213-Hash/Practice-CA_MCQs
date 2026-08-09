@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification } from "../services/notificationService";
 import SpaceBackground from "../components/SpaceBackground";
+import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
 
 export default function Admin() {
   const { logout, username } = useAuth();
@@ -790,63 +791,58 @@ export default function Admin() {
                   <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Real-time database statistics and registered student parameters.</p>
                 </div>
 
-                {/* LIVE RESPONSIVE COSMIC CARDS GRID */}
+                {/* HYPER-REALISTIC COSMIC SPOTLIGHT CARDS GRID */}
                 <div className="cosmic-cards-grid">
                   {/* Card 1: Registered Students */}
-                  <div className="cosmic-card cyan">
-                    <div className="cosmic-card-top">
-                      <div className="cosmic-card-icon">👥</div>
-                      <span className="cosmic-card-badge">Live DB</span>
-                    </div>
-                    <div>
-                      <div className="cosmic-stat-val">{kpis.totalUsersCount}</div>
-                      <div className="cosmic-stat-lbl">Registered Students</div>
-                    </div>
-                  </div>
+                  <CosmicSpotlightCard
+                    theme="cyan"
+                    icon="👥"
+                    badgeText="Live DB Sync"
+                    value={kpis.totalUsersCount}
+                    label="Registered Students"
+                    subtext="Verified student accounts"
+                    chartType="line"
+                  />
 
                   {/* Card 2: Users Logged In (Live) */}
-                  <div className="cosmic-card emerald">
-                    <div className="cosmic-card-top">
-                      <div className="cosmic-card-icon">
-                        <div className="pulse-ring-container">
-                          <div className="pulse-ring-dot"></div>
-                          <div className="pulse-ring-wave"></div>
-                        </div>
+                  <CosmicSpotlightCard
+                    theme="emerald"
+                    icon={
+                      <div className="pulse-ring-container">
+                        <div className="pulse-ring-dot"></div>
+                        <div className="pulse-ring-wave"></div>
                       </div>
-                      <span className="cosmic-card-badge">Active Now</span>
-                    </div>
-                    <div>
-                      <div className="cosmic-stat-val">
-                        {kpis.onlineSimCount}
-                        <span style={{ fontSize: "12px", color: "#34d399", fontWeight: 600 }}>● Live</span>
-                      </div>
-                      <div className="cosmic-stat-lbl">Users Logged In (Live)</div>
-                    </div>
-                  </div>
+                    }
+                    badgeText="Active Now"
+                    value={kpis.onlineSimCount}
+                    label="Users Logged In (Live)"
+                    trend="● Live"
+                    subtext="Real-time activity pulse"
+                    chartType="equalizer"
+                  />
 
                   {/* Card 3: Questions Bank */}
-                  <div className="cosmic-card amber">
-                    <div className="cosmic-card-top">
-                      <div className="cosmic-card-icon">📚</div>
-                      <span className="cosmic-card-badge">{dbChapters.length} Chapters</span>
-                    </div>
-                    <div>
-                      <div className="cosmic-stat-val">{kpis.questionsCount}</div>
-                      <div className="cosmic-stat-lbl">Questions Bank</div>
-                    </div>
-                  </div>
+                  <CosmicSpotlightCard
+                    theme="amber"
+                    icon="📚"
+                    badgeText={`${dbChapters.length} Chapters`}
+                    value={kpis.questionsCount}
+                    label="Questions Bank"
+                    subtext="Active syllabus questions"
+                    chartType="progress"
+                    progressPct={Math.min(100, Math.round((kpis.questionsCount / 2000) * 100))}
+                  />
 
                   {/* Card 4: Flagged Reports */}
-                  <div className="cosmic-card rose">
-                    <div className="cosmic-card-top">
-                      <div className="cosmic-card-icon">🚩</div>
-                      <span className="cosmic-card-badge">{kpis.flagsCount > 0 ? "Action Required" : "All Clean"}</span>
-                    </div>
-                    <div>
-                      <div className="cosmic-stat-val">{kpis.flagsCount}</div>
-                      <div className="cosmic-stat-lbl">Flagged Reports</div>
-                    </div>
-                  </div>
+                  <CosmicSpotlightCard
+                    theme="rose"
+                    icon="🚩"
+                    badgeText={kpis.flagsCount > 0 ? "Action Required" : "All Clean"}
+                    value={kpis.flagsCount}
+                    label="Flagged Reports"
+                    subtext={kpis.flagsCount > 0 ? "Requires admin review" : "0 pending reports"}
+                    chartType="line"
+                  />
                 </div>
 
                 {/* FEEDBACK CARDS LIST */}
