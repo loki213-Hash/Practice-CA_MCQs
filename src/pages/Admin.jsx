@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification } from "../services/notificationService";
+import SpaceBackground from "../components/SpaceBackground";
 
 export default function Admin() {
   const { logout, username } = useAuth();
@@ -651,28 +652,50 @@ export default function Admin() {
   }
 
   return (
-    <div className="admin-dashboard-layout" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f5f6f8" }}>
-      
-      {/* EXCLUSIVE ADMIN TOP NAV (Minimalist High-Contrast theme) */}
-      <nav className="inner-navbar auth-nav" style={{ padding: "14px 24px", background: "#111622", borderBottom: "1px solid #232a3d", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div className="brand" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div className="seal" style={{ background: "#c9a667", color: "#111622", width: "32px", height: "32px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "15px" }}>CA</div>
-          <span className="brand-title" style={{ color: "#fff", fontWeight: "600", fontSize: "15px", letterSpacing: "0.5px" }}>Administrative Console</span>
+    <div className="admin-space-root">
+      <SpaceBackground />
+
+      {/* EXCLUSIVE ADMIN TOP NAV (Cosmic Glassmorphism) */}
+      <nav className="admin-space-nav">
+        <div className="brand" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="seal">CA</div>
+          <span className="brand-title">Administrative Console</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <button
             onClick={handleManualRefresh}
             className="btn ghost"
-            style={{ width: "120px", height: "30px", fontSize: "11.5px", padding: 0, color: "var(--champagne)", borderColor: "var(--champagne)", borderRadius: "6px", cursor: "pointer", background: "none", marginRight: "6px" }}
+            style={{
+              height: "34px",
+              fontSize: "12px",
+              padding: "0 14px",
+              color: "#fbbf24",
+              borderColor: "rgba(251, 191, 36, 0.4)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              background: "rgba(251, 191, 36, 0.08)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
             title="Force refresh database counters"
           >
             🔄 Refresh Stats
           </button>
-          <span style={{ fontSize: "12px", color: "#a3afc7", fontWeight: 500 }}>System Owner Account</span>
+          <span style={{ fontSize: "12.5px", color: "#94a3b8", fontWeight: 500 }}>System Owner Account</span>
           <button
             onClick={logout}
             className="btn ghost"
-            style={{ width: "90px", height: "30px", fontSize: "11.5px", padding: 0, color: "#fff", borderColor: "rgba(255,255,255,0.15)", borderRadius: "6px", cursor: "pointer", background: "none" }}
+            style={{
+              height: "34px",
+              fontSize: "12px",
+              padding: "0 14px",
+              color: "#f8fafc",
+              borderColor: "rgba(255,255,255,0.2)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              background: "rgba(255, 255, 255, 0.05)"
+            }}
           >
             Sign Out
           </button>
@@ -680,124 +703,163 @@ export default function Admin() {
       </nav>
 
       {/* DASHBOARD BODY */}
-      <div className="admin-page-wrapper" style={{ flexGrow: 1, padding: "24px" }}>
+      <div style={{ flexGrow: 1, padding: "20px 24px", position: "relative", zIndex: 5 }}>
         
         {/* Table Missing Warning banner */}
         {isFlagsTableMissing && (
-          <div className="admin-alert success" style={{ background: "#fdf8e2", border: "1px solid #f6ea9e", color: "#8a6d1c", fontSize: "12px", padding: "10px 14px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="admin-alert success" style={{ background: "rgba(251, 191, 36, 0.15)", border: "1px solid rgba(251, 191, 36, 0.3)", color: "#fef08a", fontSize: "12.5px", padding: "12px 18px", marginBottom: "18px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span>⚠️ <strong>Supabase Setup Alert</strong>: The <code>public.question_flags</code> table is missing from your database. Running in local storage fallback cache mode. Go to Supabase SQL editor to create it.</span>
             <button
               onClick={() => {
                 alert("Run this SQL in your Supabase console:\n\ncreate table public.question_flags (\n  id bigint generated by default as identity primary key,\n  question_id bigint references public.questions(id) on delete cascade,\n  flagged_by text,\n  flag_type text default 'not_required',\n  created_at timestamp with time zone default now()\n);");
               }}
-              style={{ background: "none", border: "none", textDecoration: "underline", color: "#8a6d1c", cursor: "pointer", fontWeight: 700, fontSize: "11.5px" }}
+              style={{ background: "none", border: "none", textDecoration: "underline", color: "#fbbf24", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
             >
               Get SQL Snippet
             </button>
           </div>
         )}
 
-        <div className="admin-container" style={{ minHeight: "640px", border: "1px solid #e1e4eb", boxShadow: "0 4px 20px rgba(0,0,0,0.02)", borderRadius: "12px" }}>
+        <div className="admin-space-container">
           
-          {/* SIDEBAR NAVIGATION (Minimal Borderless style) */}
-          <div className="admin-sidebar" style={{ background: "#fbfbfc", borderRight: "1px solid #e1e4eb", padding: "24px 18px" }}>
-            <h2 className="admin-title" style={{ color: "#111622", fontSize: "20px", fontWeight: "600", margin: "0 0 20px", paddingLeft: "6px" }}>Admin Portal</h2>
-            <div className="admin-tabs">
-              <button
-                type="button"
-                className={`admin-tab-btn ${activeTab === "dashboard" ? "active" : ""}`}
-                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
-                onClick={() => { setActiveTab("dashboard"); setSuccess(null); setError(null); }}
-              >
-                📊 Overview Dashboard
-              </button>
-              <button
-                type="button"
-                className={`admin-tab-btn ${activeTab === "flags" ? "active" : ""}`}
-                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
-                onClick={() => { setActiveTab("flags"); setSuccess(null); setError(null); }}
-              >
-                <span>🚩 Flagged Questions</span>
-                {flaggedItems.length > 0 && <span className="badge" style={{ padding: "1px 6px", fontSize: "10.5px" }}>{flaggedItems.length}</span>}
-              </button>
-              <button
-                type="button"
-                className={`admin-tab-btn ${activeTab === "submissions" ? "active" : ""}`}
-                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
-                onClick={() => { setActiveTab("submissions"); setSuccess(null); setError(null); }}
-              >
-                <span>📥 Student Suggestions</span>
-                {formSubmissions.length > 0 && <span className="badge" style={{ backgroundColor: "#8a7544", padding: "1px 6px", fontSize: "10.5px" }}>{formSubmissions.length}</span>}
-              </button>
-              <button
-                type="button"
-                className={`admin-tab-btn ${activeTab === "import" ? "active" : ""}`}
-                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
-                onClick={() => { setActiveTab("import"); setSuccess(null); setError(null); }}
-              >
-                📝 Bulk Importer
-              </button>
-              <button
-                type="button"
-                className={`admin-tab-btn ${activeTab === "recovery" ? "active" : ""}`}
-                style={{ padding: "10px 14px", borderRadius: "6px", fontSize: "13px" }}
-                onClick={() => { setActiveTab("recovery"); setSuccess(null); setError(null); }}
-              >
-                🔑 Student Credentials
-              </button>
+          {/* SIDEBAR NAVIGATION */}
+          <div className="admin-space-sidebar">
+            <div>
+              <h2 className="admin-title">
+                <span>🌌</span> Admin Portal
+              </h2>
+              <div className="admin-tabs">
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "dashboard" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("dashboard"); setSuccess(null); setError(null); }}
+                >
+                  <span>📊 Overview Dashboard</span>
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "flags" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("flags"); setSuccess(null); setError(null); }}
+                >
+                  <span>🚩 Flagged Questions</span>
+                  {flaggedItems.length > 0 && <span className="badge" style={{ padding: "2px 8px", fontSize: "10.5px", background: "#f43f5e", borderRadius: "10px" }}>{flaggedItems.length}</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "submissions" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("submissions"); setSuccess(null); setError(null); }}
+                >
+                  <span>📥 Student Suggestions</span>
+                  {formSubmissions.length > 0 && <span className="badge" style={{ backgroundColor: "#d97706", padding: "2px 8px", fontSize: "10.5px", borderRadius: "10px" }}>{formSubmissions.length}</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "import" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("import"); setSuccess(null); setError(null); }}
+                >
+                  <span>📝 Bulk Importer</span>
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "recovery" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("recovery"); setSuccess(null); setError(null); }}
+                >
+                  <span>🔑 Student Credentials</span>
+                </button>
+              </div>
             </div>
             
-            <div className="sidebar-foot" style={{ marginTop: "140px", fontSize: "10.5px", color: "#8a94a6", paddingLeft: "6px" }}>
-              <p>Database Status: Online</p>
-              <p>System Version: 2.1.2</p>
+            <div className="sidebar-foot" style={{ fontSize: "11px", color: "#64748b", paddingLeft: "6px" }}>
+              <p style={{ display: "flex", alignItems: "center", gap: "6px", margin: "0 0 4px" }}>
+                <span className="pulse-ring-dot" style={{ width: 8, height: 8 }}></span> Database Status: Online
+              </p>
+              <p style={{ margin: 0 }}>System Version: 2.1.2</p>
             </div>
           </div>
 
           {/* CONTENT PANEL */}
-          <div className="admin-content-area" style={{ background: "#fff", padding: "24px 30px" }}>
-            {error && <div className="admin-alert error" style={{ fontSize: "13px", padding: "10px 14px", marginBottom: "16px" }}>{error}</div>}
-            {success && <div className="admin-alert success" style={{ fontSize: "13px", padding: "10px 14px", marginBottom: "16px" }}>{success}</div>}
+          <div className="admin-content-area" style={{ background: "transparent", padding: "28px 32px" }}>
+            {error && <div className="admin-alert error" style={{ fontSize: "13px", padding: "12px 16px", marginBottom: "20px", borderRadius: "10px" }}>{error}</div>}
+            {success && <div className="admin-alert success" style={{ fontSize: "13px", padding: "12px 16px", marginBottom: "20px", borderRadius: "10px" }}>{success}</div>}
 
             {/* TAB: DASHBOARD OVERVIEW */}
             {activeTab === "dashboard" && (
               <div className="admin-panel">
-                <div className="panel-head" style={{ marginBottom: "18px" }}>
-                  <h3 style={{ fontSize: "18px", color: "#111622", fontWeight: "600" }}>Overview &amp; Live Metrics</h3>
-                  <p style={{ fontSize: "12.5px", color: "#6b7280" }}>Real-time database statistics and registered student parameters.</p>
+                <div className="panel-head" style={{ marginBottom: "22px" }}>
+                  <h3 style={{ fontSize: "20px", color: "#f8fafc", fontWeight: "700", margin: "0 0 4px" }}>Overview &amp; Live Metrics</h3>
+                  <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Real-time database statistics and registered student parameters.</p>
                 </div>
 
-                <div className="stats-grid" style={{ marginBottom: "32px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
-                  <div className="scard" style={{ border: "1px solid #e1e4eb", padding: "16px", borderRadius: "8px", background: "#fbfbfc" }}>
-                    <div className="snum" style={{ fontSize: "28px", color: "#111622", fontWeight: "700" }}>{kpis.totalUsersCount}</div>
-                    <div className="slbl" style={{ fontSize: "12px", color: "#6b7280" }}>Registered Students</div>
-                  </div>
-                  <div className="scard" style={{ border: "1px solid #e1e4eb", padding: "16px", borderRadius: "8px", background: "#fbfbfc" }}>
-                    <div className="snum" style={{ fontSize: "28px", color: "#1e7145", fontWeight: "700" }}>
-                      {kpis.onlineSimCount} <span style={{ fontSize: "12px", verticalAlign: "middle", animation: "blinker 1.2s infinite" }}>🟢</span>
+                {/* LIVE RESPONSIVE COSMIC CARDS GRID */}
+                <div className="cosmic-cards-grid">
+                  {/* Card 1: Registered Students */}
+                  <div className="cosmic-card cyan">
+                    <div className="cosmic-card-top">
+                      <div className="cosmic-card-icon">👥</div>
+                      <span className="cosmic-card-badge">Live DB</span>
                     </div>
-                    <div className="slbl" style={{ fontSize: "12px", color: "#6b7280" }}>Users Logged In (Live)</div>
+                    <div>
+                      <div className="cosmic-stat-val">{kpis.totalUsersCount}</div>
+                      <div className="cosmic-stat-lbl">Registered Students</div>
+                    </div>
                   </div>
-                  <div className="scard" style={{ border: "1px solid #e1e4eb", padding: "16px", borderRadius: "8px", background: "#fbfbfc" }}>
-                    <div className="snum" style={{ fontSize: "28px", color: "#111622", fontWeight: "700" }}>{kpis.questionsCount}</div>
-                    <div className="slbl" style={{ fontSize: "12px", color: "#6b7280" }}>Questions Bank</div>
+
+                  {/* Card 2: Users Logged In (Live) */}
+                  <div className="cosmic-card emerald">
+                    <div className="cosmic-card-top">
+                      <div className="cosmic-card-icon">
+                        <div className="pulse-ring-container">
+                          <div className="pulse-ring-dot"></div>
+                          <div className="pulse-ring-wave"></div>
+                        </div>
+                      </div>
+                      <span className="cosmic-card-badge">Active Now</span>
+                    </div>
+                    <div>
+                      <div className="cosmic-stat-val">
+                        {kpis.onlineSimCount}
+                        <span style={{ fontSize: "12px", color: "#34d399", fontWeight: 600 }}>● Live</span>
+                      </div>
+                      <div className="cosmic-stat-lbl">Users Logged In (Live)</div>
+                    </div>
                   </div>
-                  <div className="scard" style={{ border: "1px solid #e1e4eb", padding: "16px", borderRadius: "8px", background: "#fbfbfc" }}>
-                    <div className="snum" style={{ fontSize: "28px", color: "#b3261e", fontWeight: "700" }}>{kpis.flagsCount}</div>
-                    <div className="slbl" style={{ fontSize: "12px", color: "#6b7280" }}>Flagged Reports</div>
+
+                  {/* Card 3: Questions Bank */}
+                  <div className="cosmic-card amber">
+                    <div className="cosmic-card-top">
+                      <div className="cosmic-card-icon">📚</div>
+                      <span className="cosmic-card-badge">{dbChapters.length} Chapters</span>
+                    </div>
+                    <div>
+                      <div className="cosmic-stat-val">{kpis.questionsCount}</div>
+                      <div className="cosmic-stat-lbl">Questions Bank</div>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Flagged Reports */}
+                  <div className="cosmic-card rose">
+                    <div className="cosmic-card-top">
+                      <div className="cosmic-card-icon">🚩</div>
+                      <span className="cosmic-card-badge">{kpis.flagsCount > 0 ? "Action Required" : "All Clean"}</span>
+                    </div>
+                    <div>
+                      <div className="cosmic-stat-val">{kpis.flagsCount}</div>
+                      <div className="cosmic-stat-lbl">Flagged Reports</div>
+                    </div>
                   </div>
                 </div>
 
                 {/* FEEDBACK CARDS LIST */}
-                <div className="panel-head" style={{ borderTop: "1px solid #e1e4eb", paddingTop: "24px", marginTop: "16px" }}>
-                  <h3 style={{ fontSize: "18px", color: "#111622", fontWeight: "600" }}>Student Feedback Box</h3>
-                  <p style={{ fontSize: "12.5px", color: "#6b7280" }}>Direct system corrections and comments submitted by users.</p>
+                <div className="panel-head" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "24px", marginTop: "24px" }}>
+                  <h3 style={{ fontSize: "18px", color: "#f8fafc", fontWeight: "600", margin: "0 0 4px" }}>Student Feedback Box</h3>
+                  <p style={{ fontSize: "12.5px", color: "#94a3b8", margin: 0 }}>Direct system corrections and comments submitted by users.</p>
                 </div>
 
-                <div className="flagged-list" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="flagged-list" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px" }}>
                   {feedbacks.length === 0 ? (
-                    <div className="empty-state" style={{ gridColumn: "span 2", padding: "30px" }}>
-                      <span>✓</span>
-                      <p style={{ fontSize: "13px" }}>All student feedback resolved!</p>
+                    <div className="empty-state" style={{ gridColumn: "span 2", padding: "30px", background: "rgba(17, 24, 39, 0.6)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)", textAlign: "center" }}>
+                      <span style={{ fontSize: "28px", color: "#34d399" }}>✓</span>
+                      <p style={{ fontSize: "13.5px", color: "#94a3b8", marginTop: "8px" }}>All student feedback resolved!</p>
                     </div>
                   ) : (
                     feedbacks.map((f) => {
@@ -809,38 +871,36 @@ export default function Admin() {
                           className="flagged-card"
                           onClick={() => setActiveFeedbackDetails(f)}
                           style={{
-                            padding: "16px",
-                            border: "1px solid #e1e4eb",
-                            borderRadius: "8px",
-                            background: "#fff",
+                            padding: "16px 20px",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            borderRadius: "14px",
+                            background: "rgba(17, 24, 39, 0.65)",
+                            backdropFilter: "blur(10px)",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "space-between",
                             cursor: "pointer",
-                            transition: "box-shadow 0.2s",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+                            transition: "all 0.25s ease"
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.02)"; }}
                         >
                           <div>
-                            <div className="fc-top" style={{ marginBottom: "8px" }}>
-                              <span className="fc-chap" style={{ color: "#111622", fontWeight: "600", fontSize: "12px" }}>{f.student}</span>
-                              <span className="fc-flag-count" style={{ background: "#fbf6ec", color: "#8a7544", border: "1px solid rgba(138,117,68,0.15)", fontSize: "10.5px", padding: "2px 6px" }}>{f.type}</span>
+                            <div className="fc-top" style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span className="fc-chap" style={{ color: "#f8fafc", fontWeight: "600", fontSize: "13px" }}>{f.student}</span>
+                              <span className="fc-flag-count" style={{ background: "rgba(251, 191, 36, 0.15)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.3)", fontSize: "10.5px", padding: "2px 8px", borderRadius: "10px" }}>{f.type}</span>
                             </div>
-                            <p style={{ fontSize: "12.5px", color: "#4b5563", lineHeight: "1.5", margin: "6px 0", wordBreak: "break-all" }}>
+                            <p style={{ fontSize: "13px", color: "#cbd5e1", lineHeight: "1.5", margin: "6px 0", wordBreak: "break-all" }}>
                               "{truncated}"
-                              {isLong && <span style={{ color: "var(--brass)", fontSize: "11px", marginLeft: "4px", fontWeight: "600" }}>Read More</span>}
+                              {isLong && <span style={{ color: "#c084fc", fontSize: "11px", marginLeft: "6px", fontWeight: "600" }}>Read More</span>}
                             </p>
                           </div>
-                          <div style={{ borderTop: "1px solid #e1e4eb", paddingTop: "10px", marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "10.5px", color: "#8a94a6" }}>Submitted: {f.date}</span>
+                          <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "10px", marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>Submitted: {f.date}</span>
                             <button
                               type="button"
                               className="btn-admin remove"
-                              style={{ padding: "4px 10px", fontSize: "11px", height: "26px", border: "1px solid #fecaca", color: "#dc2626", background: "#fef2f2", cursor: "pointer" }}
+                              style={{ padding: "4px 10px", fontSize: "11px", height: "26px", border: "1px solid rgba(244, 63, 94, 0.3)", color: "#fb7185", background: "rgba(244, 63, 94, 0.1)", borderRadius: "6px", cursor: "pointer" }}
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent opening the details modal
+                                e.stopPropagation();
                                 if (window.confirm("Are you sure you want to permanently delete this feedback?")) {
                                   handleResolveFeedback(f.id);
                                 }
