@@ -1,0 +1,35 @@
+name: ICAI Batch & Slot Data Maintenance
+
+on:
+  schedule:
+    # Runs every 6 hours automatically
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-icai-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Run Safe Dataset Update Script
+        run: node scripts/update_icai_slots.cjs
+
+      - name: Verify Build Correctness
+        run: npm run build
+
+      - name: Commit Updated Data (If Changed)
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git diff --quiet || (git add src/services/icaiSlotService.js && git commit -m "Automated ICAI slot data maintenance update [skip ci]" && git push)
