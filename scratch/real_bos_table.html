@@ -1,0 +1,26 @@
+<table width=100% bgcolor="#ffffcc">
+               <tr>
+                  <td>
+                      <code>
+
+An unhandled exception was generated during the execution of the current web request. Information regarding the origin and location of the exception can be identified using the exception stack trace below.                      </code>
+
+                  </td>
+               </tr>
+            </table>
+<table width=100% bgcolor="#ffffcc">
+               <tr>
+                  <td>
+                      <code><pre>
+
+[ArgumentException: Invalid postback or callback argument.  Event validation is enabled using &lt;pages enableEventValidation=&quot;true&quot;/&gt; in configuration or &lt;%@ Page EnableEventValidation=&quot;true&quot; %&gt; in a page.  For security purposes, this feature verifies that arguments to postback or callback events originate from the server control that originally rendered them.  If the data is valid and expected, use the ClientScriptManager.RegisterForEventValidation method in order to register the postback or callback data for validation.]
+   System.Web.UI.ClientScriptManager.ValidateEvent(String uniqueId, String argument) +11661338
+   System.Web.UI.Control.ValidateEvent(String uniqueID, String eventArgument) +149
+   System.Web.UI.WebControls.DropDownList.LoadPostData(String postDataKey, NameValueCollection postCollection) +87
+   System.Web.UI.Page.ProcessPostData(NameValueCollection postData, Boolean fBeforeLoad) +644
+   System.Web.UI.Page.ProcessRequestMain(Boolean includeStagesBeforeAsyncPoint, Boolean includeStagesAfterAsyncPoint) +993
+</pre>                      </code>
+
+                  </td>
+               </tr>
+            </table>

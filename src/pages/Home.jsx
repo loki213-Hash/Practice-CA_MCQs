@@ -6,7 +6,6 @@ import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } f
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
-import IcaiSlotModal from "../components/IcaiSlotModal";
 
 function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
   const [revealed, setRevealed] = useState(0);
@@ -150,8 +149,7 @@ function Home() {
   const [interruptedSession, setInterruptedSession] = useState(null);
   const [showInterruptedModal, setShowInterruptedModal] = useState(false);
   const [totalChaptersInDb, setTotalChaptersInDb] = useState(5);
-  const [icaiModalOpen, setIcaiModalOpen] = useState(false);
-  const [icaiModalTab, setIcaiModalTab] = useState("spom");
+
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -487,30 +485,35 @@ function Home() {
         </Link>
 
         <nav className="links">
-          <button 
-            type="button" 
-            onClick={() => { setIcaiModalTab("spom"); setIcaiModalOpen(true); }} 
+          <a 
+            href="https://spmt.icai.org/ICAI/LoginAction_input.action" 
+            target="_blank" 
+            rel="noopener noreferrer" 
             className="portal-link link-icai"
-            style={{ border: "none", cursor: "pointer" }}
           >
             🎯 SPOM Slots
-          </button>
-          <button 
-            type="button" 
-            onClick={() => { setIcaiModalTab("adv"); setIcaiModalOpen(true); }} 
+          </a>
+          <a 
+            href="https://www.icaionlineregistration.org/launchbatchdetail.aspx" 
+            target="_blank" 
+            rel="noopener noreferrer" 
             className="portal-link link-bos"
-            style={{ border: "none", cursor: "pointer" }}
           >
             🎓 Adv MCS / ITT Slots
-          </button>
-          <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-ssp">
+          </a>
+          <a 
+            href="https://eservices.icai.org/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="portal-link link-ssp"
+          >
             <img 
               src="https://www.icai.org/images/favicon.ico" 
               alt="ICAI SSP" 
               className="portal-icon" 
               onError={(e) => { e.target.src = "/ca-logo.png"; }}
             />
-            ICAI SSP
+            <span style={{ fontWeight: 700, color: "#dc2626", textDecoration: "underline" }}>ICAI SSP</span>
           </a>
         </nav>
 
@@ -932,13 +935,6 @@ function Home() {
           </div>
         </div>
       )}
-
-      {/* ---------- ICAI Live Slot & Batch Finder Modal Overlay ---------- */}
-      <IcaiSlotModal
-        isOpen={icaiModalOpen}
-        activeTab={icaiModalTab}
-        onClose={() => setIcaiModalOpen(false)}
-      />
     </div>
   );
 }
