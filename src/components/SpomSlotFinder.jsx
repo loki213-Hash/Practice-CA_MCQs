@@ -123,14 +123,14 @@ export default function SpomSlotFinder({ onClose }) {
         <>
           {/* PORTAL LINK BANNER */}
           <div className="icai-portal-banner spom-banner">
-            <span>🔗 Official ICAI SPOM Portal:</span>
+            <span>🔗 Official ICAI SPOM Login Portal:</span>
             <a
-              href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action"
+              href="https://spmt.icai.org/ICAI/LoginAction_input.action"
               target="_blank"
               rel="noopener noreferrer"
               className="portal-link-accent"
             >
-              spmt.icai.org/ICAI/LoginAction_showSlotDetails.action ↗
+              spmt.icai.org/ICAI/LoginAction_input.action ↗
             </a>
           </div>
 
@@ -285,12 +285,12 @@ export default function SpomSlotFinder({ onClose }) {
 
                       <div className="card-foot-action">
                         <a
-                          href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action"
+                          href="https://spmt.icai.org/ICAI/LoginAction_input.action"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="icai-book-btn spom-btn-outline"
                         >
-                          Book Slot on Official SPOM Portal ↗
+                          Book Slot ↗
                         </a>
                       </div>
                     </div>
