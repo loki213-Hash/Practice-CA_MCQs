@@ -486,7 +486,7 @@ function Home() {
 
         <nav className="links">
           <a 
-            href="https://spmt.icai.org/ICAI/LoginAction_input.action" 
+            href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="portal-link link-icai"
