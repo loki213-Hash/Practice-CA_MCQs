@@ -6,6 +6,8 @@ import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } f
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
+import AdvIttSlotFinder from "../components/AdvIttSlotFinder";
+import SpomSlotFinder from "../components/SpomSlotFinder";
 
 function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
   const [revealed, setRevealed] = useState(0);
@@ -484,23 +486,11 @@ function Home() {
         </Link>
 
         <nav className="links">
-          <a href="https://www.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-icai">
-            <img 
-              src="https://www.icai.org/images/favicon.ico" 
-              alt="ICAI Site" 
-              className="portal-icon" 
-              onError={(e) => { e.target.src = "/ca-logo.png"; }}
-            />
-            ICAI Site
+          <a href="#icai-slots" className="portal-link link-icai">
+            🎯 SPOM Slots
           </a>
-          <a href="https://boslive.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-bos">
-            <img 
-              src="https://www.icai.org/images/favicon.ico" 
-              alt="ICAI BOS" 
-              className="portal-icon" 
-              onError={(e) => { e.target.src = "/ca-logo.png"; }}
-            />
-            ICAI BOS
+          <a href="#icai-slots" className="portal-link link-bos">
+            🎓 Adv MCS / ITT Slots
           </a>
           <a href="https://eservices.icai.org/" target="_blank" rel="noopener noreferrer" className="portal-link link-ssp">
             <img 
@@ -681,6 +671,24 @@ function Home() {
           accuracy={userStats ? userStats.averageAccuracy : 0}
         />
       </main>
+
+      {/* ---------- ICAI Live Slot Tracker Section ---------- */}
+      <section id="icai-slots" style={{ maxWidth: "1200px", margin: "40px auto 40px", padding: "0 24px" }}>
+        <div className="section-head" style={{ marginBottom: "24px" }}>
+          <div>
+            <span className="kicker" style={{ color: "#2563eb", fontWeight: 700 }}>⚡ LIVE ICAI SLOT &amp; BATCH FINDER</span>
+            <h2 style={{ fontSize: "24px", color: "var(--navy)", fontWeight: 700, margin: "4px 0" }}>
+              SPOM Exam Slots &amp; ICAI BOS Adv MCS / Adv ITT Batches
+            </h2>
+          </div>
+          <p style={{ fontSize: "13.5px", color: "#64748b" }}>
+            Select your Zone, State, City or Center below to view live batch start dates, exam dates, venue addresses &amp; available seat numbers before booking on official ICAI portals.
+          </p>
+        </div>
+
+        <SpomSlotFinder initialExpanded={false} />
+        <AdvIttSlotFinder initialExpanded={false} />
+      </section>
 
       {/* ---------- Levels ---------- */}
       <section id="levels">
