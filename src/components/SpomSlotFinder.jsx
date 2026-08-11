@@ -93,7 +93,7 @@ export default function SpomSlotFinder({ onClose }) {
             className={`icai-toggle-frame-btn ${viewLiveFrame ? "active" : ""}`}
             onClick={() => setViewLiveFrame(!viewLiveFrame)}
           >
-            {viewLiveFrame ? "📋 Form View" : "🌐 Official Live Portal"}
+            {viewLiveFrame ? "📋 Form View" : "🌐 Official ICAI Portal"}
           </button>
           <span className="icai-badge spom-badge">
             <span className="live-dot spom-dot"></span> spmt.icai.org
@@ -202,13 +202,14 @@ export default function SpomSlotFinder({ onClose }) {
             </div>
           </form>
 
-          {/* INTERACTIVE CALENDAR DATE PICKER (Matching Official ICAI Calendar Layout) */}
+          {/* INTERACTIVE CALENDAR DATE PICKER (Matching Official ICAI SPOM Portal) */}
           <div className="spom-calendar-widget">
             <div className="calendar-widget-head">
-              <h5>📅 ICAI Exam Date Availability Calendar (August 2026)</h5>
+              <h5>📅 ICAI SPOM – Centre Availability Calendar (August 2026)</h5>
               <div className="calendar-legend">
-                <span className="legend-item"><span className="legend-dot green"></span> Available Slots</span>
-                <span className="legend-item"><span className="legend-dot red"></span> Fully Booked Slots</span>
+                <span className="legend-item"><span className="legend-dot green"></span> Available</span>
+                <span className="legend-item"><span className="legend-dot orange"></span> Few Seats Left</span>
+                <span className="legend-item"><span className="legend-dot red"></span> Fully Booked</span>
               </div>
             </div>
 
@@ -227,14 +228,21 @@ export default function SpomSlotFinder({ onClose }) {
                 <button
                   key={d.day}
                   type="button"
-                  className={`cal-date-btn green ${selectedDate === d.dateStr ? "active" : ""}`}
+                  disabled={d.status === "BOOKED"}
+                  className={`cal-date-btn ${
+                    d.status === "BOOKED" ? "red booked" :
+                    d.status === "FEW_LEFT" ? "orange" : "green"
+                  } ${selectedDate === d.dateStr ? "active" : ""}`}
                   onClick={() => {
+                    if (d.status === "BOOKED") return;
                     setSelectedDate(d.dateStr);
                     handleSearch(null, d.dateStr);
                   }}
+                  title={d.status === "BOOKED" ? "Fully Booked" : d.status === "FEW_LEFT" ? "Few seats left" : "Available"}
                 >
                   <span className="cal-day-num">{d.day}</span>
                   <span className="cal-month-lbl">Aug ({d.weekday})</span>
+                  {d.status === "BOOKED" && <span className="cal-booked-lbl">Full</span>}
                 </button>
               ))}
             </div>

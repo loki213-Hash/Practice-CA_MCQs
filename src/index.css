@@ -6044,6 +6044,7 @@ img { max-width: 100%; display: block; }
 }
 
 .legend-dot.green { background: #10b981; }
+.legend-dot.orange { background: #f59e0b; }
 .legend-dot.red { background: #ef4444; }
 
 .calendar-dates-grid {
@@ -6079,6 +6080,28 @@ img { max-width: 100%; display: block; }
   border-color: #059669;
 }
 
+.cal-date-btn.orange {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.cal-date-btn.orange:hover {
+  background: #fef3c7;
+  border-color: #d97706;
+}
+
+.cal-date-btn.red {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.cal-date-btn.booked {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .cal-date-btn.active {
   background: #047857 !important;
   color: #ffffff !important;
@@ -6096,6 +6119,17 @@ img { max-width: 100%; display: block; }
   font-size: 11px;
   font-weight: 600;
   opacity: 0.85;
+}
+
+.cal-booked-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
 }
 
 .selected-date-badge {
