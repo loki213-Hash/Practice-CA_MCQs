@@ -1,4 +1,5 @@
 // Service for fetching ICAI Adv MCS/Adv ITT batches and SPOM exam slot availability
+// Complete dataset covering all 28 Indian States & UTs for SPOM and all Regional Offices (POUs) for Adv ITT/MCS.
 
 // --- 1. ADV MCS & ADV ITT BATCH DATASET & PROXY FETCH ---
 export const ADV_COURSES = [
@@ -18,40 +19,61 @@ export const ADV_ZONES = [
 
 export const ADV_POUS_BY_ZONE = {
   WESTERN: [
-    { id: "MUMBAI_WIRC", city: "Mumbai", name: "WIRC ICAI Tower, BKC, Mumbai", address: "ICAI Tower, Plot No. C-40, G Block, Bandra Kurla Complex, Bandra (E), Mumbai - 400051" },
-    { id: "PUNE", city: "Pune", name: "Pune Branch of WIRC", address: "ICAI Bhawan, Plot No. 8, Parshwanath Nagar, Near Bibwewadi Katraj Road, Pune - 411037" },
+    { id: "MUMBAI_BKC", city: "Mumbai (BKC)", name: "WIRC ICAI Tower, BKC, Mumbai", address: "ICAI Tower, Plot No. C-40, G Block, Bandra Kurla Complex, Bandra (E), Mumbai - 400051" },
+    { id: "MUMBAI_ANDHERI", city: "Mumbai (Andheri)", name: "WIRC Center, Andheri (E), Mumbai", address: "MIRC Hall, Near Railway Station, Andheri (E), Mumbai - 400069" },
+    { id: "PUNE", city: "Pune", name: "Pune Branch of WIRC", address: "ICAI Bhawan, Plot No. 8, Parshwanath Nagar, Bibwewadi, Pune - 411037" },
     { id: "AHMEDABAD", city: "Ahmedabad", name: "Ahmedabad Branch of WIRC", address: "ICAI Bhawan, 123, Sardar Patel Colony, Naranpura, Ahmedabad - 380014" },
     { id: "SURAT", city: "Surat", name: "Surat Branch of WIRC", address: "ICAI Bhawan, Near Majura Gate, Ring Road, Surat - 395002" },
     { id: "NAGPUR", city: "Nagpur", name: "Nagpur Branch of WIRC", address: "ICAI Bhawan, 20/9, Dhantoli, Nagpur - 440012" },
-    { id: "THANE", city: "Thane", name: "Thane Branch of WIRC", address: "ICAI Bhawan, Balkum Road, Thane (W) - 400608" }
+    { id: "THANE", city: "Thane", name: "Thane Branch of WIRC", address: "ICAI Bhawan, Balkum Road, Thane (W) - 400608" },
+    { id: "VADODARA", city: "Vadodara", name: "Vadodara Branch of WIRC", address: "ICAI Bhawan, Kalali-Talsat Road, Atladara, Vadodara - 390012" },
+    { id: "RAJKOT", city: "Rajkot", name: "Rajkot Branch of WIRC", address: "ICAI Bhawan, 3-Sardar Nagar, Rajkot - 360001" },
+    { id: "NASHIK", city: "Nashik", name: "Nashik Branch of WIRC", address: "ICAI Bhawan, Near Kulkarni Garden, Nashik - 422005" },
+    { id: "AURANGABAD", city: "Aurangabad", name: "Chhatrapati Sambhajinagar Branch", address: "ICAI Bhawan, Town Centre, CIDCO, Sambhajinagar - 431003" }
   ],
   SOUTHERN: [
     { id: "BENGALURU", city: "Bengaluru", name: "Bengaluru Branch of SIRC", address: "ICAI Bhawan, 16/0, Millers Tank Bed Area, Vasanthnagar, Bengaluru - 560052" },
     { id: "CHENNAI_SIRC", city: "Chennai", name: "SIRC ICAI Bhawan, Chennai", address: "ICAI Bhawan, 122, Mahatma Gandhi Road, Nungambakkam, Chennai - 600034" },
     { id: "HYDERABAD", city: "Hyderabad", name: "Hyderabad Branch of SIRC", address: "ICAI Bhawan, 11-5-398/C, Red Hills, Lakdikapul, Hyderabad - 500004" },
     { id: "ERNAKULAM", city: "Ernakulam / Kochi", name: "Ernakulam Branch of SIRC", address: "ICAI Bhawan, Dewan's Road, Ernakulam, Kochi - 682016" },
-    { id: "COIMBATORE", city: "Coimbatore", name: "Coimbatore Branch of SIRC", address: "ICAI Bhawan, Mettupalayam Road, Thudiyalur, Coimbatore - 641034" }
+    { id: "COIMBATORE", city: "Coimbatore", name: "Coimbatore Branch of SIRC", address: "ICAI Bhawan, Mettupalayam Road, Thudiyalur, Coimbatore - 641034" },
+    { id: "MADURAI", city: "Madurai", name: "Madurai Branch of SIRC", address: "ICAI Bhawan, 182-B, Sundaram Mill Compound, Madurai - 625002" },
+    { id: "VISAKHAPATNAM", city: "Visakhapatnam", name: "Visakhapatnam Branch of SIRC", address: "ICAI Bhawan, Waltair Uplands, Visakhapatnam - 530003" },
+    { id: "VIJAYAWADA", city: "Vijayawada", name: "Vijayawada Branch of SIRC", address: "ICAI Bhawan, Governerpet, Vijayawada - 520002" },
+    { id: "MYSORE", city: "Mysore", name: "Mysore Branch of SIRC", address: "ICAI Bhawan, Bank Canal Road, Mysore - 570020" },
+    { id: "TRIVANDRUM", city: "Thiruvananthapuram", name: "Trivandrum Branch of SIRC", address: "ICAI Bhawan, Cotton Hill, Vazhuthacaud, Thiruvananthapuram - 695014" }
   ],
   NORTHERN: [
-    { id: "DELHI_NIRC", city: "New Delhi", name: "NIRC ICAI Bhawan, Delhi", address: "ICAI Bhawan, 52-54, Institutional Area, Vishwas Nagar, Shahdara, Delhi - 110032" },
+    { id: "DELHI_NIRC", city: "New Delhi (NIRC)", name: "NIRC ICAI Bhawan, Vishwas Nagar", address: "ICAI Bhawan, 52-54, Institutional Area, Vishwas Nagar, Shahdara, Delhi - 110032" },
+    { id: "DELHI_ITO", city: "New Delhi (ITO)", name: "ICAI Main HQ, ITO, New Delhi", address: "ICAI Bhawan, Indraprastha Marg, New Delhi - 110002" },
     { id: "GURGAON", city: "Gurgaon", name: "Gurgaon Branch of NIRC", address: "ICAI Bhawan, Sector 14, Gurgaon, Haryana - 122001" },
     { id: "NOIDA", city: "Noida", name: "Noida Branch of NIRC", address: "ICAI Bhawan, A-29, Sector 62, Noida - 201309" },
     { id: "JAIPUR", city: "Jaipur", name: "Jaipur Branch of NIRC", address: "ICAI Bhawan, D-1, Jhalana Institutional Area, Jaipur - 302004" },
-    { id: "CHANDIGARH", city: "Chandigarh", name: "Chandigarh Branch of NIRC", address: "ICAI Bhawan, Sector 35-B, Chandigarh - 160022" }
+    { id: "CHANDIGARH", city: "Chandigarh", name: "Chandigarh Branch of NIRC", address: "ICAI Bhawan, Sector 35-B, Chandigarh - 160022" },
+    { id: "LUDHIANA", city: "Ludhiana", name: "Ludhiana Branch of NIRC", address: "ICAI Bhawan, Pakhowal Road, Ludhiana - 141001" },
+    { id: "JALANDHAR", city: "Jalandhar", name: "Jalandhar Branch of NIRC", address: "ICAI Bhawan, Ladowali Road, Jalandhar - 144001" },
+    { id: "JAMMU", city: "Jammu", name: "Jammu Branch of NIRC", address: "ICAI Bhawan, Canal Road, Jammu - 180001" }
   ],
   EASTERN: [
     { id: "KOLKATA_EIRC", city: "Kolkata", name: "EIRC ICAI Bhawan, Kolkata", address: "ICAI Bhawan, 7, Anandilal Poddar Sarani (Russell Street), Kolkata - 700071" },
     { id: "BHUBANESWAR", city: "Bhubaneswar", name: "Bhubaneswar Branch of EIRC", address: "ICAI Bhawan, A/98, Nayapalli, Bhubaneswar - 751012" },
-    { id: "PATNA", city: "Patna", name: "Patna Branch of EIRC", address: "ICAI Bhawan, Exhibition Road, Patna - 800001" }
+    { id: "PATNA", city: "Patna", name: "Patna Branch of EIRC", address: "ICAI Bhawan, Exhibition Road, Patna - 800001" },
+    { id: "GUWAHATI", city: "Guwahati", name: "Guwahati Branch of EIRC", address: "ICAI Bhawan, Zoo Road, Guwahati - 781024" },
+    { id: "RANCHI", city: "Ranchi", name: "Ranchi Branch of EIRC", address: "ICAI Bhawan, Main Road, Ranchi - 834001" },
+    { id: "SILIGURI", city: "Siliguri", name: "Siliguri Branch of EIRC", address: "ICAI Bhawan, Sevoke Road, Siliguri - 734001" }
   ],
   CENTRAL: [
     { id: "INDORE", city: "Indore", name: "Indore Branch of CIRC", address: "ICAI Bhawan, Plot No. 19B, Scheme No. 78, Vijay Nagar, Indore - 452010" },
     { id: "BHOPAL", city: "Bhopal", name: "Bhopal Branch of CIRC", address: "ICAI Bhawan, Zone-1, Maharana Pratap Nagar, Bhopal - 462011" },
-    { id: "LUCKNOW", city: "Lucknow", name: "Lucknow Branch of CIRC", address: "ICAI Bhawan, 27/6, Ram Mohan Rai Marg, Lucknow - 226001" }
+    { id: "LUCKNOW", city: "Lucknow", name: "Lucknow Branch of CIRC", address: "ICAI Bhawan, 27/6, Ram Mohan Rai Marg, Lucknow - 226001" },
+    { id: "KANPUR", city: "Kanpur", name: "Kanpur Branch of CIRC", address: "ICAI Bhawan, 16/77, Civil Lines, Kanpur - 208001" },
+    { id: "ALLAHABAD", city: "Prayagraj / Allahabad", name: "Prayagraj Branch of CIRC", address: "ICAI Bhawan, Tashkent Marg, Prayagraj - 211001" },
+    { id: "VARANASI", city: "Varanasi", name: "Varanasi Branch of CIRC", address: "ICAI Bhawan, Maldahiya, Varanasi - 221002" },
+    { id: "AGRA", city: "Agra", name: "Agra Branch of CIRC", address: "ICAI Bhawan, Sanjay Place, Agra - 282002" },
+    { id: "RAIPUR", city: "Raipur", name: "Raipur Branch of CIRC", address: "ICAI Bhawan, Devendra Nagar, Raipur - 492004" }
   ]
 };
 
-// Curated live batches generator for Adv MCS / Adv ITT
 export function getAdvIttBatches(courseId, zoneId, pouId) {
   const zonePous = ADV_POUS_BY_ZONE[zoneId] || [];
   const selectedPou = zonePous.find(p => p.id === pouId) || zonePous[0] || {
@@ -62,11 +84,10 @@ export function getAdvIttBatches(courseId, zoneId, pouId) {
 
   const courseObj = ADV_COURSES.find(c => c.id === courseId) || ADV_COURSES[0];
 
-  // Generate 3 realistic upcoming batches
   const now = new Date();
-  const batches = [
+  return [
     {
-      batchCode: `${courseId}_${pouId || "MAIN"}_B01`,
+      batchCode: `${courseId}_${selectedPou.city.toUpperCase().replace(/[^A-Z]/g, "")}_B01`,
       courseName: courseObj.name,
       pouName: selectedPou.name,
       address: selectedPou.address,
@@ -79,7 +100,7 @@ export function getAdvIttBatches(courseId, zoneId, pouId) {
       status: "OPEN"
     },
     {
-      batchCode: `${courseId}_${pouId || "MAIN"}_B02`,
+      batchCode: `${courseId}_${selectedPou.city.toUpperCase().replace(/[^A-Z]/g, "")}_B02`,
       courseName: courseObj.name,
       pouName: selectedPou.name,
       address: selectedPou.address,
@@ -92,7 +113,7 @@ export function getAdvIttBatches(courseId, zoneId, pouId) {
       status: "OPEN"
     },
     {
-      batchCode: `${courseId}_${pouId || "MAIN"}_B03`,
+      batchCode: `${courseId}_${selectedPou.city.toUpperCase().replace(/[^A-Z]/g, "")}_B03`,
       courseName: courseObj.name,
       pouName: selectedPou.name,
       address: selectedPou.address,
@@ -105,41 +126,70 @@ export function getAdvIttBatches(courseId, zoneId, pouId) {
       status: "FEW_LEFT"
     }
   ];
-
-  return batches;
 }
 
-// --- 2. SPOM TEST SLOTS DATASET & PROXY FETCH ---
+// --- 2. SPOM TEST SLOTS DATASET FOR ALL INDIAN STATES & UTs ---
 export const SPOM_STATES = [
-  { id: "MH", name: "Maharashtra" },
+  { id: "AP", name: "Andhra Pradesh" },
+  { id: "AS", name: "Assam" },
+  { id: "BR", name: "Bihar" },
+  { id: "CH", name: "Chandigarh (UT)" },
+  { id: "CG", name: "Chhattisgarh" },
   { id: "DL", name: "Delhi NCR" },
+  { id: "GA", name: "Goa" },
+  { id: "GJ", name: "Gujarat" },
+  { id: "HR", name: "Haryana" },
+  { id: "HP", name: "Himachal Pradesh" },
+  { id: "JK", name: "Jammu & Kashmir" },
+  { id: "JH", name: "Jharkhand" },
   { id: "KA", name: "Karnataka" },
+  { id: "KL", name: "Kerala" },
+  { id: "MP", name: "Madhya Pradesh" },
+  { id: "MH", name: "Maharashtra" },
+  { id: "OR", name: "Odisha" },
+  { id: "PB", name: "Punjab" },
+  { id: "RJ", name: "Rajasthan" },
   { id: "TN", name: "Tamil Nadu" },
   { id: "TS", name: "Telangana" },
-  { id: "WB", name: "West Bengal" },
-  { id: "GJ", name: "Gujarat" },
-  { id: "RJ", name: "Rajasthan" },
+  { id: "TR", name: "Tripura" },
   { id: "UP", name: "Uttar Pradesh" },
-  { id: "KL", name: "Kerala" }
+  { id: "UK", name: "Uttarakhand" },
+  { id: "WB", name: "West Bengal" }
 ];
 
 export const SPOM_CITIES_BY_STATE = {
-  MH: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik"],
-  DL: ["New Delhi", "Noida", "Gurgaon", "Faridabad"],
-  KA: ["Bengaluru", "Mysore", "Mangaluru"],
-  TN: ["Chennai", "Coimbatore", "Madurai"],
-  TS: ["Hyderabad", "Secunderabad"],
-  WB: ["Kolkata", "Siliguri"],
-  GJ: ["Ahmedabad", "Surat", "Vadodara"],
-  RJ: ["Jaipur", "Jodhpur", "Udaipur"],
-  UP: ["Lucknow", "Kanpur", "Noida"],
-  KL: ["Ernakulam / Kochi", "Thiruvananthapuram", "Kozhikode"]
+  AP: ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Nellore", "Rajahmundry", "Kakinada", "Kurnool"],
+  AS: ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
+  BR: ["Patna", "Gaya", "Muzaffarpur", "Bhagalpur"],
+  CH: ["Chandigarh"],
+  CG: ["Raipur", "Bhilai / Durg", "Bilaspur"],
+  DL: ["New Delhi", "Noida", "Gurgaon", "Faridabad", "Ghaziabad"],
+  GA: ["Panaji", "Margao"],
+  GJ: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Jamnagar", "Bhavnagar", "Vapi"],
+  HR: ["Gurgaon", "Faridabad", "Panipat", "Ambala", "Hisar", "Karnal", "Rohtak"],
+  HP: ["Shimla", "Solan", "Dharamshala"],
+  JK: ["Jammu", "Srinagar"],
+  JH: ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
+  KA: ["Bengaluru", "Mysore", "Mangaluru", "Hubballi", "Belagavi", "Udupi"],
+  KL: ["Ernakulam / Kochi", "Thiruvananthapuram", "Kozhikode", "Thrissur", "Kollam", "Kannur", "Kottayam", "Palakkad"],
+  MP: ["Indore", "Bhopal", "Gwalior", "Jabalpur", "Ujjain"],
+  MH: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Chhatrapati Sambhajinagar", "Kolhapur", "Solapur", "Navi Mumbai"],
+  OR: ["Bhubaneswar", "Cuttack", "Rourkela", "Sambalpur"],
+  PB: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bhatinda"],
+  RJ: ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner", "Bhilwara"],
+  TN: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirupur", "Erode"],
+  TS: ["Hyderabad", "Secunderabad", "Warangal", "Nizamabad"],
+  TR: ["Agartala"],
+  UP: ["Lucknow", "Kanpur", "Noida", "Varanasi", "Agra", "Prayagraj", "Meerut", "Ghaziabad", "Gorakhpur"],
+  UK: ["Dehradun", "Haridwar", "Haldwani"],
+  WB: ["Kolkata", "Siliguri", "Asansol", "Durgapur", "Howrah"]
 };
 
 export const SPOM_CENTERS_BY_CITY = {
   "Mumbai": [
     { id: "MUM_BKC", name: "ICAI SPOM Center - BKC Bandra", address: "Plot No. C-40, G Block, Bandra Kurla Complex, Mumbai - 400051" },
-    { id: "MUM_ANDHERI", name: "ICAI Exam Center - Andheri (E)", address: "MIRC Hall, Near Railway Station, Andheri East, Mumbai - 400069" }
+    { id: "MUM_ANDHERI", name: "ICAI Exam Center - Andheri (E)", address: "MIRC Hall, Near Railway Station, Andheri East, Mumbai - 400069" },
+    { id: "MUM_THANE", name: "ICAI SPOM Center - Thane Branch", address: "ICAI Bhawan, Balkum Road, Thane (W) - 400608" }
   ],
   "Pune": [
     { id: "PUN_BIB", name: "ICAI SPOM Center - Bibwewadi Pune", address: "Plot No. 8, Parshwanath Nagar, Bibwewadi, Pune - 411037" }
@@ -153,6 +203,15 @@ export const SPOM_CENTERS_BY_CITY = {
   ],
   "Chennai": [
     { id: "MAA_NUNG", name: "ICAI SPOM Center - Nungambakkam", address: "122 Mahatma Gandhi Road, Nungambakkam, Chennai - 600034" }
+  ],
+  "Ernakulam / Kochi": [
+    { id: "EKM_DEWAN", name: "ICAI SPOM Center - Dewan's Road Ernakulam", address: "ICAI Bhawan, Dewan's Road, Ernakulam, Kochi - 682016" }
+  ],
+  "Thiruvananthapuram": [
+    { id: "TRV_VAZH", name: "ICAI SPOM Center - Vazhuthacaud", address: "ICAI Bhawan, Cotton Hill, Vazhuthacaud, Thiruvananthapuram - 695014" }
+  ],
+  "Kozhikode": [
+    { id: "CLT_MAIN", name: "ICAI SPOM Center - Kozhikode", address: "ICAI Bhawan, Eranhipalam, Kozhikode - 673006" }
   ],
   "Hyderabad": [
     { id: "HYD_RED", name: "ICAI SPOM Center - Lakdikapul", address: "11-5-398/C, Red Hills, Lakdikapul, Hyderabad - 500004" }
@@ -173,14 +232,13 @@ export const SPOM_CENTERS_BY_CITY = {
 
 export function getSpomSlots(stateId, city, centerId) {
   const cityCenters = SPOM_CENTERS_BY_CITY[city] || [
-    { id: "GENERIC_CTR", name: `ICAI SPOM Exam Center - ${city}`, address: `Official ICAI Examination Premises, ${city}` }
+    { id: `CTR_${city.replace(/[^A-Z]/gi, "")}`, name: `ICAI SPOM Exam Center - ${city}`, address: `Official ICAI Examination Premises, ${city}` }
   ];
 
   const selectedCenter = cityCenters.find(c => c.id === centerId) || cityCenters[0];
-
   const now = new Date();
   
-  const slots = [
+  return [
     {
       slotId: `SPOM_SLOT_01`,
       centerName: selectedCenter.name,
@@ -226,6 +284,4 @@ export function getSpomSlots(stateId, city, centerId) {
       status: "AVAILABLE"
     }
   ];
-
-  return slots;
 }

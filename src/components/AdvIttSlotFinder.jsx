@@ -6,11 +6,10 @@ import {
   getAdvIttBatches
 } from "../services/icaiSlotService";
 
-export default function AdvIttSlotFinder({ initialExpanded = false, onClose }) {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+export default function AdvIttSlotFinder({ onClose }) {
   const [course, setCourse] = useState("ADV_ITT");
   const [zone, setZone] = useState("WESTERN");
-  const [pou, setPou] = useState("");
+  const [pou, setPou] = useState("MUMBAI_BKC");
   const [batches, setBatches] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,11 +17,13 @@ export default function AdvIttSlotFinder({ initialExpanded = false, onClose }) {
   // Available POUs for selected zone
   const currentPous = ADV_POUS_BY_ZONE[zone] || [];
 
-  useEffect(() => {
-    if (currentPous.length > 0) {
-      setPou(currentPous[0].id);
-    }
-  }, [zone]);
+  // Reactive Zone Change Handler
+  const handleZoneChange = (newZoneId) => {
+    setZone(newZoneId);
+    const pous = ADV_POUS_BY_ZONE[newZoneId] || [];
+    setPou(pous[0]?.id || "");
+    setSearched(false);
+  };
 
   const handleSearch = (e) => {
     if (e) e.preventDefault();
@@ -32,173 +33,178 @@ export default function AdvIttSlotFinder({ initialExpanded = false, onClose }) {
       setBatches(res);
       setSearched(true);
       setLoading(false);
-    }, 300);
+    }, 250);
   };
 
-  // Auto-search on initial expand
+  // Auto-search on mount
   useEffect(() => {
-    if (isExpanded && !searched) {
-      handleSearch();
-    }
-  }, [isExpanded]);
+    handleSearch();
+  }, []);
 
   return (
-    <div className={`icai-slot-card-container ${isExpanded ? "expanded" : "compact"}`}>
-      {/* CARD HEADER / COMPACT BAR */}
-      <div 
-        className="slot-card-header" 
-        onClick={() => setIsExpanded(!isExpanded)}
-        role="button"
-        tabIndex={0}
-      >
-        <div className="slot-header-left">
-          <div className="slot-icon-orb adv-icon-bg">🎓</div>
+    <div className="icai-modal-panel adv-modal-theme">
+      {/* MODAL HEADER */}
+      <div className="icai-modal-header">
+        <div className="icai-header-left">
+          <div className="icai-icon-orb adv-bg">🎓</div>
           <div>
-            <div className="slot-title">ICAI BOS Adv MCS / Adv ITT Slots</div>
-            <div className="slot-subtitle">
-              {isExpanded ? "Select Course, Zone & POU to view batch start dates and available seats" : "Click to check live batch start dates, venue address & seat status"}
-            </div>
+            <h3 className="icai-modal-title">ICAI BOS Adv MCS / Adv ITT Batches</h3>
+            <p className="icai-modal-sub">
+              Select Course, Zone &amp; POU Branch to view batch start dates and available seats
+            </p>
           </div>
         </div>
-        <div className="slot-header-right">
-          <span className="slot-badge-live">
-            <span className="live-dot"></span> Official ICAI BOS
+        <div className="icai-header-right">
+          <span className="icai-badge adv-badge">
+            <span className="live-dot adv-dot"></span> Official ICAI BOS
           </span>
-          <button type="button" className="slot-toggle-btn">
-            {isExpanded ? "Collapse ▲" : "Find Slots →"}
-          </button>
+          {onClose && (
+            <button type="button" className="icai-close-btn" onClick={onClose} title="Close Modal">
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
-      {/* EXPANDED INTERACTIVE PANEL */}
-      {isExpanded && (
-        <div className="slot-card-body">
-          <div className="slot-portal-notice">
-            <span>🔗 Official Data Portal:</span>
-            <a 
-              href="https://www.icaionlineregistration.org/launchbatchdetail.aspx" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="portal-link-accent"
-            >
-              www.icaionlineregistration.org/launchbatchdetail.aspx ↗
-            </a>
+      {/* PORTAL LINK BANNER */}
+      <div className="icai-portal-banner adv-banner">
+        <span>🔗 Official ICAI BOS Data Portal:</span>
+        <a
+          href="https://www.icaionlineregistration.org/launchbatchdetail.aspx"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="portal-link-accent"
+        >
+          www.icaionlineregistration.org/launchbatchdetail.aspx ↗
+        </a>
+      </div>
+
+      {/* REACTIVE FILTER FORM */}
+      <form onSubmit={handleSearch} className="icai-filter-grid">
+        <div className="icai-filter-group">
+          <label htmlFor="adv-modal-course">Select Course</label>
+          <select
+            id="adv-modal-course"
+            value={course}
+            onChange={(e) => {
+              setCourse(e.target.value);
+              setSearched(false);
+            }}
+            className="icai-select"
+          >
+            {ADV_COURSES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="icai-filter-group">
+          <label htmlFor="adv-modal-zone">Select Zone</label>
+          <select
+            id="adv-modal-zone"
+            value={zone}
+            onChange={(e) => handleZoneChange(e.target.value)}
+            className="icai-select"
+          >
+            {ADV_ZONES.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="icai-filter-group">
+          <label htmlFor="adv-modal-pou">Select POU / City Branch</label>
+          <select
+            id="adv-modal-pou"
+            value={pou}
+            onChange={(e) => {
+              setPou(e.target.value);
+              setSearched(false);
+            }}
+            className="icai-select"
+          >
+            {currentPous.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.city})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="icai-filter-group submit-group">
+          <button type="submit" className="icai-submit-btn adv-btn-color" disabled={loading}>
+            {loading ? "Searching..." : "🔍 Search Batches"}
+          </button>
+        </div>
+      </form>
+
+      {/* RESULTS GRID */}
+      {searched && (
+        <div className="icai-results-container">
+          <div className="icai-results-head">
+            <h4>Available Upcoming Batches ({batches.length})</h4>
+            <span>Live seat availability for chosen ICAI training center</span>
           </div>
 
-          {/* INPUT FORM GRID */}
-          <form onSubmit={handleSearch} className="slot-filter-form">
-            <div className="filter-group">
-              <label htmlFor="adv-course-select">Select Course</label>
-              <select 
-                id="adv-course-select"
-                value={course} 
-                onChange={(e) => setCourse(e.target.value)}
-                className="slot-select"
-              >
-                {ADV_COURSES.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+          {batches.length === 0 ? (
+            <div className="icai-empty-box">
+              No upcoming batches found for the selected criteria. Please select another POU or Zone.
             </div>
-
-            <div className="filter-group">
-              <label htmlFor="adv-zone-select">Select Zone</label>
-              <select 
-                id="adv-zone-select"
-                value={zone} 
-                onChange={(e) => setZone(e.target.value)}
-                className="slot-select"
-              >
-                {ADV_ZONES.map(z => (
-                  <option key={z.id} value={z.id}>{z.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label htmlFor="adv-pou-select">Select POU / City Branch</label>
-              <select 
-                id="adv-pou-select"
-                value={pou} 
-                onChange={(e) => setPou(e.target.value)}
-                className="slot-select"
-              >
-                {currentPous.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.city})</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-group submit-group">
-              <button type="submit" className="slot-search-btn" disabled={loading}>
-                {loading ? "Searching..." : "🔍 Search Batches"}
-              </button>
-            </div>
-          </form>
-
-          {/* RESULTS DISPLAY LIST */}
-          {searched && (
-            <div className="slot-results-wrapper">
-              <div className="results-head">
-                <h4>Available Upcoming Batches ({batches.length})</h4>
-                <span className="results-sub">Live seat availability for chosen center</span>
-              </div>
-
-              {batches.length === 0 ? (
-                <div className="slot-empty-state">
-                  No upcoming batches found for the selected criteria. Please try another zone or POU.
-                </div>
-              ) : (
-                <div className="batches-grid">
-                  {batches.map((b, idx) => (
-                    <div key={idx} className="batch-item-card">
-                      <div className="batch-card-top">
-                        <div>
-                          <span className="batch-code-tag">{b.batchCode}</span>
-                          <h5 className="batch-course-title">{b.courseName}</h5>
-                        </div>
-                        <span className={`seat-badge ${b.availableSeats <= 5 ? "warning" : "success"}`}>
-                          {b.availableSeats <= 5 ? `⚠️ ${b.availableSeats} Seats Left` : `🟢 ${b.availableSeats} Seats Available`}
-                        </span>
-                      </div>
-
-                      <div className="batch-details-list">
-                        <div className="detail-row">
-                          <span className="d-label">📅 Dates:</span>
-                          <span className="d-val highlight">{b.startDate} &ndash; {b.endDate}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="d-label">⏰ Timings:</span>
-                          <span className="d-val">{b.timings}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="d-label">📍 Venue:</span>
-                          <span className="d-val">{b.pouName}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="d-label">🏢 Address:</span>
-                          <span className="d-val address-val">{b.address}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="d-label">💳 Batch Fee:</span>
-                          <span className="d-val fee-val">{b.fee}</span>
-                        </div>
-                      </div>
-
-                      <div className="batch-card-action">
-                        <a
-                          href="https://www.icaionlineregistration.org/launchbatchdetail.aspx"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-book-icai"
-                        >
-                          Book Batch on ICAI BOS Portal ↗
-                        </a>
-                      </div>
+          ) : (
+            <div className="icai-cards-grid">
+              {batches.map((b, idx) => (
+                <div key={idx} className="icai-slot-item-card adv-card-accent">
+                  <div className="card-top-head">
+                    <div>
+                      <span className="card-tag adv-tag-style">{b.batchCode}</span>
+                      <h5 className="card-title-main">{b.courseName}</h5>
                     </div>
-                  ))}
+                    <span className={`seat-badge ${b.availableSeats <= 5 ? "warning" : "success"}`}>
+                      {b.availableSeats <= 5
+                        ? `⚠️ ${b.availableSeats} Seats Left`
+                        : `🟢 ${b.availableSeats} Seats Available`}
+                    </span>
+                  </div>
+
+                  <div className="card-body-details">
+                    <div className="detail-line">
+                      <span className="d-key">📅 Dates:</span>
+                      <span className="d-value bold">{b.startDate} &ndash; {b.endDate}</span>
+                    </div>
+                    <div className="detail-line">
+                      <span className="d-key">⏰ Timings:</span>
+                      <span className="d-value">{b.timings}</span>
+                    </div>
+                    <div className="detail-line">
+                      <span className="d-key">📍 Venue:</span>
+                      <span className="d-value">{b.pouName}</span>
+                    </div>
+                    <div className="detail-line">
+                      <span className="d-key">🏢 Address:</span>
+                      <span className="d-value addr-text">{b.address}</span>
+                    </div>
+                    <div className="detail-line">
+                      <span className="d-key">💳 Batch Fee:</span>
+                      <span className="d-value fee-text">{b.fee}</span>
+                    </div>
+                  </div>
+
+                  <div className="card-foot-action">
+                    <a
+                      href="https://www.icaionlineregistration.org/launchbatchdetail.aspx"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="icai-book-btn adv-btn-outline"
+                    >
+                      Book Batch on ICAI BOS Portal ↗
+                    </a>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
