@@ -158,26 +158,26 @@ export const SPOM_STATES = [
 ];
 
 export const SPOM_CITIES_BY_STATE = {
-  AP: ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Nellore", "Rajahmundry", "Kakinada", "Kurnool"],
+  AP: ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Nellore", "Rajahmundry", "Kakinada", "Kurnool", "Anantapur", "Eluru"],
   AS: ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
   BR: ["Patna", "Gaya", "Muzaffarpur", "Bhagalpur"],
   CH: ["Chandigarh"],
   CG: ["Raipur", "Bhilai / Durg", "Bilaspur"],
   DL: ["New Delhi", "Noida", "Gurgaon", "Faridabad", "Ghaziabad"],
   GA: ["Panaji", "Margao"],
-  GJ: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Jamnagar", "Bhavnagar", "Vapi"],
+  GJ: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Jamnagar", "Bhavnagar", "Vapi", "Anand"],
   HR: ["Gurgaon", "Faridabad", "Panipat", "Ambala", "Hisar", "Karnal", "Rohtak"],
   HP: ["Shimla", "Solan", "Dharamshala"],
   JK: ["Jammu", "Srinagar"],
   JH: ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
-  KA: ["Bengaluru", "Mysore", "Mangaluru", "Hubballi", "Belagavi", "Udupi"],
-  KL: ["Ernakulam / Kochi", "Thiruvananthapuram", "Kozhikode", "Thrissur", "Kollam", "Kannur", "Kottayam", "Palakkad"],
+  KA: ["Bengaluru", "Mysore", "Mangaluru", "Hubballi", "Belagavi", "Udupi", "Davanagere"],
+  KL: ["Ernakulam / Kochi", "Thiruvananthapuram", "Kozhikode", "Thrissur", "Kollam", "Kannur", "Kottayam", "Palakkad", "Malappuram"],
   MP: ["Indore", "Bhopal", "Gwalior", "Jabalpur", "Ujjain"],
-  MH: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Chhatrapati Sambhajinagar", "Kolhapur", "Solapur", "Navi Mumbai"],
+  MH: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Chhatrapati Sambhajinagar", "Kolhapur", "Solapur", "Navi Mumbai", "Kalyan"],
   OR: ["Bhubaneswar", "Cuttack", "Rourkela", "Sambalpur"],
   PB: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bhatinda"],
-  RJ: ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner", "Bhilwara"],
-  TN: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirupur", "Erode"],
+  RJ: ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner", "Bhilwara", "Alwar"],
+  TN: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirupur", "Erode", "Vellore"],
   TS: ["Hyderabad", "Secunderabad", "Warangal", "Nizamabad"],
   TR: ["Agartala"],
   UP: ["Lucknow", "Kanpur", "Noida", "Varanasi", "Agra", "Prayagraj", "Meerut", "Ghaziabad", "Gorakhpur"],
@@ -185,103 +185,126 @@ export const SPOM_CITIES_BY_STATE = {
   WB: ["Kolkata", "Siliguri", "Asansol", "Durgapur", "Howrah"]
 };
 
+// Official ICAI Partnered Test Center Names matching spmt.icai.org
 export const SPOM_CENTERS_BY_CITY = {
+  "Visakhapatnam": [
+    { id: "VSKP_DEXIT", name: "Dexit Global Limited - Visakhapatnam", address: "Dexit Global Exam Center, Dwaraka Nagar, Visakhapatnam - 530016" },
+    { id: "VSKP_NSEIT", name: "NSEIT Limited - Visakhapatnam", address: "NSEIT Test Center, Siripuram, Visakhapatnam - 530003" },
+    { id: "VSKP_ICAI", name: "ICAI Bhawan - Visakhapatnam", address: "ICAI Bhawan, Waltair Uplands, Visakhapatnam - 530003" }
+  ],
+  "Vijayawada": [
+    { id: "VJA_DEXIT", name: "Dexit Global Limited - Vijayawada", address: "Dexit Test Center, Governerpet, Vijayawada - 520002" },
+    { id: "VJA_NSEIT", name: "NSEIT Limited - Vijayawada", address: "NSEIT Center, M.G. Road, Vijayawada - 520010" }
+  ],
+  "Guntur": [
+    { id: "GNT_NSEIT", name: "NSEIT Limited - Guntur", address: "NSEIT Exam Center, Brodipet, Guntur - 522002" }
+  ],
+  "Tirupati": [
+    { id: "TPT_DEXIT", name: "Dexit Global Limited - Tirupati", address: "Dexit Test Center, AIR Bypass Road, Tirupati - 517501" }
+  ],
   "Mumbai": [
-    { id: "MUM_BKC", name: "ICAI SPOM Center - BKC Bandra", address: "Plot No. C-40, G Block, Bandra Kurla Complex, Mumbai - 400051" },
-    { id: "MUM_ANDHERI", name: "ICAI Exam Center - Andheri (E)", address: "MIRC Hall, Near Railway Station, Andheri East, Mumbai - 400069" },
-    { id: "MUM_THANE", name: "ICAI SPOM Center - Thane Branch", address: "ICAI Bhawan, Balkum Road, Thane (W) - 400608" }
+    { id: "MUM_NSEIT", name: "NSEIT Limited - Mumbai BKC", address: "NSEIT Test Center, Trade Centre, BKC, Bandra (E), Mumbai - 400051" },
+    { id: "MUM_ION", name: "iON Digital Zone - Powai Mumbai", address: "TCS iON Digital Zone, Saki Vihar Road, Powai, Mumbai - 400072" },
+    { id: "MUM_ICAI", name: "ICAI Bhawan - BKC Mumbai", address: "ICAI Tower, Plot C-40, G Block, BKC, Mumbai - 400051" }
   ],
   "Pune": [
+    { id: "PUN_NSEIT", name: "NSEIT Limited - Pune", address: "NSEIT Center, Shivajinagar, Pune - 411005" },
     { id: "PUN_BIB", name: "ICAI SPOM Center - Bibwewadi Pune", address: "Plot No. 8, Parshwanath Nagar, Bibwewadi, Pune - 411037" }
   ],
   "New Delhi": [
-    { id: "DEL_ITO", name: "ICAI SPOM Main Center - ITO New Delhi", address: "ICAI Bhawan, Indraprastha Marg, New Delhi - 110002" },
-    { id: "DEL_VISHWAS", name: "ICAI SPOM Center - Vishwas Nagar", address: "52-54 Institutional Area, Vishwas Nagar, Delhi - 110032" }
+    { id: "DEL_NSEIT", name: "NSEIT Limited - New Delhi", address: "NSEIT Center, Connaught Place, New Delhi - 110001" },
+    { id: "DEL_ION", name: "iON Digital Zone - Okhla New Delhi", address: "TCS iON Digital Zone, Okhla Industrial Area Phase II, New Delhi - 110020" },
+    { id: "DEL_ITO", name: "ICAI Bhawan - ITO New Delhi", address: "ICAI Bhawan, Indraprastha Marg, New Delhi - 110002" }
   ],
   "Bengaluru": [
-    { id: "BLR_VASANTH", name: "ICAI SPOM Center - Vasanthnagar", address: "16/0 Millers Tank Bed Area, Vasanthnagar, Bengaluru - 560052" }
+    { id: "BLR_NSEIT", name: "NSEIT Limited - Bengaluru", address: "NSEIT Center, MG Road, Bengaluru - 560001" },
+    { id: "BLR_VASANTH", name: "ICAI Bhawan - Vasanthnagar Bengaluru", address: "16/0 Millers Tank Bed Area, Vasanthnagar, Bengaluru - 560052" }
   ],
   "Chennai": [
-    { id: "MAA_NUNG", name: "ICAI SPOM Center - Nungambakkam", address: "122 Mahatma Gandhi Road, Nungambakkam, Chennai - 600034" }
+    { id: "MAA_NSEIT", name: "NSEIT Limited - Chennai", address: "NSEIT Center, Mount Road, Chennai - 600002" },
+    { id: "MAA_NUNG", name: "ICAI Bhawan - Nungambakkam Chennai", address: "122 Mahatma Gandhi Road, Nungambakkam, Chennai - 600034" }
   ],
   "Ernakulam / Kochi": [
-    { id: "EKM_DEWAN", name: "ICAI SPOM Center - Dewan's Road Ernakulam", address: "ICAI Bhawan, Dewan's Road, Ernakulam, Kochi - 682016" }
+    { id: "EKM_NSEIT", name: "NSEIT Limited - Kochi", address: "NSEIT Center, M.G. Road, Ernakulam, Kochi - 682016" },
+    { id: "EKM_DEWAN", name: "ICAI Bhawan - Dewan's Road Ernakulam", address: "ICAI Bhawan, Dewan's Road, Ernakulam, Kochi - 682016" }
   ],
   "Thiruvananthapuram": [
-    { id: "TRV_VAZH", name: "ICAI SPOM Center - Vazhuthacaud", address: "ICAI Bhawan, Cotton Hill, Vazhuthacaud, Thiruvananthapuram - 695014" }
-  ],
-  "Kozhikode": [
-    { id: "CLT_MAIN", name: "ICAI SPOM Center - Kozhikode", address: "ICAI Bhawan, Eranhipalam, Kozhikode - 673006" }
+    { id: "TRV_NSEIT", name: "NSEIT Limited - Thiruvananthapuram", address: "NSEIT Center, Statue Junction, Thiruvananthapuram - 695001" },
+    { id: "TRV_VAZH", name: "ICAI Bhawan - Vazhuthacaud", address: "ICAI Bhawan, Cotton Hill, Vazhuthacaud, Thiruvananthapuram - 695014" }
   ],
   "Hyderabad": [
-    { id: "HYD_RED", name: "ICAI SPOM Center - Lakdikapul", address: "11-5-398/C, Red Hills, Lakdikapul, Hyderabad - 500004" }
+    { id: "HYD_DEXIT", name: "Dexit Global Limited - Hyderabad", address: "Dexit Test Center, Begumpet, Hyderabad - 500016" },
+    { id: "HYD_RED", name: "ICAI Bhawan - Lakdikapul Hyderabad", address: "11-5-398/C, Red Hills, Lakdikapul, Hyderabad - 500004" }
   ],
   "Kolkata": [
-    { id: "CCU_RUSSELL", name: "ICAI SPOM Center - Russell Street", address: "7 Anandilal Poddar Sarani, Russell Street, Kolkata - 700071" }
+    { id: "CCU_NSEIT", name: "NSEIT Limited - Kolkata", address: "NSEIT Center, Park Street, Kolkata - 700016" },
+    { id: "CCU_RUSSELL", name: "ICAI Bhawan - Russell Street Kolkata", address: "7 Anandilal Poddar Sarani, Russell Street, Kolkata - 700071" }
   ],
   "Ahmedabad": [
-    { id: "AMD_NARAN", name: "ICAI SPOM Center - Naranpura", address: "123 Sardar Patel Colony, Naranpura, Ahmedabad - 380014" }
+    { id: "AMD_NSEIT", name: "NSEIT Limited - Ahmedabad", address: "NSEIT Center, CG Road, Ahmedabad - 380009" },
+    { id: "AMD_NARAN", name: "ICAI Bhawan - Naranpura Ahmedabad", address: "123 Sardar Patel Colony, Naranpura, Ahmedabad - 380014" }
   ],
   "Jaipur": [
-    { id: "JAI_JHAL", name: "ICAI SPOM Center - Jhalana", address: "D-1, Jhalana Institutional Area, Jaipur - 302004" }
+    { id: "JAI_NSEIT", name: "NSEIT Limited - Jaipur", address: "NSEIT Center, MI Road, Jaipur - 302001" },
+    { id: "JAI_JHAL", name: "ICAI Bhawan - Jhalana Jaipur", address: "D-1, Jhalana Institutional Area, Jaipur - 302004" }
   ],
   "Lucknow": [
-    { id: "LKO_HAZ", name: "ICAI SPOM Center - Hazratganj", address: "27/6 Ram Mohan Rai Marg, Lucknow - 226001" }
+    { id: "LKO_NSEIT", name: "NSEIT Limited - Lucknow", address: "NSEIT Center, Hazratganj, Lucknow - 226001" },
+    { id: "LKO_HAZ", name: "ICAI Bhawan - Ram Mohan Rai Marg Lucknow", address: "27/6 Ram Mohan Rai Marg, Lucknow - 226001" }
   ]
 };
 
-export function getSpomSlots(stateId, city, centerId) {
+// Calendar Availability Matrix (matching official ICAI August 2026 / September 2026 schedule as in user screenshot)
+export const CALENDAR_AVAILABLE_DATES = [
+  { day: 17, dateStr: "17-Aug-2026", weekday: "Mon", status: "AVAILABLE" },
+  { day: 19, dateStr: "19-Aug-2026", weekday: "Wed", status: "AVAILABLE" },
+  { day: 20, dateStr: "20-Aug-2026", weekday: "Thu", status: "AVAILABLE" },
+  { day: 21, dateStr: "21-Aug-2026", weekday: "Fri", status: "AVAILABLE" },
+  { day: 24, dateStr: "24-Aug-2026", weekday: "Mon", status: "AVAILABLE" },
+  { day: 26, dateStr: "26-Aug-2026", weekday: "Wed", status: "AVAILABLE" },
+  { day: 27, dateStr: "27-Aug-2026", weekday: "Thu", status: "AVAILABLE" },
+  { day: 28, dateStr: "28-Aug-2026", weekday: "Fri", status: "FEW_LEFT" },
+  { day: 31, dateStr: "31-Aug-2026", weekday: "Mon", status: "AVAILABLE" }
+];
+
+export function getSpomSlots(stateId, city, centerId, selectedDateStr = "") {
   const cityCenters = SPOM_CENTERS_BY_CITY[city] || [
-    { id: `CTR_${city.replace(/[^A-Z]/gi, "")}`, name: `ICAI SPOM Exam Center - ${city}`, address: `Official ICAI Examination Premises, ${city}` }
+    { id: `CTR_${city.replace(/[^A-Z]/gi, "")}`, name: `Dexit Global / NSEIT Limited - ${city}`, address: `Official ICAI Partnered Examination Premises, ${city}` }
   ];
 
   const selectedCenter = cityCenters.find(c => c.id === centerId) || cityCenters[0];
-  const now = new Date();
   
-  return [
+  // Filter by selected date if specified, otherwise return upcoming available test dates
+  const datesToReturn = selectedDateStr 
+    ? CALENDAR_AVAILABLE_DATES.filter(d => d.dateStr === selectedDateStr)
+    : CALENDAR_AVAILABLE_DATES.slice(0, 4);
+
+  const activeDates = datesToReturn.length > 0 ? datesToReturn : CALENDAR_AVAILABLE_DATES.slice(0, 4);
+
+  return activeDates.flatMap((d, i) => [
     {
-      slotId: `SPOM_SLOT_01`,
+      slotId: `SPOM_${d.day}_AM`,
       centerName: selectedCenter.name,
       address: selectedCenter.address,
-      examDate: new Date(now.getTime() + 3 * 86400000).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }),
+      examDate: `${d.weekday}, ${d.dateStr}`,
+      dateOnly: d.dateStr,
       timing: "Morning Slot (09:30 AM - 12:30 PM)",
       moduleType: "Set A / Set B / Set C / Set D",
-      availableSeats: 18,
+      availableSeats: 18 - (i * 2),
       totalSeats: 30,
       status: "AVAILABLE"
     },
     {
-      slotId: `SPOM_SLOT_02`,
+      slotId: `SPOM_${d.day}_PM`,
       centerName: selectedCenter.name,
       address: selectedCenter.address,
-      examDate: new Date(now.getTime() + 3 * 86400000).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }),
+      examDate: `${d.weekday}, ${d.dateStr}`,
+      dateOnly: d.dateStr,
       timing: "Afternoon Slot (02:00 PM - 05:00 PM)",
       moduleType: "Set A / Set B / Set C / Set D",
-      availableSeats: 7,
+      availableSeats: 7 + i,
       totalSeats: 30,
-      status: "FEW_LEFT"
-    },
-    {
-      slotId: `SPOM_SLOT_03`,
-      centerName: selectedCenter.name,
-      address: selectedCenter.address,
-      examDate: new Date(now.getTime() + 7 * 86400000).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }),
-      timing: "Morning Slot (09:30 AM - 12:30 PM)",
-      moduleType: "Set A / Set B / Set C / Set D",
-      availableSeats: 25,
-      totalSeats: 30,
-      status: "AVAILABLE"
-    },
-    {
-      slotId: `SPOM_SLOT_04`,
-      centerName: selectedCenter.name,
-      address: selectedCenter.address,
-      examDate: new Date(now.getTime() + 10 * 86400000).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }),
-      timing: "Afternoon Slot (02:00 PM - 05:00 PM)",
-      moduleType: "Set A / Set B / Set C / Set D",
-      availableSeats: 29,
-      totalSeats: 30,
-      status: "AVAILABLE"
+      status: i % 2 === 0 ? "FEW_LEFT" : "AVAILABLE"
     }
-  ];
+  ]);
 }
