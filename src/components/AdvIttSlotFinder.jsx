@@ -7,9 +7,14 @@ import {
 } from "../services/icaiSlotService";
 
 export default function AdvIttSlotFinder({ onClose }) {
-  const [course, setCourse] = useState("ADV_ITT");
-  const [zone, setZone] = useState("WESTERN");
-  const [pou, setPou] = useState("MUMBAI_BKC");
+  // Default: Southern zone (id="4"), Adv ITT course (id="48")
+  const defaultZoneId = "4";
+  const defaultPous = ADV_POUS_BY_ZONE["4"] || [];
+  const defaultPou = defaultPous[0]?.id || "";
+
+  const [course, setCourse] = useState("48");
+  const [zone, setZone] = useState(defaultZoneId);
+  const [pou, setPou] = useState(defaultPou);
   const [batches, setBatches] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);

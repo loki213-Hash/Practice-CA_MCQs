@@ -8,9 +8,16 @@ import {
 } from "../services/icaiSlotService";
 
 export default function SpomSlotFinder({ onClose }) {
-  const [stateId, setStateId] = useState("AP");
-  const [city, setCity] = useState("Visakhapatnam");
-  const [centerId, setCenterId] = useState("VSKP_DEXIT");
+  // Default: Andhra Pradesh (id="1"), first city Anantapur, first center
+  const defaultStateId = "1";
+  const defaultCities = SPOM_CITIES_BY_STATE["1"] || [];
+  const defaultCity = defaultCities[0] || "";
+  const defaultCenters = SPOM_CENTERS_BY_CITY[defaultCity] || [];
+  const defaultCenterId = defaultCenters[0]?.id || "";
+
+  const [stateId, setStateId] = useState(defaultStateId);
+  const [city, setCity] = useState(defaultCity);
+  const [centerId, setCenterId] = useState(defaultCenterId);
   const [selectedDate, setSelectedDate] = useState("");
   const [slots, setSlots] = useState([]);
   const [searched, setSearched] = useState(false);
