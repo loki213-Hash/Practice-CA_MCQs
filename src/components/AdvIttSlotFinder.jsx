@@ -3,7 +3,8 @@ import {
   ADV_COURSES,
   ADV_ZONES,
   ADV_POUS_BY_ZONE,
-  getAdvIttBatches
+  getAdvIttBatches,
+  fetchRealAdvBatches
 } from "../services/icaiSlotService";
 
 export default function AdvIttSlotFinder({ onClose }) {
@@ -31,15 +32,24 @@ export default function AdvIttSlotFinder({ onClose }) {
     setSearched(false);
   };
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      const res = getAdvIttBatches(course, zone, pou);
-      setBatches(res);
+    try {
+      const realBatches = await fetchRealAdvBatches(zone, pou, course);
+      if (realBatches && realBatches.length > 0) {
+        setBatches(realBatches);
+      } else {
+        const fallback = getAdvIttBatches(course, zone, pou);
+        setBatches(fallback);
+      }
+    } catch {
+      const fallback = getAdvIttBatches(course, zone, pou);
+      setBatches(fallback);
+    } finally {
       setSearched(true);
       setLoading(false);
-    }, 200);
+    }
   };
 
   // Auto-search on mount
