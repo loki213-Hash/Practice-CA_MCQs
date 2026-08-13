@@ -363,8 +363,45 @@ export default function Login() {
 
       <div className="login-page-wrapper">
         <div className={`stage ${loaded ? "loaded" : ""}`}>
-          <div className={`container ${isSignUp ? "active" : ""}`}>
+          <div className={`container ${isSignUp ? "active" : ""}`} style={{ position: "relative" }}>
             
+            {/* Close / Cancel Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate("/");
+                }
+              }}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "rgba(230, 225, 214, 0.7)",
+                border: "1px solid rgba(201, 166, 103, 0.3)",
+                color: "var(--navy)",
+                fontSize: "20px",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                zIndex: 100,
+                lineHeight: 1,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                transition: "all 0.2s ease"
+              }}
+              title="Cancel and return"
+              aria-label="Cancel and return"
+            >
+              ✕
+            </button>
+
             {/* LOGIN FORM BOX */}
             <div className="form-box login">
               <form onSubmit={handleSubmit} noValidate>
