@@ -7,6 +7,7 @@ import { saveQuizAttempt } from "../services/progressService";
 import { supabase } from "../supabase/supabase";
 
 import { getTopicsForChapter } from "../services/topicService";
+import AuthModal from "../components/AuthModal";
 
 function QuestionBody({ q, className = "qtext" }) {
   const { question, question_intro, table_data, question_outro, has_table, is_priority } = q;
@@ -104,7 +105,7 @@ function QuestionBody({ q, className = "qtext" }) {
 
 export default function Quiz() {
   const { chapterId } = useParams();
-  const { username } = useAuth();
+  const { username, user } = useAuth();
   const navigate = useNavigate();
 
   const [screen, setScreen] = useState("start"); // 'start' | 'quiz' | 'results'
@@ -119,6 +120,9 @@ export default function Quiz() {
   const [answers, setAnswers] = useState([]);
   const [marked, setMarked] = useState([]);
   const [visited, setVisited] = useState([]);
+
+  // Auth modal for non-logged-in submit
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Timer states (3 hours = 10800 seconds)
   const [remainingSeconds, setRemainingSeconds] = useState(10800);
@@ -471,10 +475,18 @@ export default function Quiz() {
   };
 
   const finishTest = () => {
+    setShowConfirm(false);
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    executeTestCompletion();
+  };
+
+  const executeTestCompletion = () => {
     sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
     sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
     localStorage.removeItem("ca_quiz_interrupted_session");
-    setShowConfirm(false);
     setScreen("results");
     window.scrollTo(0, 0);
 
@@ -1516,6 +1528,16 @@ export default function Quiz() {
           </div>
         </div>
       )}
+
+      {/* Guest Submit Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          executeTestCompletion();
+        }}
+      />
     </div>
   );
 }

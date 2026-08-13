@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification } from "../services/notificationService";
+import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
 import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
 
@@ -291,10 +292,67 @@ export default function Admin() {
         .select("*")
         .order("created_at", { ascending: false });
       if (!error && data) {
-        setRegisteredUsers(data);
+        let updatedList = [...data];
+        for (let i = 0; i < updatedList.length; i++) {
+          const u = updatedList[i];
+          if (!u.recovery_code) {
+            const cached = localStorage.getItem(`ca_quiz_recovery_${u.username?.toLowerCase()}`);
+            const newCode = cached || generate7CharRecoveryCode();
+            
+            // Auto update database
+            supabase
+              .from("registered_users")
+              .update({ recovery_code: newCode })
+              .eq("id", u.id)
+              .then(() => {
+                localStorage.setItem(`ca_quiz_recovery_${u.username?.toLowerCase()}`, newCode);
+              })
+              .catch((err) => console.warn("Notice updating recovery code for existing user:", err));
+              
+            updatedList[i] = { ...u, recovery_code: newCode };
+          }
+        }
+        setRegisteredUsers(updatedList);
       }
     } catch (err) {
       console.warn("Failed to load registered users:", err);
+    }
+  };
+
+  const handleAssignCodeForUser = async (userObj) => {
+    try {
+      const newCode = generate7CharRecoveryCode();
+      const { error } = await supabase
+        .from("registered_users")
+        .update({ recovery_code: newCode })
+        .eq("id", userObj.id);
+
+      if (error) throw error;
+
+      localStorage.setItem(`ca_quiz_recovery_${userObj.username.toLowerCase()}`, newCode);
+      setSuccess(`Generated 7-character recovery code '${newCode}' for ${userObj.username}!`);
+      loadRegisteredUsers();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to generate code: " + err.message);
+    }
+  };
+
+  const handleGenerateCodesForAllMissingUsers = async () => {
+    try {
+      let count = 0;
+      for (const u of registeredUsers) {
+        if (!u.recovery_code) {
+          const newCode = generate7CharRecoveryCode();
+          await supabase.from("registered_users").update({ recovery_code: newCode }).eq("id", u.id);
+          localStorage.setItem(`ca_quiz_recovery_${u.username.toLowerCase()}`, newCode);
+          count++;
+        }
+      }
+      setSuccess(`Generated 7-character recovery codes for ${count} existing users!`);
+      loadRegisteredUsers();
+    } catch (err) {
+      setError("Failed to bulk generate codes: " + err.message);
     }
   };
 
@@ -1197,25 +1255,44 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
             {/* TAB: STUDENT RECOVERY CREDENTIALS */}
             {activeTab === "recovery" && (
               <div className="admin-panel">
-                <div className="panel-head" style={{ marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
+                <div className="panel-head" style={{ marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
                   <div>
-                    <h3 style={{ fontSize: "18px", color: "#111622", fontWeight: "600" }}>Student Verification &amp; Recovery Phrases</h3>
-                    <p style={{ fontSize: "12.5px", color: "#6b7280" }}>Verify recovery phrase answers verbally or via DM before resetting passwords manually.</p>
+                    <h3 style={{ fontSize: "18px", color: "#111622", fontWeight: "600" }}>Student Verification &amp; Recovery Codes</h3>
+                    <p style={{ fontSize: "12.5px", color: "#6b7280" }}>View 7-character recovery codes for users or generate codes for existing accounts.</p>
                   </div>
                   
-                  {/* Search filter */}
-                  <div style={{ position: "relative", width: "240px" }}>
-                    <input
-                      type="text"
-                      placeholder="Search username..."
-                      value={recoverySearch}
-                      onChange={(e) => setRecoverySearch(e.target.value)}
-                      style={{ padding: "8px 12px 8px 32px", border: "1px solid #e1e4eb", borderRadius: "6px", fontSize: "12.5px", outline: "none", width: "100%" }}
-                    />
-                    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" stroke="#a3a09a" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px" }}>
-                      <circle cx="11" cy="11" r="8" />
-                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      onClick={handleGenerateCodesForAllMissingUsers}
+                      style={{
+                        background: "#0369a1",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 14px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⚡ Auto-Generate Codes For Existing Users
+                    </button>
+
+                    {/* Search filter */}
+                    <div style={{ position: "relative", width: "220px" }}>
+                      <input
+                        type="text"
+                        placeholder="Search username..."
+                        value={recoverySearch}
+                        onChange={(e) => setRecoverySearch(e.target.value)}
+                        style={{ padding: "8px 12px 8px 32px", border: "1px solid #e1e4eb", borderRadius: "6px", fontSize: "12.5px", outline: "none", width: "100%" }}
+                      />
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" stroke="#a3a09a" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", width: "14px", height: "14px" }}>
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
@@ -1225,22 +1302,60 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                       <thead>
                         <tr>
                           <th>Username</th>
+                          <th>🔑 7-Char Recovery Code</th>
                           <th>Phrase 1: Favourite Place</th>
-                          <th>Phrase 2: Firstname_Year of Birth</th>
+                          <th>Phrase 2: Firstname_YOB</th>
                           <th>Registered Date</th>
                         </tr>
                       </thead>
                       <tbody>
                         {registeredUsers
                           .filter((u) => !recoverySearch || u.username.toLowerCase().includes(recoverySearch.toLowerCase()))
-                          .map((user) => (
-                            <tr key={user.id}>
-                              <td style={{ padding: "10px 14px", fontWeight: "600", color: "var(--navy)" }}>{user.username}</td>
-                              <td style={{ padding: "10px 14px", color: "#111622" }}>{user.favourite_place}</td>
-                              <td className="mono" style={{ padding: "10px 14px" }}>{user.firstname_yob}</td>
-                              <td style={{ padding: "10px 14px", color: "#6b7280" }}>{new Date(user.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-                            </tr>
-                          ))}
+                          .map((user) => {
+                            const code = user.recovery_code || localStorage.getItem(`ca_quiz_recovery_${user.username?.toLowerCase()}`);
+                            return (
+                              <tr key={user.id}>
+                                <td style={{ padding: "10px 14px", fontWeight: "600", color: "var(--navy)" }}>{user.username}</td>
+                                <td style={{ padding: "10px 14px" }}>
+                                  {code ? (
+                                    <span style={{
+                                      background: "#f0f9ff",
+                                      border: "1px solid #bae6fd",
+                                      color: "#0369a1",
+                                      padding: "4px 8px",
+                                      borderRadius: "6px",
+                                      fontFamily: "monospace",
+                                      fontWeight: "700",
+                                      letterSpacing: "1px",
+                                      fontSize: "13px"
+                                    }}>
+                                      {code}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAssignCodeForUser(user)}
+                                      style={{
+                                        background: "#fef3c7",
+                                        border: "1px solid #fde68a",
+                                        color: "#b45309",
+                                        padding: "4px 10px",
+                                        borderRadius: "6px",
+                                        fontSize: "11.5px",
+                                        fontWeight: "600",
+                                        cursor: "pointer"
+                                      }}
+                                    >
+                                      ⚡ Generate Code
+                                    </button>
+                                  )}
+                                </td>
+                                <td style={{ padding: "10px 14px", color: "#111622", fontWeight: "500" }}>{user.favourite_place || "—"}</td>
+                                <td style={{ padding: "10px 14px", color: "#0f172a", fontFamily: "monospace", fontWeight: "600" }}>{user.firstname_yob || "—"}</td>
+                                <td style={{ padding: "10px 14px", color: "#6b7280" }}>{new Date(user.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
@@ -1253,10 +1368,12 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
 {`CREATE TABLE public.registered_users (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username text UNIQUE NOT NULL,
-  favourite_place text NOT NULL,
-  firstname_yob text NOT NULL,
+  favourite_place text,
+  firstname_yob text,
+  recovery_code text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+ALTER TABLE public.registered_users ADD COLUMN IF NOT EXISTS recovery_code text;
 ALTER TABLE public.registered_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anyone_can_insert" ON public.registered_users FOR INSERT WITH CHECK (true);
 CREATE POLICY "users_read_own_or_admin" ON public.registered_users FOR SELECT USING (

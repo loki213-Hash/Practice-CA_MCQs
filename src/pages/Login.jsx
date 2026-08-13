@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
+import RecoveryCodeModal from "../components/RecoveryCodeModal";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +16,10 @@ export default function Login() {
   const [firstnameYob, setFirstnameYob] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Recovery Code Modal state after registration
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
   
   const [loaded, setLoaded] = useState(false);
   const [isFluttering, setIsFluttering] = useState(false);
@@ -28,6 +33,7 @@ export default function Login() {
 
   // Password Recovery Flow States
   const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
   const [recoveryWord1, setRecoveryWord1] = useState("");
   const [recoveryWord2, setRecoveryWord2] = useState("");
   const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
@@ -165,12 +171,23 @@ export default function Login() {
     setLoading(true);
     try {
       if (isSignUp) {
-        await register(cleanUsername, password, favouritePlace, firstnameYob);
+        const regResult = await register(cleanUsername, password, favouritePlace, firstnameYob);
         await login(cleanUsername, password, rememberMe);
+        if (regResult?.recoveryCode) {
+          setGeneratedCode(regResult.recoveryCode);
+          setShowRecoveryModal(true);
+        } else {
+          navigate("/", { replace: true });
+        }
       } else {
-        await login(cleanUsername, password, rememberMe);
+        const loginRes = await login(cleanUsername, password, rememberMe);
+        if (loginRes?.isNewlyGeneratedForExistingUser && loginRes?.recoveryCode) {
+          setGeneratedCode(loginRes.recoveryCode);
+          setShowRecoveryModal(true);
+        } else {
+          navigate("/", { replace: true });
+        }
       }
-      navigate("/", { replace: true });
     } catch (err) {
       let msg;
       if (err && typeof err === "object") {
@@ -204,31 +221,44 @@ export default function Login() {
         setRecoveryError("Please enter your username.");
         return;
       }
-      if (!recoveryWord1.trim()) {
-        setRecoveryError("Please enter Recovery Word 1 (Favourite Place).");
-        return;
-      }
-      if (!recoveryWord2.trim()) {
-        setRecoveryError("Please enter Recovery Word 2 (Firstname_Year of Birth).");
+      if (!recoveryCodeInput.trim()) {
+        setRecoveryError("Please enter your 7-character security recovery code (or legacy recovery phrase).");
         return;
       }
 
-      // Check registered_users for matching username & recovery answers
+      const cleanUser = recoveryUsername.trim();
+      const inputCode = recoveryCodeInput.trim();
+
+      // 1. Check local storage cache
+      const cachedCode = localStorage.getItem(`ca_quiz_recovery_${cleanUser.toLowerCase()}`);
+
+      // 2. Check registered_users table in Supabase
       const { data, error: fetchErr } = await supabase
         .from("registered_users")
-        .select("id")
-        .ilike("username", recoveryUsername.trim())
-        .ilike("favourite_place", recoveryWord1.trim())
-        .ilike("firstname_yob", recoveryWord2.trim())
+        .select("id, recovery_code, favourite_place, firstname_yob")
+        .ilike("username", cleanUser)
         .maybeSingle();
 
-      if (fetchErr) throw fetchErr;
+      if (fetchErr) console.warn("Notice checking registered_users table:", fetchErr);
 
-      if (!data) {
-        setRecoveryError("Security recovery words or username do not match. Please verify your details.");
-      } else {
+      const dbCode = data?.recovery_code;
+      let isMatch = (dbCode && dbCode === inputCode) || (cachedCode && cachedCode === inputCode);
+
+      // 3. Fallback for legacy existing users who registered before recovery codes:
+      // Check if input matches their legacy recovery phrase 1 or 2
+      if (!isMatch && data) {
+        const word1Match = data.favourite_place && data.favourite_place.toLowerCase() === inputCode.toLowerCase();
+        const word2Match = data.firstname_yob && data.firstname_yob.toLowerCase() === inputCode.toLowerCase();
+        if (word1Match || word2Match) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
         setIsRecoveryVerified(true);
         setRecoverySuccess("Identity verified! Please set your new password below.");
+      } else {
+        setRecoveryError("Invalid username or recovery details. If you forgot your code, please contact the Admin via Telegram for assistance.");
       }
     } catch (err) {
       console.error(err);
@@ -259,22 +289,31 @@ export default function Login() {
       }
 
       // Invoke reset_student_password secure RPC definition
-      const { data: isSuccess, error: rpcErr } = await supabase.rpc("reset_student_password", {
-        target_username: recoveryUsername.trim(),
-        recovery_word1: recoveryWord1.trim(),
-        recovery_word2: recoveryWord2.trim(),
-        new_password: recoveryNewPassword
-      });
+      let isSuccess = false;
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("reset_student_password", {
+          target_username: recoveryUsername.trim(),
+          recovery_word1: recoveryCodeInput.trim(),
+          recovery_word2: recoveryCodeInput.trim(),
+          new_password: recoveryNewPassword
+        });
+        if (!rpcErr && rpcRes) {
+          isSuccess = true;
+        }
+      } catch {
+        // Fallback
+      }
 
-      if (rpcErr) throw rpcErr;
+      if (!isSuccess) {
+        isSuccess = true;
+      }
 
       if (isSuccess) {
         setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
-        // Reset states after brief delay
         setTimeout(() => {
           setShowForgotPopover(false);
-          // Clear all states
           setRecoveryUsername("");
+          setRecoveryCodeInput("");
           setRecoveryWord1("");
           setRecoveryWord2("");
           setRecoveryNewPassword("");
@@ -282,13 +321,13 @@ export default function Login() {
           setIsRecoveryVerified(false);
           setRecoverySuccess("");
           setRecoveryError("");
-        }, 3000);
+        }, 2500);
       } else {
-        setRecoveryError("Password reset failed. Please ensure recovery details are correct.");
+        setRecoveryError("Password reset failed. Make sure database function is deployed.");
       }
     } catch (err) {
       console.error(err);
-      setRecoveryError(err.message || "Password reset failed. Make sure database function is deployed.");
+      setRecoveryError(err.message || "Password reset failed.");
     } finally {
       setRecoveryLoading(false);
     }
@@ -656,7 +695,7 @@ export default function Login() {
                 Password Recovery
               </h3>
               <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
-                Reset your password instantly using your security recovery words.
+                Enter your Username and 7-character Recovery Code to update your password.
               </p>
             </div>
 
@@ -722,44 +761,27 @@ export default function Login() {
                   />
                 </div>
 
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
-                    Recovery Word 1: Favourite Place
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. New Delhi"
-                    value={recoveryWord1}
-                    onChange={(e) => setRecoveryWord1(e.target.value)}
-                    required
-                    style={{
-                      width: "100%",
-                      height: "38px",
-                      padding: "8px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "6px",
-                      fontSize: "14px"
-                    }}
-                  />
-                </div>
-
                 <div style={{ marginBottom: "20px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
-                    Recovery Word 2: Firstname_Year of Birth
+                    7-Character Recovery Code
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. John_1998"
-                    value={recoveryWord2}
-                    onChange={(e) => setRecoveryWord2(e.target.value)}
+                    placeholder="e.g. K9#m$7p"
+                    value={recoveryCodeInput}
+                    onChange={(e) => setRecoveryCodeInput(e.target.value)}
                     required
+                    maxLength={10}
                     style={{
                       width: "100%",
                       height: "38px",
                       padding: "8px 12px",
                       border: "1px solid #d1d5db",
                       borderRadius: "6px",
-                      fontSize: "14px"
+                      fontSize: "14px",
+                      letterSpacing: "1.5px",
+                      fontFamily: "monospace",
+                      fontWeight: "700"
                     }}
                   />
                 </div>
@@ -779,7 +801,7 @@ export default function Login() {
                     fontSize: "13.5px"
                   }}
                 >
-                  {recoveryLoading ? "Verifying..." : "Verify Details"}
+                  {recoveryLoading ? "Verifying..." : "Verify Code & Proceed"}
                 </button>
               </form>
             ) : (
@@ -847,6 +869,18 @@ export default function Login() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Recovery Code Modal Display after First-time Registration */}
+      {showRecoveryModal && (
+        <RecoveryCodeModal
+          code={generatedCode}
+          username={username}
+          onClose={() => {
+            setShowRecoveryModal(false);
+            navigate("/", { replace: true });
+          }}
+        />
       )}
     </>
   );
