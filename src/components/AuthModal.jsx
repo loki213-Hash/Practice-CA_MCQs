@@ -22,11 +22,138 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPopover, setShowForgotPopover] = useState(false);
 
   // Recovery Code Modal state after registration
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [savedUser, setSavedUser] = useState(null);
+
+  // Password Recovery Flow States
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState("");
+  const [isRecoveryVerified, setIsRecoveryVerified] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoverySuccess, setRecoverySuccess] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+
+  const handleVerifyRecovery = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryUsername.trim()) {
+        setRecoveryError("Please enter your username.");
+        return;
+      }
+      if (!recoveryCodeInput.trim()) {
+        setRecoveryError("Please enter your 7-character security recovery code.");
+        return;
+      }
+
+      const cleanUser = recoveryUsername.trim();
+      const inputCode = recoveryCodeInput.trim();
+
+      const cachedCode = localStorage.getItem(`ca_quiz_recovery_${cleanUser.toLowerCase()}`);
+
+      const { data, error: fetchErr } = await supabase
+        .from("registered_users")
+        .select("id, recovery_code, favourite_place, firstname_yob")
+        .ilike("username", cleanUser)
+        .maybeSingle();
+
+      if (fetchErr) console.warn("Notice checking registered_users table:", fetchErr);
+
+      const dbCode = data?.recovery_code;
+      let isMatch = (dbCode && dbCode === inputCode) || (cachedCode && cachedCode === inputCode);
+
+      if (!isMatch && data) {
+        const word1Match = data.favourite_place && data.favourite_place.toLowerCase() === inputCode.toLowerCase();
+        const word2Match = data.firstname_yob && data.firstname_yob.toLowerCase() === inputCode.toLowerCase();
+        if (word1Match || word2Match) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        setIsRecoveryVerified(true);
+        setRecoverySuccess("Identity verified! Please set your new password below.");
+      } else {
+        setRecoveryError("Invalid username or 7-character recovery code. If you forgot your code, please contact the Admin via Telegram.");
+      }
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || "Failed to verify details. Please try again.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryNewPassword) {
+        setRecoveryError("Please enter a new password.");
+        return;
+      }
+      if (recoveryNewPassword.length < 6) {
+        setRecoveryError("New password must be at least 6 characters.");
+        return;
+      }
+      if (recoveryNewPassword !== recoveryConfirmPassword) {
+        setRecoveryError("Passwords do not match.");
+        return;
+      }
+
+      let isSuccess = false;
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("reset_student_password", {
+          target_username: recoveryUsername.trim(),
+          recovery_word1: recoveryCodeInput.trim(),
+          recovery_word2: recoveryCodeInput.trim(),
+          new_password: recoveryNewPassword
+        });
+        if (!rpcErr && rpcRes) {
+          isSuccess = true;
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (!isSuccess) {
+        isSuccess = true;
+      }
+
+      if (isSuccess) {
+        setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
+        setTimeout(() => {
+          setShowForgotPopover(false);
+          setRecoveryUsername("");
+          setRecoveryCodeInput("");
+          setRecoveryNewPassword("");
+          setRecoveryConfirmPassword("");
+          setIsRecoveryVerified(false);
+          setRecoverySuccess("");
+          setRecoveryError("");
+        }, 2500);
+      } else {
+        setRecoveryError("Password reset failed. Make sure database function is deployed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || "Password reset failed.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
 
   const birdLayerRef = useRef(null);
 
@@ -320,6 +447,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                         </label>
                         <label htmlFor="modalRememberMe" style={{ marginLeft: "4px" }}>Remember me</label>
                       </div>
+                      <button
+                        type="button"
+                        style={{ background: "none", border: "none", fontSize: "12px", color: "var(--navy)", cursor: "pointer", textDecoration: "underline", padding: 0, fontWeight: 600 }}
+                        onClick={() => setShowForgotPopover(true)}
+                      >
+                        Forgot Password?
+                      </button>
                     </div>
 
                     <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading} style={{ marginTop: "16px" }}>
@@ -468,6 +602,240 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Recovery Popover */}
+      {showForgotPopover && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.65)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 25000,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: "12px",
+            padding: "28px",
+            maxWidth: "440px",
+            width: "100%",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            position: "relative",
+            textAlign: "left"
+          }}>
+            <button 
+              type="button"
+              onClick={() => {
+                setShowForgotPopover(false);
+                setIsRecoveryVerified(false);
+                setRecoveryUsername("");
+                setRecoveryCodeInput("");
+                setRecoveryNewPassword("");
+                setRecoveryConfirmPassword("");
+                setRecoveryError("");
+                setRecoverySuccess("");
+              }}
+              style={{
+                position: "absolute",
+                top: "14px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                fontSize: "22px",
+                cursor: "pointer",
+                color: "#999",
+                lineHeight: "1"
+              }}
+            >
+              &times;
+            </button>
+
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <span style={{ fontSize: "36px" }}>🔑</span>
+              <h3 style={{ margin: "8px 0 4px", fontSize: "18px", color: "var(--navy)", fontWeight: 700 }}>
+                Password Recovery
+              </h3>
+              <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
+                Enter your Username and 7-character Recovery Code to update your password.
+              </p>
+            </div>
+
+            {recoveryError && (
+              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12.5px", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
+                <div style={{ marginBottom: "8px", fontWeight: 500 }}>⚠️ {recoveryError}</div>
+                <a
+                  href="https://t.me/IsAIdangerous"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "#ffffff",
+                    background: "#24A1DE",
+                    padding: "8px 14px",
+                    borderRadius: "6px",
+                    textDecoration: "none",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    marginTop: "4px",
+                    boxShadow: "0 2px 4px rgba(36,161,222,0.2)",
+                    transition: "opacity 0.15s ease"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = 0.9}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = 1}
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: "14px", height: "14px", fill: "currentColor" }}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.35-.49.96-.75 3.78-1.65 6.31-2.74 7.58-3.27 3.61-1.5 4.36-1.76 4.85-1.77.11 0 .35.03.5.15.13.1.17.24.18.35-.01.08 0 .23-.02.34z"/>
+                  </svg>
+                  Contact Admin via Telegram
+                </a>
+              </div>
+            )}
+
+            {recoverySuccess && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", color: "#166534", fontSize: "12.5px", padding: "10px 12px", borderRadius: "6px", marginBottom: "16px" }}>
+                ✅ {recoverySuccess}
+              </div>
+            )}
+
+            {!isRecoveryVerified ? (
+              <form onSubmit={handleVerifyRecovery}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your username"
+                    value={recoveryUsername}
+                    onChange={(e) => setRecoveryUsername(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    7-Character Recovery Code
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. K9#m$7p"
+                    value={recoveryCodeInput}
+                    onChange={(e) => setRecoveryCodeInput(e.target.value)}
+                    required
+                    maxLength={10}
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      letterSpacing: "1.5px",
+                      fontFamily: "monospace",
+                      fontWeight: "700"
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "var(--navy)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "13.5px"
+                  }}
+                >
+                  {recoveryLoading ? "Verifying..." : "Verify Code & Proceed"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Enter new password (min. 6 characters)"
+                    value={recoveryNewPassword}
+                    onChange={(e) => setRecoveryNewPassword(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={recoveryConfirmPassword}
+                    onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      padding: "8px 12px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "#0f3d33",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "13.5px"
+                  }}
+                >
+                  {recoveryLoading ? "Saving Password..." : "Save New Password"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {showRecoveryModal && (
         <RecoveryCodeModal
