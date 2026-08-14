@@ -1244,19 +1244,22 @@ img { max-width: 100%; display: block; }
   transition: all 0.15s ease;
 }
 .confirm-actions .btn:not(.primary) {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
 }
 .confirm-actions .btn:not(.primary):hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-  color: #ffffff !important;
+  background: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 .confirm-actions .btn.primary {
   background: #10b981 !important;
-  color: #090d16 !important;
-  border: 1px solid #34d399 !important;
+  color: #ffffff !important;
+  border: 1px solid #059669 !important;
   font-weight: 700 !important;
+}
+.confirm-actions .btn.primary:hover {
+  background: #059669 !important;
 }
 
 /* ===================================================================
@@ -3068,6 +3071,60 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="ibc"] .option:hover { background: #faf5f0; }
 
 /* ============================================
+   FEMA THEME — EXPLICIT HIGH CONTRAST OVERRIDES
+   ============================================ */
+.quiz-theme-wrapper[data-theme="fema"] .confirm-overlay .confirm-box {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25) !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .confirm-overlay .confirm-box p {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .confirm-actions .btn:not(.primary) {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 600 !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .confirm-actions .btn:not(.primary):hover {
+  background: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .confirm-actions .btn.primary {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: 1px solid #059669 !important;
+  font-weight: 700 !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .flag-basic-btn {
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .flag-basic-btn:hover {
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+}
+
+.quiz-theme-wrapper[data-theme="fema"] .qmeta .qtopic {
+  background: rgba(27, 54, 93, 0.1) !important;
+  color: #1b365d !important;
+  border: 1px solid rgba(27, 54, 93, 0.25) !important;
+  font-weight: 700 !important;
+}
+
+/* ============================================
    SEBI DARK THEME — COMPLETE ELEMENT OVERRIDES
    Every quiz panel, card, option, palette, table, and
    modal is overridden for the dark fintech aesthetic.
@@ -3350,6 +3407,23 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="sebi"] .confirm-overlay .confirm-box p {
   color: #f8fafc !important;
   font-weight: 500 !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .confirm-actions .btn:not(.primary) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .confirm-actions .btn:not(.primary):hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .confirm-actions .btn.primary {
+  background: #10b981 !important;
+  color: #090d16 !important;
+  border: 1px solid #34d399 !important;
 }
 
 /* Flag button */
