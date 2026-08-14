@@ -1065,11 +1065,11 @@ img { max-width: 100%; display: block; }
 .feedback-panel .fb-body {
   padding: 14px 16px 16px;
   background: #FAFAF8;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.65;
-  color: var(--ink-soft);
+  color: #1e293b;
 }
-.feedback-panel .fb-body b { color: var(--ink); }
+.feedback-panel .fb-body b { color: #0f172a; }
 
 /* ---- Question navigation ---- */
 .qnav {
@@ -2999,17 +2999,65 @@ img { max-width: 100%; display: block; }
 .quiz-theme-wrapper[data-theme="sebi"] .legend-item { color: var(--ink-soft); }
 .quiz-theme-wrapper[data-theme="sebi"] .instructions { color: var(--ink); }
 .quiz-theme-wrapper[data-theme="sebi"] .instructions h3 { color: var(--ink); }
+/* Topic Pills in SEBI Theme - Minimalist & High-Contrast */
 .quiz-theme-wrapper[data-theme="sebi"] .topic-pill {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.12);
-  color: var(--ink);
+  font-family: var(--ff-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  transition: all 0.2s ease !important;
 }
+
+/* Selected Topic Pills - Distinct minimalist cyan-slate badge */
+.quiz-theme-wrapper[data-theme="sebi"] .topic-pill:not(.deselected) {
+  background: rgba(14, 116, 144, 0.4) !important;
+  border: 1px solid #38bdf8 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2) !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .topic-pill:not(.deselected):hover {
+  background: rgba(14, 116, 144, 0.6) !important;
+  border-color: #7dd3fc !important;
+}
+
+/* Deselected Topic Pills - Clean translucent pill with clear light grey text */
 .quiz-theme-wrapper[data-theme="sebi"] .topic-pill.deselected {
-  background: transparent;
-  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #94a3b8 !important;
 }
-.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row h4,
-.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row p { color: var(--ink); }
+
+.quiz-theme-wrapper[data-theme="sebi"] .topic-pill.deselected:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #f8fafc !important;
+}
+
+/* Randomize Question Sequence Row in SEBI Theme - Dark Minimalist Card */
+.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 8px !important;
+  padding: 16px 20px !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row h4 {
+  color: #f8fafc !important;
+  font-family: var(--ff-serif) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .shuffle-row p {
+  color: #94a3b8 !important;
+  font-size: 12.5px !important;
+}
+
 .quiz-theme-wrapper[data-theme="sebi"] .start-btn {
   background: var(--brass);
   color: #090d16;
@@ -3059,17 +3107,33 @@ img { max-width: 100%; display: block; }
 }
 .quiz-theme-wrapper[data-theme="sebi"] .option .otext { color: var(--ink); }
 
-/* Feedback panel */
+/* Feedback & Explanation Panel in SEBI Theme - Dark High-Contrast Card */
 .quiz-theme-wrapper[data-theme="sebi"] .feedback-panel {
-  color: var(--ink);
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }
 .quiz-theme-wrapper[data-theme="sebi"] .feedback-panel.is-correct {
-  background: var(--green-bg);
-  border-color: var(--green);
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid #10b981 !important;
 }
 .quiz-theme-wrapper[data-theme="sebi"] .feedback-panel.is-wrong {
-  background: var(--red-bg);
-  border-color: var(--red);
+  background: rgba(244, 63, 94, 0.12) !important;
+  border: 1px solid #f43f5e !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-panel .fb-body {
+  background: #071120 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  padding: 16px 18px !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .feedback-panel .fb-body b {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
 }
 
 /* Question palette (sidebar) */
