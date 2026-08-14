@@ -141,6 +141,19 @@ export default function Quiz() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
+  // Continuous correct streak states & toast appreciation
+  const [streakCount, setStreakCount] = useState(0);
+  const [streakToast, setStreakToast] = useState(null);
+  const streakTimeoutRef = useRef(null);
+
+  const triggerStreakToast = (title, sub) => {
+    if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
+    setStreakToast({ title, sub });
+    streakTimeoutRef.current = setTimeout(() => {
+      setStreakToast(null);
+    }, 2800);
+  };
+
   const PASS_THRESHOLD = 60;
   const FOCUS_THRESHOLD = 65;
 
@@ -427,6 +440,31 @@ export default function Quiz() {
     const newAnswers = [...answers];
     newAnswers[current] = letter;
     setAnswers(newAnswers);
+
+    const q = activeQuestions[current];
+    if (q) {
+      const isCorrect = letter.toUpperCase() === (q.correct_option || "").toUpperCase();
+      if (isCorrect) {
+        const newStreak = streakCount + 1;
+        setStreakCount(newStreak);
+
+        if (newStreak === 3) {
+          triggerStreakToast("🔥 Good Job!", "3 continuous correct answers!");
+        } else if (newStreak === 5) {
+          triggerStreakToast("⭐ Well Done!", "5 continuous correct answers!");
+        } else if (newStreak === 10) {
+          triggerStreakToast("🎯 Great Work!", "10 continuous correct answers!");
+        } else if (newStreak === 15) {
+          triggerStreakToast("🚀 On Fire!", "15 continuous correct answers!");
+        } else if (newStreak === 20) {
+          triggerStreakToast("⚡ Unstoppable!", "20 continuous correct answers!");
+        } else if (newStreak > 20 && newStreak % 5 === 0) {
+          triggerStreakToast("👑 Mastermind!", `${newStreak} continuous correct answers!`);
+        }
+      } else {
+        setStreakCount(0);
+      }
+    }
   };
 
   const clearResponse = () => {
@@ -1422,6 +1460,15 @@ export default function Quiz() {
               </Link>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Streak Appreciation Toast Badge */}
+      {streakToast && (
+        <div className="streak-toast-badge">
+          <span className="streak-title">{streakToast.title}</span>
+          <span className="streak-divider"></span>
+          <span className="streak-sub">{streakToast.sub}</span>
         </div>
       )}
 

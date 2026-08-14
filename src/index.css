@@ -1163,6 +1163,52 @@ img { max-width: 100%; display: block; }
 .submit-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .submit-block .btn { width: 100%; }
 
+/* ---- Streak Appreciation Toast Badge ---- */
+.streak-toast-badge {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25000;
+  background: rgba(13, 21, 39, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid #10b981;
+  border-radius: 30px;
+  padding: 8px 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
+  animation: streakPopDown 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: none;
+}
+.streak-toast-badge .streak-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #34d399;
+}
+.streak-toast-badge .streak-divider {
+  height: 14px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.streak-toast-badge .streak-sub {
+  font-size: 13px;
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+@keyframes streakPopDown {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 /* ---- Confirmation modal ---- */
 .confirm-overlay {
   display: none;
