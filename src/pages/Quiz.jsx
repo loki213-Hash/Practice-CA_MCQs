@@ -1034,12 +1034,11 @@ export default function Quiz() {
                 </div>
 
                 <div className="qnav">
-                  <div className="nav-left" style={{ flexWrap: "wrap", gap: "8px" }}>
+                  <div className="nav-left">
                     <button 
                       type="button" 
                       className="btn exit-btn" 
                       onClick={handleExitPractice}
-                      style={{ background: "rgba(239, 68, 68, 0.12)", borderColor: "rgba(239, 68, 68, 0.35)", color: "#f87171", fontWeight: 600 }}
                     >
                       🚪 Exit Practice
                     </button>
@@ -1056,7 +1055,7 @@ export default function Quiz() {
                       Mark for Review &amp; Next
                     </button>
                   </div>
-                  <div className="nav-right" style={{ flexWrap: "wrap", gap: "8px" }}>
+                  <div className="nav-right">
                     <button type="button" className="btn ghost" onClick={clearResponse}>
                       Clear Response
                     </button>
