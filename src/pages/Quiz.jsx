@@ -1,3 +1,4 @@
+// Quiz page component with streak appreciation and full theme support
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getQuestionsForChapter } from "../services/questionService";
