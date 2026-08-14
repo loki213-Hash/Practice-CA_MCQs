@@ -1046,6 +1046,69 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 12px 16px;
+  font-family: var(--ff-serif);
+  font-weight: 700;
+  font-size: 15px;
+}
+.feedback-panel.is-correct .fb-head { background: var(--green-bg); color: var(--green); }
+.feedback-panel.is-wrong .fb-head { background: var(--red-bg); color: var(--red); }
+.feedback-panel .fb-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono);
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex: none;
+}
+.feedback-panel.is-correct .fb-icon { background: var(--green); }
+.feedback-panel.is-wrong .fb-icon { background: var(--red); }
+.feedback-panel .fb-body {
+  padding: 14px 16px 16px;
+  background: #FAFAF8;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #1e293b;
+}
+.feedback-panel .fb-body b { color: #0f172a; }
+
+/* ---- Question navigation ---- */
+.qnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nav-left, .nav-right { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Palette panel ---- */
+.palette-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  position: sticky;
+  top: 88px;
+}
+.palette-panel h4 {
+  font-family: var(--ff-serif);
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: var(--navy);
+}
+.palette-panel .palette-sub {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+  font-family: var(--ff-mono);
+}
+.palette-legend { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; font-size: 11.5px; color: var(--ink-soft); }
+.palette-legend .li { display: flex; align-items: center; gap: 8px; }
+.pdot { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.palette-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
@@ -2390,26 +2453,6 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
-}
-.qnav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-  gap: 10px;
-}
-.nav-left, .nav-right { display: flex; gap: 8px; align-items: center; }
-.qnav .btn.exit-btn {
-  background: rgba(239, 68, 68, 0.12) !important;
-  color: #f87171 !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
-  font-weight: 600 !important;
-}
-.qnav .btn.exit-btn:hover {
-  background: rgba(239, 68, 68, 0.22) !important;
-  color: #ffffff !important;
 }
 .fc-top {
   display: flex;
