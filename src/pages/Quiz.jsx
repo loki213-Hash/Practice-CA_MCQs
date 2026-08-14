@@ -445,16 +445,24 @@ export default function Quiz() {
     setCurrent(index);
   };
 
+  const handleExitPractice = () => {
+    if (window.confirm("Are you sure you want to exit practice? Your current session progress will be cleared.")) {
+      sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
+      sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
+      localStorage.removeItem("ca_quiz_interrupted_session");
+      if (chapter?.course_id) {
+        navigate(`/course/${chapter.course_id}`);
+      } else {
+        navigate(-1);
+      }
+    }
+  };
+
   const goPrev = () => {
     if (current > 0) {
       goToQuestion(current - 1);
     } else {
-      if (window.confirm("Are you sure you want to exit the quiz? Your current progress will not be saved.")) {
-        sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
-        sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
-        localStorage.removeItem("ca_quiz_interrupted_session");
-        setScreen("start");
-      }
+      handleExitPractice();
     }
   };
 
@@ -924,11 +932,35 @@ export default function Quiz() {
           <div className="wrap">
             <div className="quiz-grid">
               <div className="qcard">
-                <div className="qmeta">
-                  <span className="qnum">
-                    QUESTION {current + 1} OF {TOTAL}
-                  </span>
-                  <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
+                <div className="qmeta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span className="qnum">
+                      QUESTION {current + 1} OF {TOTAL}
+                    </span>
+                    <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExitPractice}
+                    className="exit-practice-header-btn"
+                    style={{
+                      background: "rgba(239, 68, 68, 0.12)",
+                      border: "1px solid rgba(239, 68, 68, 0.35)",
+                      color: "#f87171",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="Exit practice session and leave at Chapters page"
+                  >
+                    🚪 Exit Practice
+                  </button>
                 </div>
                 <QuestionBody q={q} className="qtext" />
                 <div className="options">
@@ -1002,15 +1034,29 @@ export default function Quiz() {
                 </div>
 
                 <div className="qnav">
-                  <div className="nav-left">
-                    <button type="button" className="btn" onClick={goPrev}>
-                      {current === 0 ? "← Exit Practice" : "← Previous"}
+                  <div className="nav-left" style={{ flexWrap: "wrap", gap: "8px" }}>
+                    <button 
+                      type="button" 
+                      className="btn exit-btn" 
+                      onClick={handleExitPractice}
+                      style={{ background: "rgba(239, 68, 68, 0.12)", borderColor: "rgba(239, 68, 68, 0.35)", color: "#f87171", fontWeight: 600 }}
+                    >
+                      🚪 Exit Practice
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn" 
+                      onClick={goPrev} 
+                      disabled={current === 0} 
+                      style={{ opacity: current === 0 ? 0.45 : 1, cursor: current === 0 ? "not-allowed" : "pointer" }}
+                    >
+                      ← Previous
                     </button>
                     <button type="button" className="btn mark" onClick={markAndNext}>
                       Mark for Review &amp; Next
                     </button>
                   </div>
-                  <div className="nav-right">
+                  <div className="nav-right" style={{ flexWrap: "wrap", gap: "8px" }}>
                     <button type="button" className="btn ghost" onClick={clearResponse}>
                       Clear Response
                     </button>

@@ -1161,7 +1161,31 @@ img { max-width: 100%; display: block; }
   line-height: 1.6;
   color: var(--ink);
 }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.confirm-actions .btn {
+  height: 42px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.confirm-actions .btn:not(.primary) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+.confirm-actions .btn:not(.primary):hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+.confirm-actions .btn.primary {
+  background: #10b981 !important;
+  color: #090d16 !important;
+  border: 1px solid #34d399 !important;
+  font-weight: 700 !important;
+}
 
 /* ===================================================================
    RESULTS SCREEN
@@ -3245,9 +3269,15 @@ img { max-width: 100%; display: block; }
 
 /* Confirm submit modal */
 .quiz-theme-wrapper[data-theme="sebi"] .confirm-overlay .confirm-box {
-  background: var(--card);
-  color: var(--ink);
-  border-color: var(--line);
+  background: #0d1527 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+.quiz-theme-wrapper[data-theme="sebi"] .confirm-overlay .confirm-box p {
+  color: #f8fafc !important;
+  font-weight: 500 !important;
 }
 
 /* Flag button */
