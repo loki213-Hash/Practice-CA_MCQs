@@ -439,6 +439,7 @@ export default function Quiz() {
 
   const goToQuestion = (index) => {
     const newVisited = [...visited];
+    newVisited[current] = true;
     newVisited[index] = true;
     setVisited(newVisited);
     setCurrent(index);
@@ -786,7 +787,7 @@ export default function Quiz() {
                       <div className="legend-item">
                         <span
                           className="legend-dot"
-                          style={{ background: "var(--red-bg)", border: "1px solid var(--red)" }}
+                          style={{ background: "#ef4444", border: "1px solid #dc2626" }}
                         ></span>
                         Not answered
                       </div>
@@ -1030,7 +1031,7 @@ export default function Quiz() {
                   <div className="li">
                     <span
                       className="pdot"
-                      style={{ background: "var(--red-bg)", border: "1px solid var(--red)" }}
+                      style={{ background: "#ef4444", border: "1px solid #dc2626" }}
                     ></span>
                     Not answered
                   </div>
