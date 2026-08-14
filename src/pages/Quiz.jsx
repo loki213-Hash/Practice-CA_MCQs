@@ -932,35 +932,11 @@ export default function Quiz() {
           <div className="wrap">
             <div className="quiz-grid">
               <div className="qcard">
-                <div className="qmeta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span className="qnum">
-                      QUESTION {current + 1} OF {TOTAL}
-                    </span>
-                    <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleExitPractice}
-                    className="exit-practice-header-btn"
-                    style={{
-                      background: "rgba(239, 68, 68, 0.12)",
-                      border: "1px solid rgba(239, 68, 68, 0.35)",
-                      color: "#f87171",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      padding: "5px 12px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      transition: "all 0.15s ease"
-                    }}
-                    title="Exit practice session and leave at Chapters page"
-                  >
-                    🚪 Exit Practice
-                  </button>
+                <div className="qmeta">
+                  <span className="qnum">
+                    QUESTION {current + 1} OF {TOTAL}
+                  </span>
+                  <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
                 </div>
                 <QuestionBody q={q} className="qtext" />
                 <div className="options">
@@ -1034,12 +1010,11 @@ export default function Quiz() {
                 </div>
 
                 <div className="qnav">
-                  <div className="nav-left" style={{ flexWrap: "wrap", gap: "8px" }}>
+                  <div className="nav-left">
                     <button 
                       type="button" 
                       className="btn exit-btn" 
                       onClick={handleExitPractice}
-                      style={{ background: "rgba(239, 68, 68, 0.12)", borderColor: "rgba(239, 68, 68, 0.35)", color: "#f87171", fontWeight: 600 }}
                     >
                       🚪 Exit Practice
                     </button>
@@ -1056,7 +1031,7 @@ export default function Quiz() {
                       Mark for Review &amp; Next
                     </button>
                   </div>
-                  <div className="nav-right" style={{ flexWrap: "wrap", gap: "8px" }}>
+                  <div className="nav-right">
                     <button type="button" className="btn ghost" onClick={clearResponse}>
                       Clear Response
                     </button>
