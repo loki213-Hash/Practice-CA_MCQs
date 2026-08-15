@@ -6,7 +6,7 @@ import RecoveryCodeModal from "../components/RecoveryCodeModal";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, resetPassword } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [username, setUsername] = useState("");
@@ -288,46 +288,24 @@ export default function Login() {
         return;
       }
 
-      // Invoke reset_student_password secure RPC definition
-      let isSuccess = false;
-      try {
-        const { data: rpcRes, error: rpcErr } = await supabase.rpc("reset_student_password", {
-          target_username: recoveryUsername.trim(),
-          recovery_word1: recoveryCodeInput.trim(),
-          recovery_word2: recoveryCodeInput.trim(),
-          new_password: recoveryNewPassword
-        });
-        if (!rpcErr && rpcRes) {
-          isSuccess = true;
-        }
-      } catch {
-        // Fallback
-      }
+      await resetPassword(recoveryUsername.trim(), recoveryCodeInput.trim(), recoveryNewPassword);
 
-      if (!isSuccess) {
-        isSuccess = true;
-      }
-
-      if (isSuccess) {
-        setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
-        setTimeout(() => {
-          setShowForgotPopover(false);
-          setRecoveryUsername("");
-          setRecoveryCodeInput("");
-          setRecoveryWord1("");
-          setRecoveryWord2("");
-          setRecoveryNewPassword("");
-          setRecoveryConfirmPassword("");
-          setIsRecoveryVerified(false);
-          setRecoverySuccess("");
-          setRecoveryError("");
-        }, 2500);
-      } else {
-        setRecoveryError("Password reset failed. Make sure database function is deployed.");
-      }
+      setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
+      setTimeout(() => {
+        setShowForgotPopover(false);
+        setRecoveryUsername("");
+        setRecoveryCodeInput("");
+        setRecoveryWord1("");
+        setRecoveryWord2("");
+        setRecoveryNewPassword("");
+        setRecoveryConfirmPassword("");
+        setIsRecoveryVerified(false);
+        setRecoverySuccess("");
+        setRecoveryError("");
+      }, 2500);
     } catch (err) {
       console.error(err);
-      setRecoveryError(err.message || "Password reset failed.");
+      setRecoveryError(err.message || "Password reset failed. Make sure your recovery code is correct.");
     } finally {
       setRecoveryLoading(false);
     }

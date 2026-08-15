@@ -134,6 +134,57 @@ export function AuthProvider({ children }) {
     return prefix.replace(".caquiz", "");
   };
 
+  const resetPassword = async (username, recoveryCodeInput, newPassword) => {
+    const cleanUser = username.trim();
+    const cleanCode = recoveryCodeInput.trim();
+
+    let isSuccess = false;
+    let lastError = null;
+
+    // 1. Try single provided_code RPC signature first
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("reset_student_password", {
+        target_username: cleanUser,
+        provided_code: cleanCode,
+        new_password: newPassword
+      });
+      if (!rpcErr && rpcRes === true) {
+        isSuccess = true;
+      } else if (rpcErr) {
+        lastError = rpcErr.message;
+      }
+    } catch (err) {
+      lastError = err.message;
+    }
+
+    // 2. If first RPC signature failed or not yet deployed, try 4-parameter legacy signature
+    if (!isSuccess) {
+      try {
+        const { data: rpcRes2, error: rpcErr2 } = await supabase.rpc("reset_student_password", {
+          target_username: cleanUser,
+          recovery_word1: cleanCode,
+          recovery_word2: cleanCode,
+          new_password: newPassword
+        });
+        if (!rpcErr2 && rpcRes2 === true) {
+          isSuccess = true;
+        } else if (rpcErr2) {
+          lastError = rpcErr2.message;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    if (!isSuccess) {
+      throw new Error(
+        lastError || "Password reset failed. Please ensure your username and 7-character recovery code are correct."
+      );
+    }
+
+    return true;
+  };
+
   const value = {
     user,
     username: getUsername(),
@@ -141,6 +192,7 @@ export function AuthProvider({ children }) {
     register,
     login,
     logout,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

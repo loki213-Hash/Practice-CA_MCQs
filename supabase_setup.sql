@@ -38,11 +38,10 @@ SET
   favourite_place = EXCLUDED.favourite_place,
   firstname_yob = EXCLUDED.firstname_yob;
 
--- 4. Create the secure password reset function (explicitly using extensions.crypt & extensions.gen_salt)
+-- 4. Create the secure password reset function supporting 7-character recovery code or legacy phrases
 CREATE OR REPLACE FUNCTION public.reset_student_password(
   target_username text,
-  recovery_word1 text,
-  recovery_word2 text,
+  provided_code text,
   new_password text
 )
 RETURNS boolean
@@ -53,14 +52,24 @@ AS $$
 DECLARE
   user_uuid uuid;
 BEGIN
-  -- Find the user ID matching username and recovery phrases (case-insensitive & trimmed)
+  -- Find the user ID matching username and 7-char recovery_code or legacy recovery phrases
   SELECT id INTO user_uuid
   FROM public.registered_users
   WHERE lower(trim(username)) = lower(trim(target_username))
-    AND lower(trim(favourite_place)) = lower(trim(recovery_word1))
-    AND lower(trim(firstname_yob)) = lower(trim(recovery_word2));
+    AND (
+      (recovery_code IS NOT NULL AND recovery_code = trim(provided_code))
+      OR lower(trim(favourite_place)) = lower(trim(provided_code))
+      OR lower(trim(firstname_yob)) = lower(trim(provided_code))
+    );
 
-  -- If no matching user is found, return false
+  -- Fallback: check auth.users directly by email or user metadata
+  IF user_uuid IS NULL THEN
+    SELECT id INTO user_uuid
+    FROM auth.users
+    WHERE lower(trim(split_part(email, '.', 1))) = lower(trim(target_username))
+       OR lower(trim(raw_user_meta_data->>'username')) = lower(trim(target_username));
+  END IF;
+
   IF user_uuid IS NULL THEN
     RETURN false;
   END IF;
@@ -74,6 +83,25 @@ BEGIN
 END;
 $$;
 
+-- Overload for backwards compatibility with legacy 4-parameter calls
+CREATE OR REPLACE FUNCTION public.reset_student_password(
+  target_username text,
+  recovery_word1 text,
+  recovery_word2 text,
+  new_password text
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+BEGIN
+  RETURN public.reset_student_password(target_username, recovery_word1, new_password);
+END;
+$$;
+
 -- Grant execution permission to anonymous and authenticated users
+GRANT EXECUTE ON FUNCTION public.reset_student_password(text, text, text) TO anon;
+GRANT EXECUTE ON FUNCTION public.reset_student_password(text, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reset_student_password(text, text, text, text) TO anon;
 GRANT EXECUTE ON FUNCTION public.reset_student_password(text, text, text, text) TO authenticated;
