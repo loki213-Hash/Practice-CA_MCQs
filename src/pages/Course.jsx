@@ -236,18 +236,22 @@ function Course() {
                     </Link>
                   </div>
 
-                  <div className="course-mode-card" style={{ border: "1px solid #e2e8f0", background: "#f8fafc", opacity: 0.75, display: "flex", flexDirection: "column" }}>
+                  <div className="course-mode-card" style={{ border: "2px solid #0F3D3E", background: "#fff", display: "flex", flexDirection: "column" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                      <span className="mode-card-badge" style={{ margin: 0, background: "#e2e8f0", color: "#64748b" }}>Coming Soon</span>
-                      <span style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>Set B</span>
+                      <span className="mode-card-badge exam-badge" style={{ margin: 0 }}>Active Set</span>
+                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F3D3E" }}>100 Questions · 2 Hrs</span>
                     </div>
-                    <h3 style={{ margin: "0 0 8px 0", color: "#475569", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
-                    <p style={{ fontSize: "13.5px", color: "#64748b", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
-                      SCMPE full syllabus exam simulation will be released soon.
+                    <h3 style={{ margin: "0 0 8px 0", color: "#0F3D3E", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
+                    <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
+                      Covers SCMPE syllabus, Standard Costing, Decision Making, and Transfer Pricing with Case Scenarios.
                     </p>
-                    <span className="mode-card-cta disabled-cta" style={{ textAlign: "center" }}>
-                      Coming Soon 🕐
-                    </span>
+                    <Link
+                      to={`/take-test/${courseSlug}?set=SET%20B`}
+                      className="mode-card-cta exam-cta"
+                      style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                    >
+                      Start SET B Exam →
+                    </Link>
                   </div>
                 </>
               )}
@@ -353,18 +357,22 @@ function Course() {
                 </Link>
               </div>
 
-              <div className="course-mode-card" style={{ border: "1px solid #e2e8f0", background: "#f8fafc", opacity: 0.75, display: "flex", flexDirection: "column" }}>
+              <div className="course-mode-card" style={{ border: "2px solid #1E7145", background: "#fff", display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <span className="mode-card-badge" style={{ margin: 0, background: "#e2e8f0", color: "#64748b" }}>Coming Soon</span>
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>Set B</span>
+                  <span className="mode-card-badge practice-badge" style={{ margin: 0 }}>Available</span>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#1E7145" }}>All Chapters + Cases</span>
                 </div>
-                <h3 style={{ margin: "0 0 8px 0", color: "#475569", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
-                <p style={{ fontSize: "13.5px", color: "#64748b", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
-                  SCMPE chapter-wise practice questions will be available soon.
+                <h3 style={{ margin: "0 0 8px 0", color: "#1E7145", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
+                <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
+                  SCMPE chapter-wise practice sets and integrated Case Scenarios with instant explanations.
                 </p>
-                <span className="mode-card-cta disabled-cta" style={{ textAlign: "center" }}>
-                  Coming Soon 🕐
-                </span>
+                <Link
+                  to={`/course/${courseSlug}/SET%20B`}
+                  className="mode-card-cta practice-cta"
+                  style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                >
+                  Select Chapters (SET B) →
+                </Link>
               </div>
 
             </div>

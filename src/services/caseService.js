@@ -1,31 +1,59 @@
 import { supabase } from "../supabase/supabase";
 
-// eslint-disable-next-line no-unused-vars
-export async function getCasesForCourse(courseId) {
+export async function getCasesForCourse(courseId, setType = null) {
   try {
-    // 1. Fetch all published cases
-    const { data: casesData, error: casesErr } = await supabase
+    const decodedSet =
+      setType && setType !== "chapters" && setType.toLowerCase() !== "all"
+        ? decodeURIComponent(setType).trim()
+        : null;
+
+    let query = supabase
       .from("cases")
       .select("*")
-      .eq("is_published", true)
       .order("created_at", { ascending: true });
 
-    if (casesErr) {
-      console.warn("Notice querying cases table:", casesErr.message);
+    // Filter by set_type if provided
+    if (decodedSet) {
+      if (decodedSet.toUpperCase().includes("SET A")) {
+        // SET A: match explicitly labeled SET A cases OR legacy cases where set_type is null
+        query = query.or("set_type.ilike.%SET A%,set_type.is.null");
+      } else {
+        // Other sets (e.g. SET B, Module-1, Module-2)
+        query = query.ilike("set_type", `%${decodedSet}%`);
+      }
     }
 
-    if (!casesData || casesData.length === 0) {
-      // Try without is_published filter (in case column doesn't exist or all are null)
+    const { data: casesData, error: casesErr } = await query;
+
+    if (casesErr) {
+      console.warn("Notice querying cases table with set_type filter:", casesErr.message);
+      // Fallback: in case set_type column doesn't exist yet on cases table in Supabase
       const { data: fallbackCases, error: fbErr } = await supabase
         .from("cases")
         .select("*")
         .order("created_at", { ascending: true });
 
       if (fbErr || !fallbackCases || fallbackCases.length === 0) return [];
-      return formatCasesWithQuestions(fallbackCases);
+
+      // Client-side filter if set_type field is in row objects
+      if (decodedSet) {
+        const filtered = fallbackCases.filter((c) => {
+          if (!c.set_type) return decodedSet.toUpperCase().includes("SET A");
+          return String(c.set_type).toLowerCase().includes(decodedSet.toLowerCase());
+        });
+        return formatCasesWithQuestions(filtered.filter((c) => c.is_published !== false));
+      }
+      return formatCasesWithQuestions(fallbackCases.filter((c) => c.is_published !== false));
     }
 
-    return formatCasesWithQuestions(casesData);
+    if (!casesData || casesData.length === 0) {
+      return [];
+    }
+
+    // Filter out unpublished if is_published field is explicitly false
+    const publishedCases = casesData.filter((c) => c.is_published !== false);
+
+    return formatCasesWithQuestions(publishedCases);
   } catch (err) {
     console.error("Error loading cases from Supabase:", err);
     return [];

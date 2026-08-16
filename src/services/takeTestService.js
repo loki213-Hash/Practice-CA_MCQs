@@ -101,7 +101,7 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
   // Step 3: Fetch & group Case Scenario questions
   let caseGroups = [];
   try {
-    const casesData = await getCasesForCourse(courseId);
+    const casesData = await getCasesForCourse(courseId, setType);
     if (casesData && casesData.length > 0) {
       casesData.forEach((cs) => {
         if (!Array.isArray(cs.questions) || cs.questions.length === 0) return;

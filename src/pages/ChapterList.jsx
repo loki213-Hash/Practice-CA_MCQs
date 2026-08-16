@@ -135,7 +135,7 @@ function ChapterList() {
         const [loadedSubjects, loadedChapters, loadedCases] = await Promise.all([
           getSubjects(loadedCourse.id, decodedSet),
           getChapters(loadedCourse.id, decodedSet),
-          isSpom ? getCasesForCourse(loadedCourse.id).catch(() => []) : Promise.resolve([]),
+          isSpom ? getCasesForCourse(loadedCourse.id, decodedSet).catch(() => []) : Promise.resolve([]),
         ]);
 
         const validSubjects = loadedSubjects || [];
