@@ -5,6 +5,8 @@ import { getQuestionsForChapter } from "../services/questionService";
 import { getChapterById } from "../services/chapterService";
 import { useAuth } from "../context/AuthContext";
 import { saveQuizAttempt } from "../services/progressService";
+import { saveToMistakeVault } from "../services/mistakeVaultService";
+import { toggleBookmark, getBookmarkedIdsSync } from "../services/bookmarkService";
 import { supabase } from "../supabase/supabase";
 
 import { getTopicsForChapter } from "../services/topicService";
@@ -146,6 +148,10 @@ export default function Quiz() {
   const [streakCount, setStreakCount] = useState(0);
   const [streakToast, setStreakToast] = useState(null);
   const streakTimeoutRef = useRef(null);
+
+  // Bookmark state
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => getBookmarkedIdsSync());
+  const [bookmarkTogglingId, setBookmarkTogglingId] = useState(null);
 
   const triggerStreakToast = (title, sub) => {
     if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
@@ -544,6 +550,11 @@ export default function Quiz() {
       totalQuestions: TOTAL,
     }).catch((err) => {
       console.error("Failed to save progress:", err);
+    });
+
+    // Auto-save wrong/skipped questions to persistent Mistake Vault
+    saveToMistakeVault(activeQuestions, answers, chapterId).catch((err) => {
+      console.warn("Vault save notice:", err);
     });
   };
 
@@ -977,6 +988,41 @@ export default function Quiz() {
                       QUESTION {current + 1} OF {TOTAL}
                     </span>
                     <span className="qtopic">{q.topic ? q.topic.toUpperCase() : "GENERAL"}</span>
+                    {/* Bookmark Toggle */}
+                    <button
+                      type="button"
+                      title={bookmarkedIds.has(String(q.id)) ? "Remove bookmark" : "Bookmark this question"}
+                      disabled={bookmarkTogglingId === q.id}
+                      onClick={async () => {
+                        setBookmarkTogglingId(q.id);
+                        try {
+                          const nowBookmarked = await toggleBookmark(q, chapterId);
+                          setBookmarkedIds(prev => {
+                            const next = new Set(prev);
+                            if (nowBookmarked) next.add(String(q.id));
+                            else next.delete(String(q.id));
+                            return next;
+                          });
+                        } catch (e) {
+                          console.warn("Bookmark toggle notice:", e);
+                        } finally {
+                          setBookmarkTogglingId(null);
+                        }
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: bookmarkTogglingId === q.id ? "wait" : "pointer",
+                        fontSize: "16px",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        opacity: bookmarkTogglingId === q.id ? 0.5 : 1,
+                        transition: "opacity 0.15s ease",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {bookmarkedIds.has(String(q.id)) ? "⭐" : "☆"}
+                    </button>
                   </div>
                   <button
                     type="button"

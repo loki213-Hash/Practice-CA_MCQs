@@ -9,6 +9,8 @@ const Quiz = lazy(() => import("./pages/Quiz"));
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const TakeTest = lazy(() => import("./pages/TakeTest"));
+const MistakeVault = lazy(() => import("./pages/MistakeVault"));
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="/course/:courseSlug" element={<Course />} />
         <Route path="/course/:courseSlug/:setType" element={<ChapterList />} />
         <Route path="/quiz/:chapterId" element={<Quiz />} />
+        <Route path="/take-test/:courseSlug" element={<TakeTest />} />
+        <Route path="/vault" element={<MistakeVault />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />

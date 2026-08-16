@@ -4,6 +4,7 @@ import { getCourses } from "../services/courseService";
 import { useAuth } from "../context/AuthContext";
 import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
+import { getVaultCount } from "../services/mistakeVaultService";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
 
@@ -149,6 +150,7 @@ function Home() {
   const [interruptedSession, setInterruptedSession] = useState(null);
   const [showInterruptedModal, setShowInterruptedModal] = useState(false);
   const [totalChaptersInDb, setTotalChaptersInDb] = useState(5);
+  const [vaultCount, setVaultCount] = useState(0);
 
 
   const formatAttemptedCount = (val) => {
@@ -158,7 +160,7 @@ function Home() {
     return val.toLocaleString();
   };
 
-  // Fetch real attempts count from database
+  // Fetch real attempts count + vault count from database
   useEffect(() => {
     async function fetchRealCount() {
       const count = await getTotalAttemptsCount();
@@ -166,6 +168,22 @@ function Home() {
     }
     fetchRealCount();
   }, []);
+
+  useEffect(() => {
+    async function fetchVaultCount() {
+      try {
+        const count = await getVaultCount();
+        setVaultCount(count);
+      } catch (e) {
+        console.warn("Vault count fetch notice:", e);
+      }
+    }
+    if (user) fetchVaultCount();
+    // Refresh vault count whenever progress updates
+    const handleUpdate = () => { if (user) fetchVaultCount(); };
+    window.addEventListener("ca_quiz_progress_updated", handleUpdate);
+    return () => window.removeEventListener("ca_quiz_progress_updated", handleUpdate);
+  }, [user]);
 
   // Check for interrupted quiz session on mount
   useEffect(() => {
@@ -557,6 +575,42 @@ function Home() {
                 )}
               </button>
 
+              {/* Mistake Vault Link */}
+              <Link
+                to="/vault"
+                className="vault-nav-link"
+                title={`Mistake Vault${vaultCount > 0 ? ` — ${vaultCount} questions need revision` : " — No pending revisions"}`}
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  marginRight: "10px",
+                  textDecoration: "none",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: vaultCount > 0 ? "#B08628" : "var(--ink-soft)",
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid",
+                  borderColor: vaultCount > 0 ? "rgba(176,134,40,0.3)" : "var(--hairline)",
+                  background: vaultCount > 0 ? "rgba(176,134,40,0.06)" : "transparent",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                📚 Vault
+                {vaultCount > 0 && (
+                  <span style={{
+                    background: "#B08628",
+                    color: "#fff",
+                    borderRadius: "10px",
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    padding: "1px 6px",
+                    lineHeight: "1.4"
+                  }}>{vaultCount}</span>
+                )}
+              </Link>
               <span className="user-welcome" style={{ marginRight: "16px", fontSize: "14px", fontWeight: "600", color: "var(--navy)" }}>
                 Welcome, <strong>{username}</strong>
               </span>
@@ -640,6 +694,40 @@ function Home() {
             </>
           ) : (
             <>
+              <Link
+                to="/vault"
+                className="vault-nav-link"
+                title="Mistake Vault & Bookmarks"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  marginRight: "10px",
+                  textDecoration: "none",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: vaultCount > 0 ? "#B08628" : "var(--ink-soft)",
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid",
+                  borderColor: vaultCount > 0 ? "rgba(176,134,40,0.3)" : "var(--hairline)",
+                  background: vaultCount > 0 ? "rgba(176,134,40,0.06)" : "transparent",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                📚 Vault
+                {vaultCount > 0 && (
+                  <span style={{
+                    background: "#B08628",
+                    color: "#fff",
+                    borderRadius: "10px",
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    padding: "1px 6px",
+                    lineHeight: "1.4"
+                  }}>{vaultCount}</span>
+                )}
+              </Link>
               <button type="button" className="btn-ghost" onClick={() => navigate("/login")}>Login</button>
               <a href="#levels" className="btn-solid" style={{ textDecoration: "none" }}>Continue as Guest</a>
             </>
@@ -703,11 +791,23 @@ function Home() {
         <div className="levels">
           {cardData.map((course) => {
             const isAvailable = course.available;
+            const isFinal = course.course_slug?.includes("final");
             return (
               <div className={`level-card ${course.themeClass}`} key={course.id}>
                 <div className="stripe"></div>
-                <span className="tag">{course.tag}</span>
-                <h3>{course.course_name === "CA Final" ? "CA Final" : course.course_name}</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span className="tag">{course.tag}</span>
+                  {isAvailable && !isFinal && (
+                    <span style={{ fontSize: "10px", fontWeight: "700", background: "rgba(15,61,62,0.1)", color: "#0F3D3E", padding: "2px 7px", borderRadius: "10px" }}>
+                      🎯 100-Q Exam Live
+                    </span>
+                  )}
+                </div>
+                <h3>
+                  <Link to={`/course/${course.course_slug}`} style={{ color: "inherit", textDecoration: "none" }}>
+                    {course.course_name === "CA Final" ? "CA Final" : course.course_name}
+                  </Link>
+                </h3>
                 <p>{course.desc}</p>
                 <div className="level-meta">
                   {course.papers === "Coming Soon" ? (
@@ -733,7 +833,46 @@ function Home() {
                   )}
                 </div>
 
-                {isAvailable ? (
+                {isAvailable && !isFinal ? (
+                  <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+                    <Link
+                      to={`/course/${course.course_slug}/chapters`}
+                      className="cta"
+                      style={{
+                        flex: "1 1 calc(50% - 4px)",
+                        textAlign: "center",
+                        fontSize: "12.5px",
+                        padding: "9px 12px",
+                        background: "#1E7145",
+                        color: "#fff",
+                        borderRadius: "6px",
+                        fontWeight: "600",
+                        textDecoration: "none",
+                        boxSizing: "border-box"
+                      }}
+                    >
+                      📖 Practice
+                    </Link>
+                    <Link
+                      to={`/take-test/${course.course_slug}`}
+                      className="cta"
+                      style={{
+                        flex: "1 1 calc(50% - 4px)",
+                        textAlign: "center",
+                        fontSize: "12.5px",
+                        padding: "9px 12px",
+                        background: "#0F3D3E",
+                        color: "#fff",
+                        borderRadius: "6px",
+                        fontWeight: "600",
+                        textDecoration: "none",
+                        boxSizing: "border-box"
+                      }}
+                    >
+                      🎯 Take Test (100Q)
+                    </Link>
+                  </div>
+                ) : isAvailable ? (
                   <Link
                     to={`/course/${course.course_slug}`}
                     className="cta"
