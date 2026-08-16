@@ -744,7 +744,14 @@ export default function TakeTest() {
     return (
       <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "50px", paddingBottom: "50px" }}>
         <div style={{ background: "#fff", padding: "36px 40px", borderRadius: "14px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "640px", width: "100%", border: "1px solid #e2e8f0" }}>
-          <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F3D3E", letterSpacing: "1px", textTransform: "uppercase" }}>
+          <Link
+            to={`/course/${courseSlug}`}
+            className="back-link"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "16px", textDecoration: "none", color: "#0F3D3E", fontWeight: "700", fontSize: "14px" }}
+          >
+            ← Back to Exam Selection
+          </Link>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F3D3E", letterSpacing: "1px", textTransform: "uppercase", display: "block" }}>
             EXAM SIMULATION{setParam && ` · ${setParam.toUpperCase()}`}
           </span>
           <h1 style={{ margin: "6px 0 14px 0", color: "#0F3D3E", fontSize: "28px" }}>{course?.course_name}{setLabel}</h1>
@@ -849,11 +856,10 @@ export default function TakeTest() {
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "600" }}>Q {currentIndex + 1}/{questions.length}</div>
-            <div style={{ fontSize: "17px", fontWeight: "bold", fontFamily: "monospace", color: timeLeft <= 600 ? "#dc2626" : "#0F3D3E", background: "#f8fafc", padding: "4px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Q {currentIndex + 1}/{questions.length}</div>
+            <div style={{ fontSize: "17px", fontWeight: "bold", fontFamily: "monospace", color: timeLeft <= 600 ? "#dc2626" : "#0F3D3E", background: "#f8fafc", padding: "4px 12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
               ⏱ {formatTime(timeLeft)}
             </div>
-            <button onClick={handleSubmitClick} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 18px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13.5px" }}>Submit</button>
           </div>
         </div>
 
@@ -1058,14 +1064,27 @@ export default function TakeTest() {
               )}
 
               {/* Navigation row */}
-              <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "36px", paddingTop: "22px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "10px" }}>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={handleClearResponse} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", color: "#475569", fontWeight: "600", fontSize: "13px" }}>Clear</button>
-                  <button onClick={handleMarkAndNext} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #f59e0b", borderRadius: "6px", cursor: "pointer", color: "#d97706", fontWeight: "600", fontSize: "13px" }}>Mark &amp; Next</button>
+              <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "36px", paddingTop: "22px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <button onClick={handleClearResponse} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", color: "#475569", fontWeight: "700", fontSize: "13px" }}>Clear</button>
+                  <button onClick={handleMarkAndNext} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #f59e0b", borderRadius: "6px", cursor: "pointer", color: "#d97706", fontWeight: "700", fontSize: "13px" }}>Mark &amp; Next</button>
                 </div>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={handlePrev} disabled={currentIndex === 0} style={{ padding: "9px 18px", background: currentIndex === 0 ? "#f1f5f9" : "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: currentIndex === 0 ? "not-allowed" : "pointer", color: "#475569", fontWeight: "600", fontSize: "13px" }}>Previous</button>
-                  <button onClick={handleNext} disabled={currentIndex === questions.length - 1} style={{ padding: "9px 26px", background: "#0F3D3E", border: "none", borderRadius: "6px", cursor: currentIndex === questions.length - 1 ? "not-allowed" : "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px" }}>Next</button>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <button onClick={handlePrev} disabled={currentIndex === 0} style={{ padding: "9px 18px", background: currentIndex === 0 ? "#f1f5f9" : "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: currentIndex === 0 ? "not-allowed" : "pointer", color: "#475569", fontWeight: "700", fontSize: "13px" }}>← Previous</button>
+                  {currentIndex === questions.length - 1 ? (
+                    <button onClick={handleSubmitClick} style={{ padding: "9px 28px", background: "#15803d", border: "none", borderRadius: "6px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px", boxShadow: "0 2px 8px rgba(21,128,61,0.3)" }}>
+                      Submit Exam ✓
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={handleNext} style={{ padding: "9px 24px", background: "#0F3D3E", border: "none", borderRadius: "6px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px" }}>
+                        Next Question →
+                      </button>
+                      <button onClick={handleSubmitClick} style={{ padding: "9px 18px", background: "#f8fafc", border: "1.5px solid #0F3D3E", borderRadius: "6px", cursor: "pointer", color: "#0F3D3E", fontWeight: "700", fontSize: "13px", marginLeft: "4px" }}>
+                        Submit Exam
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
