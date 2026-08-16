@@ -4,7 +4,7 @@ import { getCasesForCourse } from "./caseService";
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TOTAL_QUESTIONS = 100;
-const MIN_CASE_QUESTIONS = 5;
+const SEGMENT_CAPACITIES = [20, 20, 20, 20, 11, 9]; // Starts at 1, 21, 41, 61, 81, 92 -> sum = 100
 const MIN_PRIORITY_RATIO = 0.30;
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
@@ -21,16 +21,19 @@ function shuffle(arr) {
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 /**
- * Build a 100-question take-test set.
+ * Build a 100-question take-test set with Case Scenarios placed at:
+ *  - 1st question (Q1)
+ *  - 21st question (Q21)
+ *  - 41st question (Q41)
+ *  - 61st question (Q61)
+ *  - 81st question (Q81)
+ *  - 92nd question (Q92)
  *
- * ORDERING:
- *  1. Case scenario questions FIRST — grouped by case (all sub-questions of
- *     the same case appear consecutively). Cases themselves are shuffled.
- *  2. Priority regular questions next  (>=30% of remaining non-case slots)
- *  3. Regular questions fill the rest
+ * Each case group's related questions appear consecutively.
+ * The rest of each segment is filled with non-case questions (>=30% priority).
  *
  * @param {string|number} courseId
- * @returns {Promise<Array>} Normalized question objects (up to 100)
+ * @returns {Promise<Array>} Normalized question objects (total 100)
  */
 export async function buildTakeTestQuestions(courseId) {
   if (!courseId) throw new Error("courseId is required.");
@@ -49,7 +52,7 @@ export async function buildTakeTestQuestions(courseId) {
 
   const chapterIds = allChapters.map((c) => String(c.id));
 
-  // Step 2: Fetch ALL regular questions (batched to avoid URL-length limits)
+  // Step 2: Fetch ALL regular questions (batched)
   let allQuestions = [];
   const BATCH = 40;
   for (let i = 0; i < chapterIds.length; i += BATCH) {
@@ -80,12 +83,7 @@ export async function buildTakeTestQuestions(courseId) {
   }
 
   // Step 3: Fetch & group Case Scenario questions
-  //
-  // KEY BEHAVIOUR: every case's sub-questions stay together as a group.
-  // We shuffle the ORDER of cases, but within each case the sub-questions
-  // maintain their natural order.
-  //
-  let caseGroups = []; // each entry = array of normalized question objects for one case
+  let caseGroups = [];
   try {
     const casesData = await getCasesForCourse(courseId);
     if (casesData && casesData.length > 0) {
@@ -94,7 +92,7 @@ export async function buildTakeTestQuestions(courseId) {
 
         const groupQs = cs.questions.map((cq, qIdx) => ({
           id: `case_${cs.id}_${cq.id || qIdx}`,
-          case_id: String(cs.id), // unique per case — used for boundary detection in UI
+          case_id: String(cs.id),
           type: "case",
           question: cq.text || "",
           option_a: cq.options?.find((o) => o.letter === "A")?.text || "",
@@ -103,10 +101,11 @@ export async function buildTakeTestQuestions(courseId) {
           option_d: cq.options?.find((o) => o.letter === "D")?.text || "",
           correct_option: (cq.correctLetter || "A").toUpperCase(),
           explanation: cq.explanation || "",
-          topic: "Case Scenario",
+          topic: cs.title || cs.tag || "Case Scenario",
           is_priority: false,
           chapter_id: null,
           case_scenario: {
+            id: String(cs.id),
             title: cs.title || cs.tag || "Case Scenario",
             tag: cs.tag || "",
             paragraphs: cs.paragraphs || [],
@@ -122,50 +121,60 @@ export async function buildTakeTestQuestions(courseId) {
     console.warn("Case scenario fetch notice:", e);
   }
 
-  // Step 4: Pick whole case groups until we reach MIN_CASE_QUESTIONS sub-questions
-  // Shuffle the group ORDER so the exam isn't always the same cases first.
+  // Step 4: Separate priority vs regular non-case questions
+  const priorityQs = shuffle(allQuestions.filter((q) => q.is_priority === true));
+  const regularQs = shuffle(allQuestions.filter((q) => !q.is_priority));
+
+  const sampledPriorityPool = priorityQs.map((q) => ({
+    ...q,
+    type: "priority",
+    case_id: null,
+    case_scenario: null,
+  }));
+  const sampledRegularPool = regularQs.map((q) => ({
+    ...q,
+    type: "regular",
+    case_id: null,
+    case_scenario: null,
+  }));
+
+  // Non-case pool combined
+  let nonCasePool = shuffle([...sampledPriorityPool, ...sampledRegularPool]);
+
+  // Step 5: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
   const shuffledCaseGroups = shuffle(caseGroups);
-  const selectedCaseQs = [];
-  for (const group of shuffledCaseGroups) {
-    selectedCaseQs.push(...group); // always push the FULL group
-    if (selectedCaseQs.length >= MIN_CASE_QUESTIONS) break;
+  const selectedCasesForSegments = shuffledCaseGroups.slice(0, SEGMENT_CAPACITIES.length);
+
+  // Step 6: Assemble questions segment-by-segment
+  const final100 = [];
+
+  for (let segIdx = 0; segIdx < SEGMENT_CAPACITIES.length; segIdx++) {
+    const targetCapacity = SEGMENT_CAPACITIES[segIdx];
+    const segCaseGroup = selectedCasesForSegments[segIdx] || [];
+
+    // Push the whole case group (capped if larger than segment, though typical cases have 4-6 questions)
+    const caseQsToInclude = segCaseGroup.slice(0, targetCapacity);
+    final100.push(...caseQsToInclude);
+
+    // Remaining slots in this segment to reach targetCapacity
+    const remainingSlots = targetCapacity - caseQsToInclude.length;
+    if (remainingSlots > 0 && nonCasePool.length > 0) {
+      const nonCaseSlice = nonCasePool.splice(0, remainingSlots);
+      final100.push(...nonCaseSlice);
+    }
   }
 
-  const caseSlotCount = selectedCaseQs.length;
-  const nonCaseSlots = TOTAL_QUESTIONS - caseSlotCount;
+  // If still under 100 due to short non-case pool, top up with remaining non-case
+  if (final100.length < TOTAL_QUESTIONS && nonCasePool.length > 0) {
+    const needed = TOTAL_QUESTIONS - final100.length;
+    final100.push(...nonCasePool.splice(0, needed));
+  }
 
-  // Step 5: Separate priority vs regular non-case questions
-  const priorityQs = allQuestions.filter((q) => q.is_priority === true);
-  const regularQs  = allQuestions.filter((q) => !q.is_priority);
-
-  const prioritySlotsWanted = Math.ceil(nonCaseSlots * MIN_PRIORITY_RATIO);
-  const prioritySlots = Math.min(prioritySlotsWanted, priorityQs.length);
-  const regularSlots  = Math.max(0, nonCaseSlots - prioritySlots);
-
-  // Step 6: Sample non-case questions
-  const sampledPriorityQs = shuffle(priorityQs)
-    .slice(0, prioritySlots)
-    .map((q) => ({ ...q, type: "priority", case_id: null, case_scenario: null }));
-
-  const priorityIds = new Set(sampledPriorityQs.map((q) => String(q.id)));
-  const availableRegular = regularQs.filter((q) => !priorityIds.has(String(q.id)));
-  const sampledRegularQs = shuffle(availableRegular)
-    .slice(0, regularSlots)
-    .map((q) => ({ ...q, type: "regular", case_id: null, case_scenario: null }));
-
-  // Step 7: Assemble final list
-  //
-  //  ORDER:
-  //    [Case group 1 Qs] -> [Case group 2 Qs] -> ... -> [Priority Qs shuffled] -> [Regular Qs shuffled]
-  //
-  const nonCasePool = shuffle([...sampledPriorityQs, ...sampledRegularQs]);
-  const finalQuestions = [...selectedCaseQs, ...nonCasePool];
-
-  // Step 8: Normalize to common schema
-  return finalQuestions.slice(0, TOTAL_QUESTIONS).map((q) => ({
+  // Step 7: Normalize to common schema
+  return final100.slice(0, TOTAL_QUESTIONS).map((q) => ({
     id: q.id,
     type: q.type || "regular",
-    case_id: q.case_id || null,           // used for detecting case boundaries in UI
+    case_id: q.case_id || null,
     question: String(q.question || q.text || ""),
     option_a: String(q.option_a || ""),
     option_b: String(q.option_b || ""),
