@@ -20,17 +20,15 @@ export default function MistakeVault() {
   const [activeFilter, setActiveFilter] = useState("All");
 
   useEffect(() => {
-    if (user) {
-      loadData();
-    }
+    loadData();
   }, [user]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const [vaultData, bookmarkData] = await Promise.all([
-        getMistakeVaultQuestions(user.id),
-        getAllBookmarks(user.id)
+        getMistakeVaultQuestions(),
+        getAllBookmarks()
       ]);
       setVaultQuestions(vaultData || []);
       setBookmarks(bookmarkData || []);
@@ -51,8 +49,8 @@ export default function MistakeVault() {
   const handleRemoveFromVault = async (e, questionId) => {
     e.stopPropagation();
     try {
-      await removeFromVault(user.id, questionId);
-      setVaultQuestions(prev => prev.filter(q => q.id !== questionId));
+      await removeFromVault(questionId);
+      setVaultQuestions(prev => prev.filter(q => (q.question_id || q.id) !== questionId));
     } catch (error) {
       console.error("Error removing from vault:", error);
     }
@@ -61,8 +59,8 @@ export default function MistakeVault() {
   const handleRemoveBookmark = async (e, questionId) => {
     e.stopPropagation();
     try {
-      await removeBookmark(user.id, questionId);
-      setBookmarks(prev => prev.filter(b => b.question_id !== questionId));
+      await removeBookmark(questionId);
+      setBookmarks(prev => prev.filter(b => (b.question_id || b.id) !== questionId));
     } catch (error) {
       console.error("Error removing bookmark:", error);
     }
@@ -70,16 +68,16 @@ export default function MistakeVault() {
 
   const startEditingNote = (e, bookmark) => {
     e.stopPropagation();
-    setEditingNoteId(bookmark.id);
+    setEditingNoteId(bookmark.question_id || bookmark.id);
     setNoteText(bookmark.sticky_note || "");
   };
 
-  const saveStickyNote = async (e, bookmarkId) => {
+  const saveStickyNote = async (e, questionId) => {
     e.stopPropagation();
     try {
-      await updateStickyNote(bookmarkId, noteText);
+      await updateStickyNote(questionId, noteText);
       setBookmarks(prev => prev.map(b => 
-        b.id === bookmarkId ? { ...b, sticky_note: noteText } : b
+        (b.question_id || b.id) === questionId ? { ...b, sticky_note: noteText } : b
       ));
       setEditingNoteId(null);
     } catch (error) {

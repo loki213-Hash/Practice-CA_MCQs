@@ -137,6 +137,9 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
 }
 
 function Home() {
+  const { user, username, logout } = useAuth();
+  const navigate = useNavigate();
+
   const [courses, setCourses] = useState([]);
   const [stats, setStats] = useState({});
   const [error, setError] = useState("");
@@ -151,7 +154,6 @@ function Home() {
   const [showInterruptedModal, setShowInterruptedModal] = useState(false);
   const [totalChaptersInDb, setTotalChaptersInDb] = useState(5);
   const [vaultCount, setVaultCount] = useState(0);
-
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -178,9 +180,9 @@ function Home() {
         console.warn("Vault count fetch notice:", e);
       }
     }
-    if (user) fetchVaultCount();
+    fetchVaultCount();
     // Refresh vault count whenever progress updates
-    const handleUpdate = () => { if (user) fetchVaultCount(); };
+    const handleUpdate = () => { fetchVaultCount(); };
     window.addEventListener("ca_quiz_progress_updated", handleUpdate);
     return () => window.removeEventListener("ca_quiz_progress_updated", handleUpdate);
   }, [user]);
@@ -215,9 +217,6 @@ function Home() {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
-
-  const { user, username, logout } = useAuth();
-  const navigate = useNavigate();
 
   // Load student notifications/inbox messages
   useEffect(() => {
