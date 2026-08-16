@@ -4,7 +4,10 @@ import { getSetTypes, getSubjects } from "./subjectService";
 export { getSetTypes };
 
 export async function getChapters(courseId, setType) {
-  const decodedSet = setType && setType !== "chapters" ? decodeURIComponent(setType).trim() : null;
+  const decodedSet =
+    setType && setType !== "chapters" && setType.toLowerCase() !== "all"
+      ? decodeURIComponent(setType).trim()
+      : null;
 
   // 1. Check if there are subjects for this course and setType
   const subjects = await getSubjects(courseId, setType);
@@ -18,7 +21,11 @@ export async function getChapters(courseId, setType) {
       .order("display_order");
 
     if (decodedSet) {
-      subQuery = subQuery.ilike("set_type", decodedSet);
+      if (decodedSet.toUpperCase().includes("SET A")) {
+        subQuery = subQuery.or("set_type.ilike.%SET A%,set_type.is.null");
+      } else {
+        subQuery = subQuery.ilike("set_type", `%${decodedSet}%`);
+      }
     }
 
     const { data: chaptersBySubject, error: subErr } = await subQuery;
@@ -28,10 +35,21 @@ export async function getChapters(courseId, setType) {
   }
 
   // 2. Direct fallback: query chapters by course_id and set_type
-  let query = supabase.from("chapters").select("*").eq("course_id", courseId).eq("available", true).order("display_order");
+  let query = supabase
+    .from("chapters")
+    .select("*")
+    .eq("course_id", courseId)
+    .eq("available", true)
+    .order("display_order");
+
   if (decodedSet) {
-    query = query.ilike("set_type", decodedSet);
+    if (decodedSet.toUpperCase().includes("SET A")) {
+      query = query.or("set_type.ilike.%SET A%,set_type.is.null");
+    } else {
+      query = query.ilike("set_type", `%${decodedSet}%`);
+    }
   }
+
   const { data, error } = await query;
   if (error) {
     console.warn("getChapters notice:", error.message);

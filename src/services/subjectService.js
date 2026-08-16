@@ -31,7 +31,10 @@ export async function getSetTypes(courseId) {
 }
 
 export async function getSubjects(courseId, setType) {
-  const decodedSet = setType && setType !== "chapters" ? decodeURIComponent(setType).trim() : null;
+  const decodedSet =
+    setType && setType !== "chapters" && setType.toLowerCase() !== "all"
+      ? decodeURIComponent(setType).trim()
+      : null;
 
   let query = supabase
     .from("subjects")
@@ -40,7 +43,13 @@ export async function getSubjects(courseId, setType) {
     .order("display_order", { ascending: true });
 
   if (decodedSet) {
-    query = query.ilike("set_type", decodedSet);
+    if (decodedSet.toUpperCase().includes("SET A")) {
+      // SET A: match explicitly labeled SET A subjects or legacy subjects with set_type null
+      query = query.or("set_type.ilike.%SET A%,set_type.is.null");
+    } else {
+      // SET B, Module-1, Module-2, etc.
+      query = query.ilike("set_type", `%${decodedSet}%`);
+    }
   }
 
   const { data, error } = await query;
@@ -52,7 +61,13 @@ export async function getSubjects(courseId, setType) {
     return data;
   }
 
-  // Fallback: If querying with set_type returned empty array, fetch ALL subjects for the course
+  // If a specific set was requested (e.g. SET B or Module-1) and no subjects match,
+  // do NOT leak all subjects from other sets!
+  if (decodedSet) {
+    return [];
+  }
+
+  // Fallback: Only when NO set was specified (e.g. full course overview)
   const { data: fallbackData, error: fbErr } = await supabase
     .from("subjects")
     .select("*")

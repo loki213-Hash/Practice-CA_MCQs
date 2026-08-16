@@ -310,8 +310,44 @@ function ChapterList() {
   const isSelectedCases = selectedIndex === "cases";
 
   const getChaptersForSubject = (s) => {
-    if (!s || !chapters) return [];
-    return chapters.filter((ch) => ch && String(ch.subject_id) === String(s.id));
+    if (!s || !chapters || chapters.length === 0) return [];
+
+    const sName = (s.subject_name || "").toLowerCase();
+    const sSlug = (s.subject_slug || "").toLowerCase();
+    const sSet = (s.set_type || "").toLowerCase();
+
+    // 1. Direct ID match
+    const byId = chapters.filter((ch) => ch && String(ch.subject_id) === String(s.id));
+
+    if (byId.length > 0) {
+      // Clean up cross-assigned chapters between Module 1 (Forensics) and Module 2 (Power BI)
+      if ((sName.includes("power bi") || sSet.includes("module-2")) && !sName.includes("forensic")) {
+        const cleaned = byId.filter((ch) => !ch.chapter_name?.toLowerCase().includes("forensic"));
+        if (cleaned.length > 0) return cleaned;
+      }
+      if (sName.includes("forensic") || sSet.includes("module-1")) {
+        const cleaned = byId.filter((ch) => !ch.chapter_name?.toLowerCase().includes("power bi"));
+        if (cleaned.length > 0) return cleaned;
+      }
+      return byId;
+    }
+
+    // 2. Smart fallback if subject has 0 chapters by ID
+    return chapters.filter((ch) => {
+      if (!ch) return false;
+      const cName = (ch.chapter_name || "").toLowerCase();
+      const cSet = (ch.set_type || "").toLowerCase();
+
+      if (sName.includes("forensic") && (cName.includes("forensic") || cSet.includes("module-1"))) {
+        return true;
+      }
+      if (sName.includes("power bi") && (cName.includes("power bi") || cSet.includes("module-2"))) {
+        return true;
+      }
+      if (sSet && cSet && sSet === cSet) return true;
+      if (sSlug && cName.includes(sSlug)) return true;
+      return false;
+    });
   };
 
   const selectedSubjectChapters = selectedSubject ? getChaptersForSubject(selectedSubject) : [];
@@ -449,12 +485,26 @@ function ChapterList() {
 
             <div className="pills">
               <button type="button" className="pill active">
-                All subjects ({subjects.length + (isSpomCourse ? 1 : 0)})
+                All subjects ({subjects.length + (isSpomCourse && casesList.length > 0 ? 1 : 0)})
               </button>
             </div>
 
-            {/* 3D Flip Cards Grid */}
-            <div className="grid">
+            {subjects.length === 0 && (!isSpomCourse || casesList.length === 0) ? (
+              <div style={{ textAlign: "center", padding: "48px 24px", background: "#fff", borderRadius: "12px", border: "1px dashed #cbd5e1", margin: "24px 0" }}>
+                <span style={{ fontSize: "36px", display: "block", marginBottom: "12px" }}>📚</span>
+                <h3 style={{ color: "#0F3D3E", margin: "0 0 8px", fontSize: "19px" }}>
+                  No chapters or subjects in {setType && setType !== "chapters" ? safeDecodeURI(setType) : "this set"} yet
+                </h3>
+                <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto", lineHeight: "1.6" }}>
+                  Add subjects and chapters in Supabase with <code>set_type = &apos;{safeDecodeURI(setType)}&apos;</code> to start practicing.
+                </p>
+                <Link to={`/course/${courseSlug}`} className="start-btn" style={{ fontSize: "13.5px", padding: "10px 22px", textDecoration: "none" }}>
+                  ← Back to Set Selection
+                </Link>
+              </div>
+            ) : (
+              /* 3D Flip Cards Grid */
+              <div className="grid">
               {subjects.map((s, i) => {
                 const isSelected = selectedIndex === i;
                 const subChs = getChaptersForSubject(s);
@@ -559,6 +609,7 @@ function ChapterList() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Clean Full-Width Container Panel Directly Below Grid */}
             <div className={`panel ${selectedIndex !== null ? "open" : ""}`}>
