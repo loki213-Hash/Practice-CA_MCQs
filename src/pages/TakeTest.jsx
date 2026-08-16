@@ -6,6 +6,7 @@ import { saveToMistakeVault } from "../services/mistakeVaultService";
 import { submitFeedback } from "../services/feedbackService";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
+import { toggleBookmark, getBookmarkedIdsSync } from "../services/bookmarkService";
 
 import CaseTableRenderer from "../components/CaseTableRenderer";
 
@@ -500,6 +501,28 @@ export default function TakeTest() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [showTimeUpModal, setShowTimeUpModal] = useState(false);
 
+  // Bookmark states
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => getBookmarkedIdsSync());
+  const [bookmarkTogglingId, setBookmarkTogglingId] = useState(null);
+
+  const handleToggleBookmark = async (q) => {
+    if (!q || !q.id) return;
+    setBookmarkTogglingId(q.id);
+    try {
+      const nowBookmarked = await toggleBookmark(q, q.chapter_id || courseSlug);
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        if (nowBookmarked) next.add(String(q.id));
+        else next.delete(String(q.id));
+        return next;
+      });
+    } catch (e) {
+      console.warn("Bookmark toggle notice:", e);
+    } finally {
+      setBookmarkTogglingId(null);
+    }
+  };
+
   // Modals state
   const [showFullCaseModal, setShowFullCaseModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -944,10 +967,26 @@ export default function TakeTest() {
                 </div>
               )}
 
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px", alignItems: "center" }}>
-                <span style={{ fontSize: "11.5px", background: "#f1f5f9", color: "#475569", padding: "3px 9px", borderRadius: "4px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  {currentQ?.topic || "General"}
-                </span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span className="qtopic">
+                    {currentQ?.topic ? currentQ.topic.toUpperCase() : "GENERAL"}
+                  </span>
+                  <button
+                    type="button"
+                    className={`bookmark-toggle-btn ${bookmarkedIds.has(String(currentQ?.id)) ? "is-bookmarked" : ""}`}
+                    title={bookmarkedIds.has(String(currentQ?.id)) ? "Remove bookmark" : "Bookmark this question"}
+                    disabled={bookmarkTogglingId === currentQ?.id}
+                    onClick={() => handleToggleBookmark(currentQ)}
+                  >
+                    <span className="bookmark-icon">
+                      {bookmarkedIds.has(String(currentQ?.id)) ? "⭐" : "☆"}
+                    </span>
+                    <span className="bookmark-text">
+                      {bookmarkedIds.has(String(currentQ?.id)) ? "Bookmarked" : "Bookmark"}
+                    </span>
+                  </button>
+                </div>
                 {isPriority && <span style={{ color: "#d97706", fontWeight: "700", fontSize: "12.5px", background: "rgba(217,119,6,0.1)", padding: "2px 8px", borderRadius: "4px" }}>(***) Priority Question</span>}
               </div>
 
@@ -1242,11 +1281,26 @@ export default function TakeTest() {
 
                 return (
                   <div key={i} className="take-test-review-card" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                         <span style={{ fontWeight: "800", color: "#0F3D3E", fontSize: "16px" }}>Question {i + 1}</span>
                         <span style={{ background: statusColor, color: "#fff", fontSize: "11.5px", padding: "2px 8px", borderRadius: "12px", fontWeight: "700" }}>{statusText}</span>
                         {marked[i] && <span style={{ background: "#f59e0b", color: "#fff", fontSize: "11.5px", padding: "2px 8px", borderRadius: "12px", fontWeight: "700" }}>Marked</span>}
+                        <button
+                          type="button"
+                          className={`bookmark-toggle-btn ${bookmarkedIds.has(String(q?.id)) ? "is-bookmarked" : ""}`}
+                          title={bookmarkedIds.has(String(q?.id)) ? "Remove bookmark" : "Bookmark this question"}
+                          disabled={bookmarkTogglingId === q?.id}
+                          onClick={() => handleToggleBookmark(q)}
+                          style={{ padding: "2.5px 8px", fontSize: "11px" }}
+                        >
+                          <span className="bookmark-icon" style={{ fontSize: "15px" }}>
+                            {bookmarkedIds.has(String(q?.id)) ? "⭐" : "☆"}
+                          </span>
+                          <span className="bookmark-text">
+                            {bookmarkedIds.has(String(q?.id)) ? "Bookmarked" : "Bookmark"}
+                          </span>
+                        </button>
                       </div>
                       <div style={{ fontSize: "12.5px", color: "#64748b" }}>Time spent: {formatDuration(questionTime[i] || 0)}</div>
                     </div>

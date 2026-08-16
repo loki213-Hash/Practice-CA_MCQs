@@ -991,6 +991,7 @@ export default function Quiz() {
                     {/* Bookmark Toggle */}
                     <button
                       type="button"
+                      className={`bookmark-toggle-btn ${bookmarkedIds.has(String(q.id)) ? "is-bookmarked" : ""}`}
                       title={bookmarkedIds.has(String(q.id)) ? "Remove bookmark" : "Bookmark this question"}
                       disabled={bookmarkTogglingId === q.id}
                       onClick={async () => {
@@ -1009,19 +1010,13 @@ export default function Quiz() {
                           setBookmarkTogglingId(null);
                         }
                       }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: bookmarkTogglingId === q.id ? "wait" : "pointer",
-                        fontSize: "16px",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        opacity: bookmarkTogglingId === q.id ? 0.5 : 1,
-                        transition: "opacity 0.15s ease",
-                        lineHeight: 1,
-                      }}
                     >
-                      {bookmarkedIds.has(String(q.id)) ? "⭐" : "☆"}
+                      <span className="bookmark-icon">
+                        {bookmarkedIds.has(String(q.id)) ? "⭐" : "☆"}
+                      </span>
+                      <span className="bookmark-text">
+                        {bookmarkedIds.has(String(q.id)) ? "Bookmarked" : "Bookmark"}
+                      </span>
                     </button>
                   </div>
                   <button
@@ -1449,9 +1444,41 @@ export default function Quiz() {
                   return (
                     <div key={i} className="review-card">
                       <div className="rtop">
-                        <span className="qnum mono" style={{ color: "var(--brass)" }}>
-                          Q{i + 1} &middot; {q.topic || "General"}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span className="qnum mono" style={{ color: "var(--brass)" }}>
+                            Q{i + 1} &middot; {q.topic || "General"}
+                          </span>
+                          <button
+                            type="button"
+                            className={`bookmark-toggle-btn ${bookmarkedIds.has(String(q.id)) ? "is-bookmarked" : ""}`}
+                            title={bookmarkedIds.has(String(q.id)) ? "Remove bookmark" : "Bookmark this question"}
+                            disabled={bookmarkTogglingId === q.id}
+                            onClick={async () => {
+                              setBookmarkTogglingId(q.id);
+                              try {
+                                const nowBookmarked = await toggleBookmark(q, chapterId);
+                                setBookmarkedIds(prev => {
+                                  const next = new Set(prev);
+                                  if (nowBookmarked) next.add(String(q.id));
+                                  else next.delete(String(q.id));
+                                  return next;
+                                });
+                              } catch (e) {
+                                console.warn("Bookmark toggle notice:", e);
+                              } finally {
+                                setBookmarkTogglingId(null);
+                              }
+                            }}
+                            style={{ padding: "2.5px 8px", fontSize: "11px" }}
+                          >
+                            <span className="bookmark-icon" style={{ fontSize: "15px" }}>
+                              {bookmarkedIds.has(String(q.id)) ? "⭐" : "☆"}
+                            </span>
+                            <span className="bookmark-text">
+                              {bookmarkedIds.has(String(q.id)) ? "Bookmarked" : "Bookmark"}
+                            </span>
+                          </button>
+                        </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           {marked[i] && (
                             <span className="status-tag" style={{ background: "#ECE6F6", color: "#5B4B8A", borderColor: "#5B4B8A", fontWeight: 600 }}>

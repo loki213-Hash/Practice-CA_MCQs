@@ -244,7 +244,7 @@ export default function MistakeVault() {
                         >
                           {/* Top Meta */}
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                            <span style={{ fontSize: "11.5px", fontWeight: "700", background: "#f1f5f9", color: "#475569", padding: "3px 9px", borderRadius: "4px", textTransform: "uppercase" }}>
+                            <span className="qtopic" style={{ fontSize: "11.5px" }}>
                               {q.topic || "General"}
                             </span>
                             <div style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
