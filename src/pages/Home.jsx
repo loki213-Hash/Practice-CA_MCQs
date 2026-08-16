@@ -501,38 +501,6 @@ function Home() {
           </div>
         </Link>
 
-        <nav className="links">
-          <a 
-            href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="portal-link link-icai"
-          >
-            🎯 SPOM Slots
-          </a>
-          <a 
-            href="https://www.icaionlineregistration.org/launchbatchdetail.aspx" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="portal-link link-bos"
-          >
-            🎓 Adv MCS / ITT Slots
-          </a>
-          <a 
-            href="https://eservices.icai.org/" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="portal-link link-ssp"
-          >
-            <img 
-              src="https://www.icai.org/images/favicon.ico" 
-              alt="ICAI SSP" 
-              className="portal-icon" 
-              onError={(e) => { e.target.src = "/ca-logo.png"; }}
-            />
-            <span style={{ fontWeight: 700, color: "#dc2626", textDecoration: "underline" }}>ICAI SSP</span>
-          </a>
-        </nav>
 
         <div className="nav-actions" style={{ position: "relative" }}>
           {user ? (
@@ -845,6 +813,98 @@ function Home() {
           })}
         </div>
       </section>
+
+      {/* ---------- Official ICAI Student Utility Portals & Slot Trackers ---------- */}
+      <section className="icai-portals-section" style={{ maxWidth: "1200px", margin: "48px auto 0", padding: "0 20px" }}>
+        <div style={{ textAlign: "center", marginBottom: "28px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "800", letterSpacing: "1px", textTransform: "uppercase", color: "var(--brass)" }}>
+            OFFICIAL ICAI UTILITIES
+          </span>
+          <h2 style={{ margin: "6px 0 8px", fontSize: "26px", color: "var(--navy)", fontFamily: "var(--ff-serif)" }}>
+            Exam Slots &amp; ICAI Portals
+          </h2>
+          <p style={{ color: "var(--ink-soft)", fontSize: "14.5px", margin: 0 }}>
+            Quick access to live slot availability, training batches, and ICAI Self Service Portal.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          
+          {/* Card 1: SPOM Slots */}
+          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
+              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(15,61,62,0.08)", color: "#0F3D3E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+                🎯
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0F3D3E", textTransform: "uppercase", letterSpacing: "0.5px" }}>Self-Paced Module</span>
+                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>SPOM Exam Slot Booking</h3>
+              </div>
+            </div>
+            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+              Check real-time test center availability, exam dates, and book your SPOM Set A &amp; Set B assessment slots.
+            </p>
+            <a
+              href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", background: "#0F3D3E", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              Check SPOM Slots ↗
+            </a>
+          </div>
+
+          {/* Card 2: Adv MCS / ITT Slots */}
+          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
+              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(11,37,69,0.08)", color: "#0B2545", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+                🎓
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0B2545", textTransform: "uppercase", letterSpacing: "0.5px" }}>ICAI Training</span>
+                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>Adv MCS &amp; ITT Batches</h3>
+              </div>
+            </div>
+            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+              Find and enroll in upcoming virtual &amp; physical batches across all regional ICAI branches and chapters.
+            </p>
+            <a
+              href="https://www.icaionlineregistration.org/launchbatchdetail.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", background: "#0B2545", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              Find ITT / MCS Batches ↗
+            </a>
+          </div>
+
+          {/* Card 3: ICAI SSP Portal */}
+          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
+              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(184,51,42,0.08)", color: "#b8332a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+                🏛️
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#b8332a", textTransform: "uppercase", letterSpacing: "0.5px" }}>Member &amp; Student</span>
+                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>ICAI Self Service Portal</h3>
+              </div>
+            </div>
+            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+              Access articleship forms (Form 102/103/108), exam application forms, transcript requests, and profile management.
+            </p>
+            <a
+              href="https://eservices.icai.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", background: "#b8332a", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              Launch ICAI SSP ↗
+            </a>
+          </div>
+
+        </div>
+      </section>
+
 
       {/* ---------- How it works ---------- */}
       <section id="how">

@@ -438,51 +438,7 @@ function ChapterList() {
 
         {viewMode === "grid" ? (
           <>
-            {/* Top Banner: Direct jump to 100-Q Exam Simulation */}
-            <div style={{
-              background: "linear-gradient(135deg, #0F3D3E 0%, #1a5657 100%)",
-              borderRadius: "12px",
-              padding: "16px 20px",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-              marginBottom: "24px",
-              boxShadow: "0 4px 14px rgba(15,61,62,0.16)",
-              flexWrap: "wrap"
-            }}>
-              <div>
-                <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", fontWeight: "700", color: "#6ee7b7" }}>
-                  🎯 Full ICAI Exam Simulation
-                </div>
-                <div style={{ fontSize: "16px", fontWeight: "700", marginTop: "2px" }}>
-                  Take 100-Question Exam (All Chapters + Case Scenarios)
-                </div>
-                <div style={{ fontSize: "12.5px", opacity: 0.85, marginTop: "2px" }}>
-                  2-hour timer · Case scenarios first · No instant answers · Full results review
-                </div>
-              </div>
-              <Link
-                to={`/take-test/${courseSlug}`}
-                style={{
-                  background: "#fff",
-                  color: "#0F3D3E",
-                  padding: "10px 18px",
-                  borderRadius: "8px",
-                  fontWeight: "700",
-                  fontSize: "13.5px",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px"
-                }}
-              >
-                Start 100-Q Exam →
-              </Link>
-            </div>
+
 
             <div className="eyebrow">
               {course.course_name} &middot; {setType && setType !== "chapters" ? safeDecodeURI(setType) : "CHAPTER PRACTICE"} &middot; {totalCourseQuestions + (isSpomCourse ? totalCaseQuestions : 0)} MCQS

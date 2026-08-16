@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getMistakeVaultQuestions, removeFromVault } from "../services/mistakeVaultService";
@@ -6,7 +6,7 @@ import { getAllBookmarks, removeBookmark, updateStickyNote } from "../services/b
 
 export default function MistakeVault() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("vault"); // "vault" | "bookmarks"
+  const [activeTab, setActiveTab] = useState("bookmarks"); // Default to bookmarks tab
   
   // Data states
   const [vaultQuestions, setVaultQuestions] = useState([]);
@@ -17,7 +17,7 @@ export default function MistakeVault() {
   const [expandedCards, setExpandedCards] = useState({});
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [noteText, setNoteText] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadData();
@@ -85,115 +85,258 @@ export default function MistakeVault() {
     }
   };
 
-  // Get unique topics for vault filter
-  const topics = ["All", ...new Set(vaultQuestions.map(q => q.topic).filter(Boolean))];
+  // Search filtering
+  const filteredBookmarks = useMemo(() => {
+    if (!searchQuery.trim()) return bookmarks;
+    const q = searchQuery.toLowerCase();
+    return bookmarks.filter(b => {
+      const text = b.question?.question_text || b.question_text || "";
+      const topic = b.question?.topic || b.topic || "";
+      const note = b.sticky_note || "";
+      return text.toLowerCase().includes(q) || topic.toLowerCase().includes(q) || note.toLowerCase().includes(q);
+    });
+  }, [bookmarks, searchQuery]);
 
-  const filteredVault = activeFilter === "All" 
-    ? vaultQuestions 
-    : vaultQuestions.filter(q => q.topic === activeFilter);
+  const filteredVault = useMemo(() => {
+    if (!searchQuery.trim()) return vaultQuestions;
+    const q = searchQuery.toLowerCase();
+    return vaultQuestions.filter(item => {
+      const text = item.question_text || "";
+      const topic = item.topic || "";
+      return text.toLowerCase().includes(q) || topic.toLowerCase().includes(q);
+    });
+  }, [vaultQuestions, searchQuery]);
 
   return (
-    <div className="vault-page">
-      <nav className="vault-nav">
-        <Link to="/" className="back-link">← Back to Home</Link>
-        <h1 className="vault-title">Study Vault</h1>
-        <div className="vault-tabs">
-          <button 
-            className={`vault-tab ${activeTab === "vault" ? "active" : ""}`}
-            onClick={() => setActiveTab("vault")}
+    <div className="vault-page-container" style={{ minHeight: "100vh", background: "#f8fafc", paddingBottom: "60px" }}>
+      
+      {/* Top Navigation */}
+      <nav style={{ background: "#ffffff", borderBottom: "1px solid #e2e8f0", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <Link to="/" style={{ textDecoration: "none", color: "#0F3D3E", fontWeight: "700", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+            ← Home
+          </Link>
+          <div style={{ borderLeft: "1px solid #e2e8f0", paddingLeft: "16px" }}>
+            <h1 style={{ margin: 0, fontSize: "18px", color: "#0F3D3E", fontWeight: "800" }}>Personal Revision Vault</h1>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "8px", gap: "4px" }}>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("bookmarks"); setSearchQuery(""); }}
+            style={{
+              border: "none",
+              background: activeTab === "bookmarks" ? "#0F3D3E" : "transparent",
+              color: activeTab === "bookmarks" ? "#ffffff" : "#475569",
+              padding: "7px 16px",
+              borderRadius: "6px",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
           >
-            Mistake Vault
+            ⭐ Bookmarks ({bookmarks.length})
           </button>
-          <button 
-            className={`vault-tab ${activeTab === "bookmarks" ? "active" : ""}`}
-            onClick={() => setActiveTab("bookmarks")}
+          <button
+            type="button"
+            onClick={() => { setActiveTab("vault"); setSearchQuery(""); }}
+            style={{
+              border: "none",
+              background: activeTab === "vault" ? "#0F3D3E" : "transparent",
+              color: activeTab === "vault" ? "#ffffff" : "#475569",
+              padding: "7px 16px",
+              borderRadius: "6px",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
           >
-            Bookmarks
+            ❌ Mistake Vault ({vaultQuestions.length})
           </button>
         </div>
       </nav>
 
-      <div className="vault-content">
-        <div className="vault-stats-bar">
-          <span className="stat-item">📚 {vaultQuestions.length} in vault</span>
-          <span className="stat-item">⭐ {bookmarks.length} bookmarked</span>
+      {/* Main Content Area */}
+      <div style={{ maxWidth: "960px", margin: "32px auto 0", padding: "0 20px" }}>
+        
+        {/* Header Description & Search Bar */}
+        <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "20px 24px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <div>
+            <h2 style={{ margin: "0 0 4px", fontSize: "18px", color: "#0F3D3E" }}>
+              {activeTab === "bookmarks" ? "⭐ Starred & Saved Questions" : "❌ Practice Mistakes & Weak Questions"}
+            </h2>
+            <p style={{ margin: 0, fontSize: "13.5px", color: "#64748b" }}>
+              {activeTab === "bookmarks"
+                ? "Questions you bookmarked with your personal sticky notes for quick recall."
+                : "Questions answered incorrectly during exam simulations and practice sessions."}
+            </p>
+          </div>
+
+          <div style={{ minWidth: "260px" }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 Search questions or notes..."
+              style={{
+                width: "100%",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: "1.5px solid #cbd5e1",
+                fontSize: "13.5px",
+                boxSizing: "border-box",
+                outline: "none"
+              }}
+            />
+          </div>
         </div>
 
+        {/* Loading Spinner */}
         {isLoading ? (
-          <div className="loading-state">Loading your vault...</div>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#0F3D3E" }}>
+            <h3 style={{ margin: 0 }}>Loading your questions...</h3>
+          </div>
         ) : (
           <>
-            {/* VAULT TAB */}
-            {activeTab === "vault" && (
-              <div className="tab-pane vault-pane">
-                {vaultQuestions.length > 0 && (
-                  <div className="vault-filter-chips">
-                    {topics.map(topic => (
-                      <button 
-                        key={topic}
-                        className={`vault-chip ${activeFilter === topic ? "active" : ""}`}
-                        onClick={() => setActiveFilter(topic)}
-                      >
-                        {topic}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {vaultQuestions.length === 0 ? (
-                  <div className="vault-empty">
-                    <div className="empty-icon">🎉</div>
-                    <h3>Vault is clear!</h3>
-                    <p>Keep practicing to track weak areas.</p>
-                    <Link to="/practice" className="primary-btn">Start Practice</Link>
+            {/* BOOKMARKS TAB */}
+            {activeTab === "bookmarks" && (
+              <div>
+                {filteredBookmarks.length === 0 ? (
+                  <div style={{ background: "#fff", border: "1px dashed #cbd5e1", borderRadius: "12px", padding: "48px 24px", textAlign: "center", color: "#64748b" }}>
+                    <div style={{ fontSize: "40px", marginBottom: "12px" }}>⭐</div>
+                    <h3 style={{ color: "#0F3D3E", margin: "0 0 8px" }}>No Bookmarked Questions Found</h3>
+                    <p style={{ fontSize: "14px", margin: "0 0 20px" }}>
+                      {searchQuery ? "No bookmarks match your search keyword." : "Star difficult or important questions during practice to review them here."}
+                    </p>
+                    <Link to="/" style={{ textDecoration: "none", background: "#0F3D3E", color: "#fff", padding: "9px 20px", borderRadius: "6px", fontWeight: "700", fontSize: "13.5px" }}>
+                      Practice Questions →
+                    </Link>
                   </div>
                 ) : (
-                  <div className="question-list">
-                    {filteredVault.map((q) => {
-                      const isExpanded = expandedCards[q.id];
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {filteredBookmarks.map((b, idx) => {
+                      const q = b.question || b;
+                      const qId = b.question_id || b.id;
+                      const isExpanded = expandedCards[qId];
+                      const isEditing = editingNoteId === qId;
+
                       return (
-                        <div 
-                          key={q.id} 
-                          className={`vault-question-card ${isExpanded ? "expanded" : ""}`}
-                          onClick={() => toggleExpand(q.id)}
+                        <div
+                          key={qId || idx}
+                          onClick={() => toggleExpand(qId)}
+                          style={{
+                            background: "#ffffff",
+                            border: "1.5px solid #e2e8f0",
+                            borderRadius: "12px",
+                            padding: "20px 24px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                          }}
                         >
-                          <div className="card-header">
-                            <span className="vault-q-topic-badge">{q.topic || 'General'}</span>
-                            <div className="vault-q-actions">
-                              <button 
-                                className="vault-remove-btn"
-                                onClick={(e) => handleRemoveFromVault(e, q.id)}
+                          {/* Top Meta */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                            <span style={{ fontSize: "11.5px", fontWeight: "700", background: "#f1f5f9", color: "#475569", padding: "3px 9px", borderRadius: "4px", textTransform: "uppercase" }}>
+                              {q.topic || "General"}
+                            </span>
+                            <div style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={(e) => startEditingNote(e, b)}
+                                style={{ background: "transparent", border: "1px solid #cbd5e1", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", color: "#0F3D3E", fontWeight: "600", cursor: "pointer" }}
                               >
-                                Remove ✓ Mastered
+                                📝 {b.sticky_note ? "Edit Note" : "+ Add Note"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleRemoveBookmark(e, qId)}
+                                style={{ background: "transparent", border: "1px solid #fca5a5", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", color: "#dc2626", fontWeight: "600", cursor: "pointer" }}
+                              >
+                                Remove Star
                               </button>
                             </div>
                           </div>
-                          
-                          <p className="vault-q-text">
-                            {isExpanded ? q.question_text : 
-                              (q.question_text?.length > 120 ? q.question_text.substring(0, 120) + "..." : q.question_text)}
+
+                          {/* Question Text */}
+                          <p style={{ margin: "0 0 14px", fontSize: "15.5px", fontWeight: "600", color: "#0f172a", lineHeight: "1.6" }}>
+                            {q.question_text || q.question}
                           </p>
 
-                          {isExpanded && (
-                            <div className="vault-expand-section">
-                              <div className="options-list">
-                                {['a', 'b', 'c', 'd'].map(optKey => (
-                                  <div 
-                                    key={optKey} 
-                                    className={`vault-opt ${q.correct_option === optKey ? "correct-ans" : ""}`}
-                                  >
-                                    <span className="opt-label">{optKey.toUpperCase()})</span>
-                                    <span className="opt-text">{q[`option_${optKey}`]}</span>
+                          {/* Sticky Note Box */}
+                          {(b.sticky_note || isEditing) && (
+                            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "12px 14px", margin: "12px 0", fontSize: "13.5px", color: "#92400e" }} onClick={(e) => e.stopPropagation()}>
+                              {isEditing ? (
+                                <div>
+                                  <textarea
+                                    value={noteText}
+                                    onChange={(e) => setNoteText(e.target.value)}
+                                    placeholder="Write personal revision memory hooks..."
+                                    rows={3}
+                                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #fde68a", fontFamily: "inherit", fontSize: "13px", boxSizing: "border-box" }}
+                                  />
+                                  <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
+                                    <button onClick={(e) => saveStickyNote(e, qId)} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "5px 14px", borderRadius: "4px", fontWeight: "700", fontSize: "12px", cursor: "pointer" }}>Save</button>
+                                    <button onClick={() => setEditingNoteId(null)} style={{ background: "#fff", color: "#475569", border: "1px solid #cbd5e1", padding: "5px 12px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
                                   </div>
-                                ))}
+                                </div>
+                              ) : (
+                                <div><strong>📌 Sticky Note:</strong> {b.sticky_note}</div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Expanded Options & Explanation */}
+                          {isExpanded && (
+                            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                                {["a", "b", "c", "d"].map((optKey) => {
+                                  const optText = q[`option_${optKey}`];
+                                  if (!optText) return null;
+                                  const isCorrect = (q.correct_option || "").toLowerCase() === optKey;
+
+                                  return (
+                                    <div
+                                      key={optKey}
+                                      style={{
+                                        border: isCorrect ? "1.5px solid #1E7145" : "1px solid #e2e8f0",
+                                        background: isCorrect ? "rgba(30,113,69,0.06)" : "#f8fafc",
+                                        padding: "10px 14px",
+                                        borderRadius: "6px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px",
+                                        fontSize: "14px",
+                                        color: isCorrect ? "#166534" : "#334155",
+                                        fontWeight: isCorrect ? "600" : "400"
+                                      }}
+                                    >
+                                      <span style={{ fontWeight: "700", minWidth: "22px" }}>{optKey.toUpperCase()}.</span>
+                                      <span>{optText}</span>
+                                      {isCorrect && <span style={{ marginLeft: "auto", fontSize: "12px", fontWeight: "700" }}>✓ Correct</span>}
+                                    </div>
+                                  );
+                                })}
                               </div>
+
                               {q.explanation && (
-                                <div className="vault-explanation">
+                                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 14px", borderRadius: "8px", fontSize: "13.5px", color: "#166534", lineHeight: "1.6" }}>
                                   <strong>Explanation:</strong> {q.explanation}
                                 </div>
                               )}
                             </div>
                           )}
+
+                          <div style={{ textAlign: "right", marginTop: "8px", fontSize: "12px", color: "#0F3D3E", fontWeight: "600" }}>
+                            {isExpanded ? "▲ Collapse" : "▼ Tap to view options & explanation"}
+                          </div>
                         </div>
                       );
                     })}
@@ -202,97 +345,100 @@ export default function MistakeVault() {
               </div>
             )}
 
-            {/* BOOKMARKS TAB */}
-            {activeTab === "bookmarks" && (
-              <div className="tab-pane bookmarks-pane">
-                {bookmarks.length === 0 ? (
-                  <div className="vault-empty">
-                    <div className="empty-icon">⭐</div>
-                    <h3>No bookmarks yet</h3>
-                    <p>Star questions during practice to save them here.</p>
-                    <Link to="/practice" className="primary-btn">Start Practice</Link>
+            {/* MISTAKE VAULT TAB */}
+            {activeTab === "vault" && (
+              <div>
+                {filteredVault.length === 0 ? (
+                  <div style={{ background: "#fff", border: "1px dashed #cbd5e1", borderRadius: "12px", padding: "48px 24px", textAlign: "center", color: "#64748b" }}>
+                    <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎉</div>
+                    <h3 style={{ color: "#1E7145", margin: "0 0 8px" }}>Mistake Vault is Clear!</h3>
+                    <p style={{ fontSize: "14px", margin: "0 0 20px" }}>
+                      {searchQuery ? "No mistake questions match your search keyword." : "Any question answered incorrectly in mock tests or practice is auto-saved here."}
+                    </p>
+                    <Link to="/" style={{ textDecoration: "none", background: "#0F3D3E", color: "#fff", padding: "9px 20px", borderRadius: "6px", fontWeight: "700", fontSize: "13.5px" }}>
+                      Take Practice Exam →
+                    </Link>
                   </div>
                 ) : (
-                  <div className="question-list">
-                    {bookmarks.map((b) => {
-                      const q = b.question; // Assuming relation brings question details
-                      if (!q) return null;
-                      
-                      const isExpanded = expandedCards[`b_${b.id}`];
-                      const isEditing = editingNoteId === b.id;
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {filteredVault.map((q, idx) => {
+                      const qId = q.question_id || q.id;
+                      const isExpanded = expandedCards[qId];
 
                       return (
-                        <div 
-                          key={b.id} 
-                          className={`vault-question-card ${isExpanded ? "expanded" : ""}`}
-                          onClick={() => toggleExpand(`b_${b.id}`)}
+                        <div
+                          key={qId || idx}
+                          onClick={() => toggleExpand(qId)}
+                          style={{
+                            background: "#ffffff",
+                            border: "1.5px solid #e2e8f0",
+                            borderRadius: "12px",
+                            padding: "20px 24px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                          }}
                         >
-                          <div className="card-header">
-                            <span className="vault-q-topic-badge">{q.topic || 'General'}</span>
-                            <div className="vault-q-actions">
-                              <button 
-                                className="action-btn"
-                                onClick={(e) => startEditingNote(e, b)}
-                              >
-                                📝 Edit Note
-                              </button>
-                              <button 
-                                className="action-btn danger"
-                                onClick={(e) => handleRemoveBookmark(e, q.id)}
-                              >
-                                Remove Bookmark
-                              </button>
-                            </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                            <span style={{ fontSize: "11.5px", fontWeight: "700", background: "rgba(220,38,38,0.08)", color: "#dc2626", padding: "3px 9px", borderRadius: "4px", textTransform: "uppercase" }}>
+                              {q.topic || "General"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleRemoveFromVault(e, qId)}
+                              style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", color: "#166534", fontWeight: "700", cursor: "pointer" }}
+                            >
+                              ✓ Mastered &amp; Remove
+                            </button>
                           </div>
-                          
-                          <p className="vault-q-text">
-                            {isExpanded ? q.question_text : 
-                              (q.question_text?.length > 120 ? q.question_text.substring(0, 120) + "..." : q.question_text)}
+
+                          <p style={{ margin: "0 0 14px", fontSize: "15.5px", fontWeight: "600", color: "#0f172a", lineHeight: "1.6" }}>
+                            {q.question_text || q.question}
                           </p>
 
-                          {/* Sticky Note Section */}
-                          {(b.sticky_note || isEditing) && (
-                            <div className="vault-sticky-note" onClick={e => e.stopPropagation()}>
-                              {isEditing ? (
-                                <div className="note-edit-container">
-                                  <textarea 
-                                    className="vault-note-input"
-                                    value={noteText}
-                                    onChange={(e) => setNoteText(e.target.value)}
-                                    placeholder="Type your study note here..."
-                                    autoFocus
-                                  />
-                                  <div className="note-actions">
-                                    <button onClick={(e) => saveStickyNote(e, b.id)}>Save Note</button>
-                                    <button onClick={(e) => { e.stopPropagation(); setEditingNoteId(null); }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="note-display">📌 {b.sticky_note}</p>
-                              )}
-                            </div>
-                          )}
-
                           {isExpanded && (
-                            <div className="vault-expand-section">
-                              <div className="options-list">
-                                {['a', 'b', 'c', 'd'].map(optKey => (
-                                  <div 
-                                    key={optKey} 
-                                    className={`vault-opt ${q.correct_option === optKey ? "correct-ans" : ""}`}
-                                  >
-                                    <span className="opt-label">{optKey.toUpperCase()})</span>
-                                    <span className="opt-text">{q[`option_${optKey}`]}</span>
-                                  </div>
-                                ))}
+                            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                                {["a", "b", "c", "d"].map((optKey) => {
+                                  const optText = q[`option_${optKey}`];
+                                  if (!optText) return null;
+                                  const isCorrect = (q.correct_option || "").toLowerCase() === optKey;
+
+                                  return (
+                                    <div
+                                      key={optKey}
+                                      style={{
+                                        border: isCorrect ? "1.5px solid #1E7145" : "1px solid #e2e8f0",
+                                        background: isCorrect ? "rgba(30,113,69,0.06)" : "#f8fafc",
+                                        padding: "10px 14px",
+                                        borderRadius: "6px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px",
+                                        fontSize: "14px",
+                                        color: isCorrect ? "#166534" : "#334155",
+                                        fontWeight: isCorrect ? "600" : "400"
+                                      }}
+                                    >
+                                      <span style={{ fontWeight: "700", minWidth: "22px" }}>{optKey.toUpperCase()}.</span>
+                                      <span>{optText}</span>
+                                      {isCorrect && <span style={{ marginLeft: "auto", fontSize: "12px", fontWeight: "700" }}>✓ Correct</span>}
+                                    </div>
+                                  );
+                                })}
                               </div>
+
                               {q.explanation && (
-                                <div className="vault-explanation">
+                                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 14px", borderRadius: "8px", fontSize: "13.5px", color: "#166534", lineHeight: "1.6" }}>
                                   <strong>Explanation:</strong> {q.explanation}
                                 </div>
                               )}
                             </div>
                           )}
+
+                          <div style={{ textAlign: "right", marginTop: "8px", fontSize: "12px", color: "#0F3D3E", fontWeight: "600" }}>
+                            {isExpanded ? "▲ Collapse" : "▼ Tap to view options & explanation"}
+                          </div>
                         </div>
                       );
                     })}
@@ -303,216 +449,6 @@ export default function MistakeVault() {
           </>
         )}
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .vault-page {
-          max-width: 1000px;
-          margin: 0 auto;
-          background: #f8fafc;
-          min-height: 100vh;
-        }
-        .vault-nav {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem 2rem;
-          background: white;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        .back-link {
-          text-decoration: none;
-          color: #64748b;
-          font-weight: 500;
-        }
-        .vault-title {
-          font-size: 1.5rem;
-          margin: 0;
-          color: #0f172a;
-        }
-        .vault-tabs {
-          display: flex;
-          gap: 1rem;
-        }
-        .vault-tab {
-          padding: 0.5rem 1rem;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-weight: 600;
-          color: #64748b;
-          border-bottom: 2px solid transparent;
-        }
-        .vault-tab.active {
-          color: #2563eb;
-          border-bottom-color: #2563eb;
-        }
-        .vault-content {
-          padding: 2rem;
-        }
-        .vault-stats-bar {
-          display: flex;
-          gap: 2rem;
-          margin-bottom: 2rem;
-          color: #475569;
-          font-weight: 500;
-        }
-        .vault-filter-chips {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-          margin-bottom: 1.5rem;
-        }
-        .vault-chip {
-          padding: 0.25rem 0.75rem;
-          border-radius: 999px;
-          border: 1px solid #cbd5e1;
-          background: white;
-          cursor: pointer;
-          font-size: 0.875rem;
-          color: #475569;
-        }
-        .vault-chip.active {
-          background: #2563eb;
-          color: white;
-          border-color: #2563eb;
-        }
-        .vault-question-card {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          padding: 16px;
-          margin-bottom: 1rem;
-          cursor: pointer;
-          transition: box-shadow 0.2s;
-        }
-        .vault-question-card:hover {
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
-        .vault-q-topic-badge {
-          background: #f1f5f9;
-          color: #475569;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .vault-q-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-        .vault-remove-btn, .action-btn {
-          padding: 0.25rem 0.75rem;
-          border-radius: 4px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          cursor: pointer;
-          font-size: 0.875rem;
-        }
-        .vault-remove-btn:hover {
-          background: #f0fdf4;
-          color: #166534;
-          border-color: #bbf7d0;
-        }
-        .action-btn.danger:hover {
-          background: #fef2f2;
-          color: #991b1b;
-          border-color: #fecaca;
-        }
-        .vault-q-text {
-          color: #1e293b;
-          font-size: 1rem;
-          line-height: 1.5;
-          margin: 0 0 1rem 0;
-        }
-        .vault-expand-section {
-          margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid #e5e7eb;
-        }
-        .options-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .vault-opt {
-          padding: 0.75rem;
-          border-radius: 6px;
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-        }
-        .vault-opt.correct-ans {
-          background: #f0fdf4;
-          border-color: #86efac;
-        }
-        .opt-label {
-          font-weight: 600;
-          margin-right: 0.5rem;
-        }
-        .vault-explanation {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: #eff6ff;
-          border-radius: 6px;
-          color: #1e3a8a;
-        }
-        .vault-empty {
-          text-align: center;
-          padding: 4rem 2rem;
-          background: white;
-          border-radius: 10px;
-          border: 1px dashed #cbd5e1;
-        }
-        .empty-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-        }
-        .primary-btn {
-          display: inline-block;
-          margin-top: 1rem;
-          padding: 0.5rem 1.5rem;
-          background: #2563eb;
-          color: white;
-          text-decoration: none;
-          border-radius: 6px;
-          font-weight: 500;
-        }
-        .vault-sticky-note {
-          background: #fef08a;
-          padding: 1rem;
-          border-radius: 6px;
-          margin-bottom: 1rem;
-          box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-        }
-        .vault-note-input {
-          width: 100%;
-          min-height: 80px;
-          border: 1px solid #ca8a04;
-          background: #fef9c3;
-          border-radius: 4px;
-          padding: 0.5rem;
-          font-family: inherit;
-          resize: vertical;
-        }
-        .note-actions {
-          margin-top: 0.5rem;
-          display: flex;
-          gap: 0.5rem;
-        }
-        .note-actions button {
-          padding: 0.25rem 0.75rem;
-          cursor: pointer;
-        }
-        .note-display {
-          margin: 0;
-          color: #854d0e;
-        }
-      `}} />
     </div>
   );
 }
