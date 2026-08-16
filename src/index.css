@@ -321,13 +321,67 @@ img { max-width: 100%; display: block; }
 .home-page .level-meta div { display: flex; flex-direction: column; }
 .home-page .level-meta .n { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 17px; color: var(--navy); }
 .home-page .level-meta .l { font-size: 11px; color: var(--ink-soft); }
-.home-page .level-card a.cta,
-.home-page .level-card span.cta {
-  display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--navy);
+.home-page .level-card a.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: var(--navy, #0B2545);
+  padding: 13px 22px;
+  border-radius: 10px;
   text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(11, 37, 69, 0.18);
+  letter-spacing: 0.3px;
 }
-.home-page .level-card a.cta .arrow { transition: transform .2s ease; }
-.home-page .level-card:hover a.cta .arrow { transform: translateX(4px); }
+
+.home-page .level-card.foundation a.cta {
+  background: linear-gradient(135deg, #0F3D3E 0%, #175455 100%);
+  box-shadow: 0 4px 14px rgba(15, 61, 62, 0.22);
+}
+
+.home-page .level-card.inter a.cta {
+  background: linear-gradient(135deg, #0B2545 0%, #173d6b 100%);
+  box-shadow: 0 4px 14px rgba(11, 37, 69, 0.22);
+}
+
+.home-page .level-card a.cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(11, 37, 69, 0.3);
+  filter: brightness(1.1);
+}
+
+.home-page .level-card span.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #94a3b8;
+  background: #f8fafc;
+  padding: 13px 20px;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  border: 1px dashed #cbd5e1;
+}
+
+.home-page .level-card a.cta .arrow {
+  transition: transform 0.2s ease;
+  font-size: 16px;
+}
+
+.home-page .level-card:hover a.cta .arrow {
+  transform: translateX(5px);
+}
 
 /* How it works */
 .home-page .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
