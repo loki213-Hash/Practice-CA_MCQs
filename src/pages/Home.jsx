@@ -502,202 +502,171 @@ function Home() {
         </Link>
 
 
-        <div className="nav-actions" style={{ position: "relative" }}>
-          {user ? (
-            <>
-              {/* Notification Bell */}
-              <button
-                type="button"
-                className="bell-btn"
-                onClick={() => setShowNotifInbox(!showNotifInbox)}
-                style={{
-                  position: "relative",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  padding: "6px",
-                  marginRight: "14px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  color: "var(--navy)"
-                }}
-                title="Notifications Inbox"
-              >
-                🔔
-                {notifications.some(n => !n.is_read) && (
-                  <span
-                    className="bell-dot"
-                    style={{
-                      position: "absolute",
-                      top: "2px",
-                      right: "2px",
-                      width: "8px",
-                      height: "8px",
-                      background: "var(--red)",
-                      borderRadius: "50%",
-                      border: "1.5px solid #fff"
-                    }}
-                  />
-                )}
-              </button>
+        <div className="nav-actions" style={{ position: "relative", display: "flex", alignItems: "center", gap: "10px" }}>
+          
+          {/* Mistake Vault Link (Leftmost of actions) */}
+          <Link
+            to="/vault"
+            className="vault-nav-link"
+            title={`Mistake Vault${vaultCount > 0 ? ` — ${vaultCount} questions need revision` : " — No pending revisions"}`}
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              textDecoration: "none",
+              fontSize: "13px",
+              fontWeight: "600",
+              color: vaultCount > 0 ? "#B08628" : "var(--ink-soft)",
+              padding: "5px 10px",
+              borderRadius: "6px",
+              border: "1px solid",
+              borderColor: vaultCount > 0 ? "rgba(176,134,40,0.3)" : "var(--hairline)",
+              background: vaultCount > 0 ? "rgba(176,134,40,0.06)" : "transparent",
+              transition: "all 0.15s ease"
+            }}
+          >
+            📚 Vault
+            {vaultCount > 0 && (
+              <span style={{
+                background: "#B08628",
+                color: "#fff",
+                borderRadius: "10px",
+                fontSize: "10px",
+                fontWeight: "700",
+                padding: "1px 6px",
+                lineHeight: "1.4"
+              }}>{vaultCount}</span>
+            )}
+          </Link>
 
-              {/* Mistake Vault Link */}
-              <Link
-                to="/vault"
-                className="vault-nav-link"
-                title={`Mistake Vault${vaultCount > 0 ? ` — ${vaultCount} questions need revision` : " — No pending revisions"}`}
-                style={{
-                  position: "relative",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  marginRight: "10px",
-                  textDecoration: "none",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  color: vaultCount > 0 ? "#B08628" : "var(--ink-soft)",
-                  padding: "5px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid",
-                  borderColor: vaultCount > 0 ? "rgba(176,134,40,0.3)" : "var(--hairline)",
-                  background: vaultCount > 0 ? "rgba(176,134,40,0.06)" : "transparent",
-                  transition: "all 0.15s ease"
-                }}
-              >
-                📚 Vault
-                {vaultCount > 0 && (
-                  <span style={{
-                    background: "#B08628",
-                    color: "#fff",
-                    borderRadius: "10px",
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    padding: "1px 6px",
-                    lineHeight: "1.4"
-                  }}>{vaultCount}</span>
-                )}
-              </Link>
-              <span className="user-welcome" style={{ marginRight: "16px", fontSize: "14px", fontWeight: "600", color: "var(--navy)" }}>
+          {/* Notification Bell (Right of Vault, Left of Login / Profile) */}
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="bell-btn"
+              onClick={() => setShowNotifInbox(!showNotifInbox)}
+              style={{
+                position: "relative",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "18px",
+                padding: "6px",
+                display: "inline-flex",
+                alignItems: "center",
+                color: "var(--navy)"
+              }}
+              title="Platform Announcements & Updates"
+            >
+              🔔
+              {notifications.some((n) => !n.is_read) && (
+                <span
+                  className="bell-dot"
+                  style={{
+                    position: "absolute",
+                    top: "2px",
+                    right: "2px",
+                    width: "8px",
+                    height: "8px",
+                    background: "var(--red)",
+                    borderRadius: "50%",
+                    border: "1.5px solid #fff"
+                  }}
+                />
+              )}
+            </button>
+
+            {/* Notification Dropdown Box */}
+            {showNotifInbox && (
+              <div className="notif-dropdown" style={{
+                position: "absolute",
+                top: "42px",
+                right: user ? "-60px" : "-10px",
+                width: "320px",
+                background: "#fff",
+                border: "1px solid var(--line)",
+                borderRadius: "12px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                padding: "16px",
+                textAlign: "left"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--line)", paddingBottom: "10px", marginBottom: "10px" }}>
+                  <h4 style={{ margin: 0, fontSize: "13px", color: "var(--navy)", fontWeight: 700 }}>Platform Updates &amp; Replies</h4>
+                  <button
+                    type="button"
+                    style={{ background: "none", border: "none", fontSize: "10.5px", color: "var(--brass)", cursor: "pointer", fontWeight: 600 }}
+                    onClick={async () => {
+                      for (const n of notifications) {
+                        if (!n.is_read) await markAsRead(n.id, username || "guest");
+                      }
+                      const updated = await getNotificationsForUser(username || "guest");
+                      setNotifications(updated);
+                    }}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div style={{ maxHeight: "260px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {notifications.length === 0 ? (
+                    <p style={{ margin: 0, fontSize: "12px", color: "var(--ink-soft)", textAlign: "center", padding: "20px 0" }}>
+                      No new announcements or replies yet.
+                    </p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id || Math.random()}
+                        style={{
+                          padding: "10px",
+                          borderRadius: "8px",
+                          background: n.is_read ? "rgba(0,0,0,0.01)" : "rgba(197, 166, 103, 0.08)",
+                          border: "1px solid",
+                          borderColor: n.is_read ? "var(--line)" : "rgba(197, 166, 103, 0.3)",
+                        }}
+                      >
+                        <p style={{ margin: "0 0 6px", fontSize: "12px", color: "var(--ink)", lineHeight: "1.45", whiteSpace: "pre-wrap" }}>
+                          {n.message}
+                        </p>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "9.5px", color: "var(--ink-soft)" }}>
+                            {n.created_at ? new Date(n.created_at).toLocaleDateString() : "Recent"}
+                          </span>
+                          {!n.is_read && (
+                            <button
+                              type="button"
+                              style={{ background: "none", border: "none", fontSize: "9.5px", color: "var(--navy)", cursor: "pointer", fontWeight: 700 }}
+                              onClick={async () => {
+                                await markAsRead(n.id, username || "guest");
+                                const updated = await getNotificationsForUser(username || "guest");
+                                setNotifications(updated);
+                              }}
+                            >
+                              Mark as Read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Login / Profile / Logout (Rightmost) */}
+          {user ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "4px" }}>
+              <span className="user-welcome" style={{ fontSize: "13.5px", fontWeight: "600", color: "var(--navy)" }}>
                 Welcome, <strong>{username}</strong>
               </span>
               <button type="button" className="btn-solid" onClick={logout}>Logout</button>
-
-              {/* Notification Dropdown Box */}
-              {showNotifInbox && (
-                <div className="notif-dropdown" style={{
-                  position: "absolute",
-                  top: "46px",
-                  right: "10px",
-                  width: "320px",
-                  background: "#fff",
-                  border: "1px solid var(--line)",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                  zIndex: 1000,
-                  padding: "16px",
-                  textAlign: "left"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--line)", paddingBottom: "10px", marginBottom: "10px" }}>
-                    <h4 style={{ margin: 0, fontSize: "13px", color: "var(--navy)", fontWeight: 600 }}>Inbox Notifications</h4>
-                    <button
-                      type="button"
-                      style={{ background: "none", border: "none", fontSize: "10.5px", color: "var(--brass)", cursor: "pointer", fontWeight: 600 }}
-                      onClick={async () => {
-                        for (const n of notifications) {
-                          if (!n.is_read) await markAsRead(n.id, username);
-                        }
-                        const updated = await getNotificationsForUser(username);
-                        setNotifications(updated);
-                      }}
-                    >
-                      Mark all read
-                    </button>
-                  </div>
-                  <div style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {notifications.length === 0 ? (
-                      <p style={{ margin: 0, fontSize: "11.5px", color: "var(--ink-soft)", textAlign: "center", padding: "20px 0" }}>
-                        No notifications yet.
-                      </p>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          style={{
-                            padding: "10px",
-                            borderRadius: "8px",
-                            background: n.is_read ? "rgba(0,0,0,0.01)" : "rgba(197, 166, 103, 0.06)",
-                            border: "1px solid",
-                            borderColor: n.is_read ? "var(--line)" : "rgba(197, 166, 103, 0.2)",
-                          }}
-                        >
-                          <p style={{ margin: "0 0 6px", fontSize: "12px", color: "var(--ink)", lineHeight: "1.4" }}>
-                            {n.message}
-                          </p>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "9.5px", color: "var(--ink-soft)" }}>
-                              {new Date(n.created_at).toLocaleDateString()}
-                            </span>
-                            {!n.is_read && (
-                              <button
-                                type="button"
-                                style={{ background: "none", border: "none", fontSize: "9.5px", color: "var(--navy)", cursor: "pointer", fontWeight: 700 }}
-                                onClick={async () => {
-                                  await markAsRead(n.id, username);
-                                  const updated = await getNotificationsForUser(username);
-                                  setNotifications(updated);
-                                }}
-                              >
-                                Mark as Read
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           ) : (
-            <>
-              <Link
-                to="/vault"
-                className="vault-nav-link"
-                title="Mistake Vault & Bookmarks"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  marginRight: "10px",
-                  textDecoration: "none",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  color: vaultCount > 0 ? "#B08628" : "var(--ink-soft)",
-                  padding: "5px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid",
-                  borderColor: vaultCount > 0 ? "rgba(176,134,40,0.3)" : "var(--hairline)",
-                  background: vaultCount > 0 ? "rgba(176,134,40,0.06)" : "transparent",
-                  transition: "all 0.15s ease"
-                }}
-              >
-                📚 Vault
-                {vaultCount > 0 && (
-                  <span style={{
-                    background: "#B08628",
-                    color: "#fff",
-                    borderRadius: "10px",
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    padding: "1px 6px",
-                    lineHeight: "1.4"
-                  }}>{vaultCount}</span>
-                )}
-              </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "4px" }}>
               <button type="button" className="btn-ghost" onClick={() => navigate("/login")}>Login</button>
               <a href="#levels" className="btn-solid" style={{ textDecoration: "none" }}>Continue as Guest</a>
-            </>
+            </div>
           )}
         </div>
       </header>
@@ -830,73 +799,73 @@ function Home() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
           
-          {/* Card 1: SPOM Slots */}
-          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+          {/* Card 1: SPOM Slots (Vibrant Sage/Forest Green Theme) */}
+          <div className="portal-utility-card" style={{ background: "linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%)", border: "2px solid #86efac", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 4px 14px rgba(22,101,52,0.08)", transition: "all 0.2s ease" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(15,61,62,0.08)", color: "#0F3D3E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+              <div style={{ width: "46px", height: "46px", borderRadius: "10px", background: "#0F3D3E", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", boxShadow: "0 2px 8px rgba(15,61,62,0.2)" }}>
                 🎯
               </div>
               <div>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0F3D3E", textTransform: "uppercase", letterSpacing: "0.5px" }}>Self-Paced Module</span>
-                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>SPOM Exam Slot Booking</h3>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", background: "#dcfce7", padding: "2px 8px", borderRadius: "4px" }}>Self-Paced Module</span>
+                <h3 style={{ margin: "4px 0 0", fontSize: "17.5px", color: "#0f172a", fontWeight: "700" }}>SPOM Exam Slot Booking</h3>
               </div>
             </div>
-            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", flex: 1, margin: "0 0 20px", fontWeight: "500" }}>
               Check real-time test center availability, exam dates, and book your SPOM Set A &amp; Set B assessment slots.
             </p>
             <a
               href="https://spmt.icai.org/ICAI/LoginAction_showSlotDetails.action"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ textDecoration: "none", background: "#0F3D3E", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              style={{ textDecoration: "none", background: "#0F3D3E", color: "#ffffff", padding: "11px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 2px 6px rgba(15,61,62,0.25)" }}
             >
               Check SPOM Slots ↗
             </a>
           </div>
 
-          {/* Card 2: Adv MCS / ITT Slots */}
-          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+          {/* Card 2: Adv MCS / ITT Slots (Vibrant Royal Navy Blue Theme) */}
+          <div className="portal-utility-card" style={{ background: "linear-gradient(145deg, #eff6ff 0%, #ffffff 100%)", border: "2px solid #93c5fd", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 4px 14px rgba(30,58,138,0.08)", transition: "all 0.2s ease" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(11,37,69,0.08)", color: "#0B2545", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+              <div style={{ width: "46px", height: "46px", borderRadius: "10px", background: "#0B2545", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", boxShadow: "0 2px 8px rgba(11,37,69,0.2)" }}>
                 🎓
               </div>
               <div>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0B2545", textTransform: "uppercase", letterSpacing: "0.5px" }}>ICAI Training</span>
-                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>Adv MCS &amp; ITT Batches</h3>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px", background: "#dbeafe", padding: "2px 8px", borderRadius: "4px" }}>ICAI Training</span>
+                <h3 style={{ margin: "4px 0 0", fontSize: "17.5px", color: "#0f172a", fontWeight: "700" }}>Adv MCS &amp; ITT Batches</h3>
               </div>
             </div>
-            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", flex: 1, margin: "0 0 20px", fontWeight: "500" }}>
               Find and enroll in upcoming virtual &amp; physical batches across all regional ICAI branches and chapters.
             </p>
             <a
               href="https://www.icaionlineregistration.org/launchbatchdetail.aspx"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ textDecoration: "none", background: "#0B2545", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              style={{ textDecoration: "none", background: "#0B2545", color: "#ffffff", padding: "11px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 2px 6px rgba(11,37,69,0.25)" }}
             >
               Find ITT / MCS Batches ↗
             </a>
           </div>
 
-          {/* Card 3: ICAI SSP Portal */}
-          <div className="portal-utility-card" style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 2px 10px rgba(0,0,0,0.04)", transition: "all 0.2s ease" }}>
+          {/* Card 3: ICAI SSP Portal (Vibrant Crimson Red Theme) */}
+          <div className="portal-utility-card" style={{ background: "linear-gradient(145deg, #fff1f2 0%, #ffffff 100%)", border: "2px solid #fca5a5", borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", boxShadow: "0 4px 14px rgba(153,27,27,0.08)", transition: "all 0.2s ease" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(184,51,42,0.08)", color: "#b8332a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+              <div style={{ width: "46px", height: "46px", borderRadius: "10px", background: "#991b1b", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", boxShadow: "0 2px 8px rgba(153,27,27,0.2)" }}>
                 🏛️
               </div>
               <div>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "#b8332a", textTransform: "uppercase", letterSpacing: "0.5px" }}>Member &amp; Student</span>
-                <h3 style={{ margin: "2px 0 0", fontSize: "17px", color: "var(--navy)" }}>ICAI Self Service Portal</h3>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#991b1b", textTransform: "uppercase", letterSpacing: "0.5px", background: "#ffe4e6", padding: "2px 8px", borderRadius: "4px" }}>Member &amp; Student</span>
+                <h3 style={{ margin: "4px 0 0", fontSize: "17.5px", color: "#0f172a", fontWeight: "700" }}>ICAI Self Service Portal</h3>
               </div>
             </div>
-            <p style={{ fontSize: "13.5px", color: "var(--ink-soft)", lineHeight: "1.6", flex: 1, margin: "0 0 20px" }}>
+            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", flex: 1, margin: "0 0 20px", fontWeight: "500" }}>
               Access articleship forms (Form 102/103/108), exam application forms, transcript requests, and profile management.
             </p>
             <a
               href="https://eservices.icai.org/"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ textDecoration: "none", background: "#b8332a", color: "#fff", padding: "10px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "13.5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              style={{ textDecoration: "none", background: "#991b1b", color: "#fff", padding: "11px 18px", borderRadius: "8px", fontWeight: "700", fontSize: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 2px 6px rgba(153,27,27,0.25)" }}
             >
               Launch ICAI SSP ↗
             </a>

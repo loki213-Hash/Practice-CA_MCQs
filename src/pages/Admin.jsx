@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
-import { sendAppreciationNotification } from "../services/notificationService";
+import { sendAppreciationNotification, broadcastNotification } from "../services/notificationService";
 import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
 import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
@@ -52,6 +52,12 @@ export default function Admin() {
   const [formSubmissions, setFormSubmissions] = useState([]);
   const [activeFeedbackDetails, setActiveFeedbackDetails] = useState(null);
   const [subSearch, setSubSearch] = useState("");
+
+  // Broadcast updates state
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState("all");
+  const [broadcastSending, setBroadcastSending] = useState(false);
 
   const isAdmin = username === "admin";
 
@@ -552,6 +558,31 @@ export default function Admin() {
     }
   };
 
+  // Send Broadcast Update
+  const handleSendBroadcast = async (e) => {
+    e.preventDefault();
+    if (!broadcastMessage.trim()) {
+      setError("Please enter a message to broadcast.");
+      return;
+    }
+    setBroadcastSending(true);
+    setError(null);
+    try {
+      await broadcastNotification({
+        title: broadcastTitle.trim(),
+        message: broadcastMessage.trim(),
+        target: broadcastTarget
+      });
+      setSuccess(`Broadcast update successfully dispatched to ${broadcastTarget === "all" ? "all registered & guest students" : broadcastTarget}!`);
+      setBroadcastTitle("");
+      setBroadcastMessage("");
+    } catch (err) {
+      setError("Failed to broadcast message: " + err.message);
+    } finally {
+      setBroadcastSending(false);
+    }
+  };
+
   // Importer Actions
   const handleReviewSubmission = (sub) => {
     const header = "question\toption_a\toption_b\toption_c\toption_d\tcorrect_option\texplanation\ttopic";
@@ -817,6 +848,13 @@ export default function Admin() {
                   onClick={() => { setActiveTab("import"); setSuccess(null); setError(null); }}
                 >
                   <span>📝 Bulk Importer</span>
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "broadcast" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("broadcast"); setSuccess(null); setError(null); }}
+                >
+                  <span>📢 Broadcast Updates</span>
                 </button>
                 <button
                   type="button"
@@ -1383,6 +1421,120 @@ CREATE POLICY "users_read_own_or_admin" ON public.registered_users FOR SELECT US
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── BROADCAST UPDATES / NOTIFICATIONS TAB ── */}
+            {activeTab === "broadcast" && (
+              <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+                <div style={{ marginBottom: "20px" }}>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#f8fafc", fontWeight: 700 }}>
+                    📢 Broadcast Platform Announcements &amp; Updates
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13.5px", color: "#94a3b8" }}>
+                    Type an announcement, exam amendment notice, or reply to student feedback. All registered users and guest students will instantly see this in their 🔔 notification inbox.
+                  </p>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
+                  
+                  {/* Broadcast Composer */}
+                  <div className="card" style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "24px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)" }}>
+                    <form onSubmit={handleSendBroadcast}>
+                      
+                      {/* Target Audience */}
+                      <div style={{ marginBottom: "18px" }}>
+                        <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+                          Target Audience:
+                        </label>
+                        <select
+                          value={broadcastTarget}
+                          onChange={(e) => setBroadcastTarget(e.target.value)}
+                          style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", background: "#1e293b", border: "1px solid rgba(255,255,255,0.15)", color: "#f8fafc", fontSize: "13.5px" }}
+                        >
+                          <option value="all">📢 All Users (Global Broadcast to Everyone)</option>
+                          <optgroup label="Direct Student Reply">
+                            {registeredUsers.map((u) => (
+                              <option key={u.id} value={u.username}>
+                                👤 {u.username} ({u.favourite_place || "Registered Student"})
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Announcement Title */}
+                      <div style={{ marginBottom: "18px" }}>
+                        <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+                          Update / Announcement Title:
+                        </label>
+                        <input
+                          type="text"
+                          value={broadcastTitle}
+                          onChange={(e) => setBroadcastTitle(e.target.value)}
+                          placeholder="e.g., 🎉 New ICAI SPOM Set A Case Scenarios Added!"
+                          style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", background: "#1e293b", border: "1px solid rgba(255,255,255,0.15)", color: "#f8fafc", fontSize: "13.5px", boxSizing: "border-box" }}
+                        />
+                      </div>
+
+                      {/* Announcement Message Body */}
+                      <div style={{ marginBottom: "20px" }}>
+                        <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#cbd5e1", marginBottom: "6px" }}>
+                          Announcement Message Body:
+                        </label>
+                        <textarea
+                          value={broadcastMessage}
+                          onChange={(e) => setBroadcastMessage(e.target.value)}
+                          placeholder="Type your message, exam amendment notes, or replies to student queries..."
+                          rows={6}
+                          required
+                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px", background: "#1e293b", border: "1px solid rgba(255,255,255,0.15)", color: "#f8fafc", fontSize: "13.5px", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={broadcastSending}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "8px",
+                          fontWeight: 700,
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          boxShadow: "0 4px 14px rgba(37,99,235,0.4)"
+                        }}
+                      >
+                        {broadcastSending ? "Sending Broadcast..." : "🚀 Send Broadcast Announcement"}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Live Student Preview Box */}
+                  <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "20px" }}>
+                    <h4 style={{ margin: "0 0 12px", fontSize: "13px", color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Live Student View Preview
+                    </h4>
+                    <div style={{ background: "#ffffff", borderRadius: "10px", padding: "14px", color: "#0f172a", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 8px", borderRadius: "4px" }}>
+                          🔔 Notification
+                        </span>
+                        <span style={{ fontSize: "10.5px", color: "#64748b" }}>Just now</span>
+                      </div>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                        {broadcastTitle || "📢 Platform Update"}
+                      </div>
+                      <div style={{ fontSize: "12.5px", color: "#334155", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                        {broadcastMessage || "Students will see your typed announcement right here."}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
             )}
 

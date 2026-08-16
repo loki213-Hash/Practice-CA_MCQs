@@ -7,6 +7,8 @@ import { submitFeedback } from "../services/feedbackService";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
 
+import CaseTableRenderer from "../components/CaseTableRenderer";
+
 // Helper: format seconds to HH:MM:SS
 function formatTime(sec) {
   const isNegative = sec < 0;
@@ -116,6 +118,11 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
           </p>
         ))}
       </div>
+
+      {/* Case Table if present */}
+      {caseScenario.case_table && (
+        <CaseTableRenderer tableData={caseScenario.case_table} />
+      )}
 
       {/* Case Actions Bar */}
       <div style={{
@@ -235,14 +242,9 @@ function FullCaseModal({ caseScenario, onClose }) {
             <p key={i} style={{ margin: "0 0 16px" }}>{p}</p>
           ))}
 
+          {/* Formatted Case Table */}
           {caseScenario.case_table && (
-            <div style={{ margin: "20px 0", overflowX: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "16px" }}>
-              <pre style={{ margin: 0, fontSize: "13px", color: "#1e293b", fontFamily: "monospace" }}>
-                {typeof caseScenario.case_table === "string"
-                  ? caseScenario.case_table
-                  : JSON.stringify(caseScenario.case_table, null, 2)}
-              </pre>
-            </div>
+            <CaseTableRenderer tableData={caseScenario.case_table} />
           )}
 
           {outroParagraphs.map((p, i) => (

@@ -22,12 +22,14 @@ function saveLocalNotifications(notifs) {
   }
 }
 
+/**
+ * Send an appreciation notification or feedback reply to a specific user
+ */
 export async function sendAppreciationNotification(username, message = "Thanks For the Contribution, We have addressed the Question") {
   const cleanUsername = username ? username.trim() : "";
   if (!cleanUsername) return false;
 
   try {
-    // 1. Try to save to Supabase
     const { error } = await supabase
       .from("user_notifications")
       .insert([
@@ -47,7 +49,7 @@ export async function sendAppreciationNotification(username, message = "Thanks F
     console.warn("Supabase notification insert threw error, falling back to localStorage:", err);
   }
 
-  // 2. LocalStorage fallback
+  // LocalStorage fallback
   const notifs = getLocalNotifications();
   const newNotif = {
     id: Date.now() + Math.random().toString(36).substr(2, 5),
@@ -61,35 +63,94 @@ export async function sendAppreciationNotification(username, message = "Thanks F
   return true;
 }
 
-export async function getNotificationsForUser(username) {
-  const cleanUsername = username ? username.trim() : "";
-  if (!cleanUsername) return [];
+/**
+ * Broadcast an announcement or exam update to all registered users or specific students
+ */
+export async function broadcastNotification({ title, message, target = "all" }) {
+  const fullMessage = title ? `📢 [${title}]\n${message}` : message;
+  const targetUser = target ? target.trim() : "all";
 
-  // 1. Try fetching from Supabase
   try {
+    const { error } = await supabase
+      .from("user_notifications")
+      .insert([
+        {
+          username: targetUser,
+          message: fullMessage,
+          is_read: false,
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+    if (!error) {
+      return { success: true };
+    }
+    console.warn("Supabase broadcast notification notice:", error.message);
+  } catch (err) {
+    console.warn("Supabase broadcast error:", err);
+  }
+
+  // LocalStorage fallback
+  const notifs = getLocalNotifications();
+  const newNotif = {
+    id: Date.now() + Math.random().toString(36).substr(2, 5),
+    username: targetUser,
+    message: fullMessage,
+    is_read: false,
+    created_at: new Date().toISOString()
+  };
+  notifs.unshift(newNotif);
+  saveLocalNotifications(notifs);
+  return { success: true, local: true };
+}
+
+/**
+ * Fetch all notifications relevant to a user (including personal messages + global 'all' broadcasts)
+ */
+export async function getNotificationsForUser(username) {
+  const cleanUsername = username ? username.trim().toLowerCase() : "guest";
+
+  let dbNotifs = [];
+  try {
+    // Fetch notifications where username matches user OR username is 'all' or 'broadcast'
     const { data, error } = await supabase
       .from("user_notifications")
       .select("*")
-      .eq("username", cleanUsername)
+      .or(`username.ilike.${cleanUsername},username.ilike.all,username.ilike.broadcast,username.is.null`)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      // Sync local notifications if any exist
-      const localNotifs = getLocalNotifications().filter(n => n.username === cleanUsername);
-      return [...localNotifs, ...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      dbNotifs = data;
     }
   } catch (err) {
-    console.warn("Supabase notification fetch failed, using localStorage:", err);
+    console.warn("Supabase notification fetch failed, checking local:", err);
   }
 
-  // 2. Fetch from LocalStorage
-  return getLocalNotifications()
-    .filter((n) => n.username === cleanUsername)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  // Also include matching local storage notifications
+  const localNotifs = getLocalNotifications().filter(
+    (n) =>
+      n.username === "all" ||
+      n.username === "broadcast" ||
+      n.username?.toLowerCase() === cleanUsername
+  );
+
+  // Combine and deduplicate by message + date
+  const combined = [...localNotifs, ...dbNotifs];
+  const seen = new Set();
+  const deduplicated = [];
+
+  for (const n of combined) {
+    const key = `${n.id || n.message}_${n.created_at}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduplicated.push(n);
+    }
+  }
+
+  return deduplicated.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 export async function markAsRead(id) {
-  // If it's a numeric ID (Supabase) - delete the notification immediately to save database storage space
   if (typeof id === "number" || (!isNaN(id) && !String(id).includes("-"))) {
     try {
       const { error } = await supabase
@@ -103,7 +164,6 @@ export async function markAsRead(id) {
     }
   }
 
-  // Fallback / local check: remove from localStorage
   const notifs = getLocalNotifications();
   const filtered = notifs.filter((n) => String(n.id) !== String(id));
   saveLocalNotifications(filtered);
