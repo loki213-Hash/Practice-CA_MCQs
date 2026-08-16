@@ -938,15 +938,6 @@ function ChapterList() {
                       })}
                     </div>
 
-                    {/* Question Reference ID at the corner of options */}
-                    {currentQ && (currentQ.id || currentQ.raw_id || currentQ.question_id) && (
-                      <div className="case-ref-id-container" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "12px", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "11.5px", color: "#6b7280", fontWeight: 600, background: "#f8fafc", padding: "3px 9px", borderRadius: "5px", border: "1px solid #e2e8f0", letterSpacing: "0.2px" }}>
-                          [Ref ID: #{currentQ.raw_id || currentQ.id || currentQ.question_id}]
-                        </span>
-                      </div>
-                    )}
-
                     {/* Result Tag & Explanation Feedback Panel — SPOM Visual Style */}
                     {caseAnswers[caseCurrentQIndex] !== undefined && (
                       <div id="qFeedback" style={{ marginTop: 22 }}>

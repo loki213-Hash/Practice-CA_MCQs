@@ -497,6 +497,7 @@ export default function TakeTest() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { index: selectedOption }
   const [marked, setMarked] = useState({}); // { index: boolean }
+  const [visited, setVisited] = useState({ 0: true }); // { index: boolean }
   const [timeLeft, setTimeLeft] = useState(7200); // 7200s = 2 hours
   const [timerRunning, setTimerRunning] = useState(false);
   const [showTimeUpModal, setShowTimeUpModal] = useState(false);
@@ -568,6 +569,7 @@ export default function TakeTest() {
               setCurrentIndex(savedSession.currentIndex || 0);
               setAnswers(savedSession.answers || {});
               setMarked(savedSession.marked || {});
+              setVisited(savedSession.visited || { [savedSession.currentIndex || 0]: true });
               setTimeLeft(newTimeLeft);
               setQuestionTime(savedSession.questionTime || {});
               setScreen("test");
@@ -602,6 +604,7 @@ export default function TakeTest() {
         currentIndex,
         answers,
         marked,
+        visited,
         timeLeft,
         questionTime,
         questions,
@@ -609,7 +612,14 @@ export default function TakeTest() {
       };
       sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
     }
-  }, [screen, currentIndex, answers, marked, timeLeft, questionTime, questions, sessionKey]);
+  }, [screen, currentIndex, answers, marked, visited, timeLeft, questionTime, questions, sessionKey]);
+
+  // Mark current question as visited
+  useEffect(() => {
+    if (screen === "test") {
+      setVisited((prev) => ({ ...prev, [currentIndex]: true }));
+    }
+  }, [currentIndex, screen]);
 
   // Timer interval
   useEffect(() => {
@@ -1066,25 +1076,78 @@ export default function TakeTest() {
               {/* Navigation row */}
               <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "36px", paddingTop: "22px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "12px" }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <button onClick={handleClearResponse} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", color: "#475569", fontWeight: "700", fontSize: "13px" }}>Clear</button>
-                  <button onClick={handleMarkAndNext} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #f59e0b", borderRadius: "6px", cursor: "pointer", color: "#d97706", fontWeight: "700", fontSize: "13px" }}>Mark &amp; Next</button>
+                  <button
+                    type="button"
+                    onClick={handleClearResponse}
+                    style={{
+                      padding: "9px 18px",
+                      background: "#ffffff",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "#334155",
+                      fontWeight: "700",
+                      fontSize: "13.5px",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleMarkAndNext}
+                    style={{
+                      padding: "9px 18px",
+                      background: "#ffffff",
+                      border: "1.5px solid #f59e0b",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "#d97706",
+                      fontWeight: "700",
+                      fontSize: "13.5px",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    Mark &amp; Next
+                  </button>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <button onClick={handlePrev} disabled={currentIndex === 0} style={{ padding: "9px 18px", background: currentIndex === 0 ? "#f1f5f9" : "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: currentIndex === 0 ? "not-allowed" : "pointer", color: "#475569", fontWeight: "700", fontSize: "13px" }}>← Previous</button>
-                  {currentIndex === questions.length - 1 ? (
-                    <button onClick={handleSubmitClick} style={{ padding: "9px 28px", background: "#15803d", border: "none", borderRadius: "6px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px", boxShadow: "0 2px 8px rgba(21,128,61,0.3)" }}>
-                      Submit Exam ✓
-                    </button>
-                  ) : (
-                    <>
-                      <button onClick={handleNext} style={{ padding: "9px 24px", background: "#0F3D3E", border: "none", borderRadius: "6px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px" }}>
-                        Next Question →
-                      </button>
-                      <button onClick={handleSubmitClick} style={{ padding: "9px 18px", background: "#f8fafc", border: "1.5px solid #0F3D3E", borderRadius: "6px", cursor: "pointer", color: "#0F3D3E", fontWeight: "700", fontSize: "13px", marginLeft: "4px" }}>
-                        Submit Exam
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    style={{
+                      padding: "9px 20px",
+                      background: currentIndex === 0 ? "#f1f5f9" : "#f8fafc",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: "6px",
+                      cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+                      color: currentIndex === 0 ? "#94a3b8" : "#334155",
+                      fontWeight: "700",
+                      fontSize: "13.5px",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={currentIndex === questions.length - 1}
+                    style={{
+                      padding: "9px 24px",
+                      background: currentIndex === questions.length - 1 ? "#94a3b8" : "#0F3D3E",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: currentIndex === questions.length - 1 ? "not-allowed" : "pointer",
+                      color: "#ffffff",
+                      fontWeight: "700",
+                      fontSize: "13.5px",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    Next Question →
+                  </button>
                 </div>
               </div>
 
@@ -1092,28 +1155,62 @@ export default function TakeTest() {
           </div>
 
           {/* Palette Panel */}
-          <div className="take-test-palette-panel" style={{ width: "310px", background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", padding: "22px" }}>
-            <h4 style={{ margin: "0 0 14px 0", color: "#0F3D3E", fontSize: "14px", fontWeight: "700" }}>Question Palette</h4>
+          <div className="take-test-palette-panel" style={{ width: "320px", background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", padding: "20px 18px", boxSizing: "border-box", height: "calc(100vh - 60px)", position: "sticky", top: "60px" }}>
             
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", overflowY: "auto", alignContent: "flex-start", flex: 1, maxHeight: "calc(100vh - 240px)" }}>
+            {/* Status Legend (Matching Image 2) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px", fontSize: "13px", color: "#475569" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "14px", height: "14px", borderRadius: "4px", background: "#3d7a5a" }}></div>
+                <span style={{ fontWeight: "500", color: "#334155" }}>Answered</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "14px", height: "14px", borderRadius: "4px", background: "#e53e3e" }}></div>
+                <span style={{ fontWeight: "500", color: "#334155" }}>Not answered</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "14px", height: "14px", borderRadius: "4px", background: "#5c4e8c" }}></div>
+                <span style={{ fontWeight: "500", color: "#334155" }}>Marked</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "14px", height: "14px", borderRadius: "4px", background: "#ffffff", border: "1px solid #cbd5e1" }}></div>
+                <span style={{ fontWeight: "500", color: "#334155" }}>Not visited</span>
+              </div>
+            </div>
+            
+            {/* Question Numbers Grid (6 columns like Image 2) */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, 1fr)",
+              gap: "6px",
+              overflowY: "auto",
+              flex: 1,
+              paddingRight: "4px",
+              paddingBottom: "8px",
+              alignContent: "start"
+            }}>
               {questions.map((q, i) => {
-                const isAnswered = !!answers[i];
-                const isMarked = marked[i];
+                const isAnswered = answers[i] !== undefined;
+                const isMarked = !!marked[i];
+                const isVisited = !!visited[i] || i === currentIndex;
                 const isCurrent = i === currentIndex;
                 const isCase = q.type === "case";
                 
-                let bg = "#fff";
-                let border = "1px solid #cbd5e1";
-                let color = "#475569";
+                let bg = "#ffffff";
+                let border = "1px solid #e2e8f0";
+                let color = "#334155";
 
                 if (isAnswered) {
-                  bg = "#1E7145";
-                  color = "#fff";
-                  border = "1px solid #1E7145";
+                  bg = "#3d7a5a";
+                  color = "#ffffff";
+                  border = "1px solid #3d7a5a";
                 } else if (isMarked) {
-                  bg = "#f59e0b";
-                  color = "#fff";
-                  border = "1px solid #f59e0b";
+                  bg = "#5c4e8c";
+                  color = "#ffffff";
+                  border = "1px solid #5c4e8c";
+                } else if (isVisited) {
+                  bg = "#e53e3e";
+                  color = "#ffffff";
+                  border = "1px solid #e53e3e";
                 }
 
                 return (
@@ -1123,20 +1220,21 @@ export default function TakeTest() {
                     className="tt-palette-btn"
                     title={`Question ${i + 1}${isCase ? " (Case Scenario)" : ""}`}
                     style={{
-                      width: "34px",
-                      height: "34px",
-                      borderRadius: isCase ? "6px" : "50%",
+                      width: "100%",
+                      aspectRatio: "1",
+                      borderRadius: "6px",
                       background: bg,
-                      border: isCurrent ? "2.5px solid #0F3D3E" : border,
+                      border: isCurrent ? "1.5px solid #e53e3e" : border,
+                      boxShadow: isCurrent ? "0 0 0 2px #fed7aa" : "none",
                       color: color,
-                      fontSize: "12px",
+                      fontSize: "13px",
                       fontWeight: "700",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      outline: isCurrent ? "2px solid #0F3D3E" : "none",
-                      outlineOffset: "1px"
+                      padding: 0,
+                      transition: "all 0.15s ease"
                     }}
                   >
                     {i + 1}
@@ -1145,11 +1243,32 @@ export default function TakeTest() {
               })}
             </div>
 
-            <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: "1px solid #e2e8f0", fontSize: "12px", color: "#475569", display: "flex", flexDirection: "column", gap: "6px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#1E7145" }}></div> Answered</div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#f59e0b" }}></div> Marked for Review</div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", border: "1px solid #cbd5e1" }}></div> Not Answered</div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "3px", border: "1.5px solid #0F3D3E", background: "#f1f5f9" }}></div> Square = Case Scenario</div>
+            {/* Bottom Submit Test Button (Like Image 2) */}
+            <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+              <button
+                type="button"
+                onClick={handleSubmitClick}
+                style={{
+                  width: "100%",
+                  background: "#c59b6d",
+                  color: "#201408",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "14px",
+                  fontSize: "15.5px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(197,155,109,0.3)",
+                  transition: "all 0.15s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#b88a59")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#c59b6d")}
+              >
+                Submit Test
+              </button>
             </div>
 
           </div>
