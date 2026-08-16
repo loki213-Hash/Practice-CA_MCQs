@@ -171,8 +171,8 @@ function Course() {
                 <ul className="mode-card-features">
                   <li>✓ 100 questions from all chapters</li>
                   <li>✓ 2-hour strict timer</li>
-                  <li>✓ Case scenarios included (≥5)</li>
-                  <li>✓ Priority exam questions (≥30%)</li>
+                  <li>✓ ICAI Pattern Case Scenarios</li>
+                  <li>✓ High-Weightage &amp; Priority Questions</li>
                   <li>✓ Review &amp; retry after submission</li>
                 </ul>
                 {isFinal ? (

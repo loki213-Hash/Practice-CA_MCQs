@@ -25,7 +25,7 @@ function formatDuration(sec) {
   return `${m}m ${s}s`;
 }
 
-// Case Scenario Box Component (Matching Practice Case Scenario Format)
+// Case Scenario Box Component (Matching Practice Case Scenario Format with Expanded Breadth)
 function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
   if (!caseScenario) return null;
 
@@ -37,43 +37,45 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
     <div className="take-test-case-file" style={{
       background: "#ffffff",
       border: "1px solid #cbd5e1",
-      borderLeft: "5px solid #0F3D3E",
-      borderRadius: "10px",
-      padding: "20px 22px",
-      marginBottom: "20px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+      borderLeft: "6px solid #0F3D3E",
+      borderRadius: "12px",
+      padding: "24px 28px",
+      marginBottom: "24px",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+      width: "100%",
+      boxSizing: "border-box"
     }}>
       {/* Header Meta */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: "12px",
-        paddingBottom: "10px",
+        marginBottom: "14px",
+        paddingBottom: "12px",
         borderBottom: "1px solid #f1f5f9",
         flexWrap: "wrap",
-        gap: "8px"
+        gap: "10px"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{
-            fontSize: "11px",
+            fontSize: "11.5px",
             fontWeight: "800",
             letterSpacing: "1px",
             textTransform: "uppercase",
             color: "#0F3D3E",
             background: "rgba(15,61,62,0.08)",
-            padding: "3px 9px",
+            padding: "4px 10px",
             borderRadius: "6px"
           }}>
-            CASE SCENARIO
+            ICAI CASE SCENARIO
           </span>
           {caseScenario.tag && (
             <span style={{
-              fontSize: "11.5px",
+              fontSize: "12px",
               fontWeight: "700",
               background: "#0F3D3E",
               color: "#ffffff",
-              padding: "2px 10px",
+              padding: "3px 12px",
               borderRadius: "12px"
             }}>
               {caseScenario.tag}
@@ -81,12 +83,12 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
           )}
         </div>
         <span style={{
-          fontSize: "12px",
+          fontSize: "12.5px",
           fontWeight: "700",
           color: "#0F3D3E",
           background: "#ecfdf5",
           border: "1px solid #a7f3d0",
-          padding: "3px 10px",
+          padding: "3px 12px",
           borderRadius: "12px"
         }}>
           Question {caseSubQNum} of {caseTotalQs} in this case
@@ -96,20 +98,20 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
       {/* Case Title */}
       {caseScenario.title && (
         <h3 style={{
-          margin: "0 0 12px",
-          fontSize: "16px",
+          margin: "0 0 14px",
+          fontSize: "17px",
           fontWeight: "700",
           color: "#0f172a",
-          lineHeight: "1.4"
+          lineHeight: "1.45"
         }}>
           {caseScenario.title}
         </h3>
       )}
 
-      {/* Case Body Preview (First 2 paragraphs) */}
-      <div style={{ fontSize: "14px", lineHeight: "1.65", color: "#334155", marginBottom: "14px" }}>
+      {/* Case Body Preview */}
+      <div style={{ fontSize: "14.5px", lineHeight: "1.7", color: "#334155", marginBottom: "16px" }}>
         {paragraphs.slice(0, 2).map((p, i) => (
-          <p key={i} style={{ margin: "0 0 10px", fontSize: "14px", lineHeight: "1.65" }}>
+          <p key={i} style={{ margin: "0 0 12px" }}>
             {p}
           </p>
         ))}
@@ -120,7 +122,7 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingTop: "12px",
+        paddingTop: "14px",
         borderTop: "1px solid #f1f5f9",
         flexWrap: "wrap",
         gap: "10px"
@@ -133,28 +135,28 @@ function CaseBlock({ caseScenario, caseSubQNum, caseTotalQs, onOpenFullCase }) {
             color: "#ffffff",
             border: "none",
             borderRadius: "6px",
-            padding: "8px 16px",
-            fontSize: "13px",
+            padding: "9px 18px",
+            fontSize: "13.5px",
             fontWeight: "700",
             cursor: "pointer",
             display: "inline-flex",
             alignItems: "center",
-            gap: "6px",
+            gap: "8px",
             transition: "all 0.15s ease",
-            boxShadow: "0 2px 4px rgba(15,61,62,0.15)"
+            boxShadow: "0 2px 6px rgba(15,61,62,0.18)"
           }}
         >
           🔍 View Full Case Scenario
         </button>
-        <span style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "500" }}>
-          {caseTotalQs} questions based on this case
+        <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>
+          {caseTotalQs} questions based on this scenario
         </span>
       </div>
     </div>
   );
 }
 
-// Full Case Scenario Modal Component
+// Full Case Scenario Modal Component (Wide Breadth)
 function FullCaseModal({ caseScenario, onClose }) {
   if (!caseScenario) return null;
 
@@ -175,22 +177,22 @@ function FullCaseModal({ caseScenario, onClose }) {
       alignItems: "center",
       justifyContent: "center",
       zIndex: 10000,
-      padding: "20px"
+      padding: "24px"
     }}>
       <div style={{
         background: "#ffffff",
         borderRadius: "14px",
-        maxWidth: "850px",
+        maxWidth: "1100px",
         width: "100%",
-        maxHeight: "85vh",
+        maxHeight: "88vh",
         display: "flex",
         flexDirection: "column",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+        boxShadow: "0 25px 50px rgba(0,0,0,0.3)",
         overflow: "hidden"
       }}>
         {/* Modal Header */}
         <div style={{
-          padding: "18px 24px",
+          padding: "20px 28px",
           background: "#0F3D3E",
           color: "#ffffff",
           display: "flex",
@@ -199,9 +201,9 @@ function FullCaseModal({ caseScenario, onClose }) {
         }}>
           <div>
             <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", opacity: 0.85 }}>
-              FULL CASE SCENARIO
+              FULL ICAI CASE SCENARIO
             </span>
-            <h3 style={{ margin: "4px 0 0", fontSize: "17px", fontWeight: "700" }}>
+            <h3 style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: "700" }}>
               {caseScenario.title || caseScenario.tag || "Case Scenario Details"}
             </h3>
           </div>
@@ -212,10 +214,10 @@ function FullCaseModal({ caseScenario, onClose }) {
               background: "rgba(255,255,255,0.15)",
               border: "none",
               color: "#ffffff",
-              width: "32px",
-              height: "32px",
+              width: "36px",
+              height: "36px",
               borderRadius: "50%",
-              fontSize: "20px",
+              fontSize: "22px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -228,14 +230,14 @@ function FullCaseModal({ caseScenario, onClose }) {
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: "24px", overflowY: "auto", fontSize: "14.5px", lineHeight: "1.7", color: "#334155" }}>
+        <div style={{ padding: "28px 32px", overflowY: "auto", fontSize: "15px", lineHeight: "1.75", color: "#334155" }}>
           {paragraphs.map((p, i) => (
-            <p key={i} style={{ margin: "0 0 14px" }}>{p}</p>
+            <p key={i} style={{ margin: "0 0 16px" }}>{p}</p>
           ))}
 
           {caseScenario.case_table && (
-            <div style={{ margin: "18px 0", overflowX: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px" }}>
-              <pre style={{ margin: 0, fontSize: "12.5px", color: "#1e293b", fontFamily: "monospace" }}>
+            <div style={{ margin: "20px 0", overflowX: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "16px" }}>
+              <pre style={{ margin: 0, fontSize: "13px", color: "#1e293b", fontFamily: "monospace" }}>
                 {typeof caseScenario.case_table === "string"
                   ? caseScenario.case_table
                   : JSON.stringify(caseScenario.case_table, null, 2)}
@@ -244,13 +246,13 @@ function FullCaseModal({ caseScenario, onClose }) {
           )}
 
           {outroParagraphs.map((p, i) => (
-            <p key={i} style={{ margin: "0 0 14px", color: "#475569" }}>{p}</p>
+            <p key={i} style={{ margin: "0 0 16px", color: "#475569" }}>{p}</p>
           ))}
         </div>
 
         {/* Modal Footer */}
         <div style={{
-          padding: "14px 24px",
+          padding: "16px 28px",
           background: "#f8fafc",
           borderTop: "1px solid #e2e8f0",
           display: "flex",
@@ -263,10 +265,10 @@ function FullCaseModal({ caseScenario, onClose }) {
               background: "#0F3D3E",
               color: "#ffffff",
               border: "none",
-              padding: "9px 20px",
+              padding: "10px 24px",
               borderRadius: "6px",
               fontWeight: "700",
-              fontSize: "13.5px",
+              fontSize: "14px",
               cursor: "pointer"
             }}
           >
@@ -475,8 +477,10 @@ export default function TakeTest() {
   const [searchParams] = useSearchParams();
   const setParam = searchParams.get("set") || null;
 
+  const sessionKey = `ca_take_test_active_${courseSlug || "course"}_${setParam || "all"}`;
+
   const navigate = useNavigate();
-  const { user, username } = useAuth();
+  const { user } = useAuth();
 
   // Data state
   const [loading, setLoading] = useState(true);
@@ -494,14 +498,11 @@ export default function TakeTest() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [showTimeUpModal, setShowTimeUpModal] = useState(false);
 
-  // Case Modal state
+  // Modals state
   const [showFullCaseModal, setShowFullCaseModal] = useState(false);
-
-  // Auth Modal state for non-logged-in submit
   const [showAuthModal, setShowAuthModal] = useState(false);
-
-  // Feedback Modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // Question tracking
   const [questionTime, setQuestionTime] = useState({}); // { index: seconds }
@@ -510,6 +511,7 @@ export default function TakeTest() {
   // Results state
   const [filter, setFilter] = useState("All");
 
+  // Step 1: Load Course and Check for Active Persisted Test Session
   useEffect(() => {
     async function loadData() {
       try {
@@ -528,6 +530,32 @@ export default function TakeTest() {
         }
         setCourse(courseData);
 
+        // Check if there is an active session in sessionStorage
+        const savedSessionRaw = sessionStorage.getItem(sessionKey);
+        if (savedSessionRaw) {
+          try {
+            const savedSession = JSON.parse(savedSessionRaw);
+            if (savedSession.screen === "test" && Array.isArray(savedSession.questions) && savedSession.questions.length > 0) {
+              const elapsedSec = Math.floor((Date.now() - (savedSession.savedAt || Date.now())) / 1000);
+              const newTimeLeft = Math.max(0, (savedSession.timeLeft || 7200) - elapsedSec);
+
+              setQuestions(savedSession.questions);
+              setCurrentIndex(savedSession.currentIndex || 0);
+              setAnswers(savedSession.answers || {});
+              setMarked(savedSession.marked || {});
+              setTimeLeft(newTimeLeft);
+              setQuestionTime(savedSession.questionTime || {});
+              setScreen("test");
+              setTimerRunning(true);
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.warn("Session restore parse error:", e);
+          }
+        }
+
+        // Otherwise generate a fresh test set
         const qData = await buildTakeTestQuestions(courseData.id, setParam);
         setQuestions(qData || []);
       } catch (err) {
@@ -539,7 +567,24 @@ export default function TakeTest() {
     if (courseSlug) {
       loadData();
     }
-  }, [courseSlug, setParam, navigate]);
+  }, [courseSlug, setParam, navigate, sessionKey]);
+
+  // Step 2: Persist active test state on every change
+  useEffect(() => {
+    if (screen === "test" && questions.length > 0) {
+      const stateToSave = {
+        screen: "test",
+        currentIndex,
+        answers,
+        marked,
+        timeLeft,
+        questionTime,
+        questions,
+        savedAt: Date.now()
+      };
+      sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
+    }
+  }, [screen, currentIndex, answers, marked, timeLeft, questionTime, questions, sessionKey]);
 
   // Timer interval
   useEffect(() => {
@@ -548,7 +593,7 @@ export default function TakeTest() {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           const next = prev - 1;
-          if (next === 0) {
+          if (next <= 0) {
             setTimerRunning(false);
             setShowTimeUpModal(true);
           }
@@ -617,6 +662,18 @@ export default function TakeTest() {
     }
   };
 
+  // Exit handlers
+  const handlePauseAndExit = () => {
+    setTimerRunning(false);
+    navigate(`/course/${courseSlug}`);
+  };
+
+  const handleAbandonAndExit = () => {
+    setTimerRunning(false);
+    sessionStorage.removeItem(sessionKey);
+    navigate(`/course/${courseSlug}`);
+  };
+
   // Submit flow: requires login to view results
   const handleSubmitClick = () => {
     if (!user) {
@@ -631,7 +688,10 @@ export default function TakeTest() {
     setShowTimeUpModal(false);
     setShowAuthModal(false);
 
-    // Save to mistake vault (fire and forget)
+    // Clear active session storage on final submit
+    sessionStorage.removeItem(sessionKey);
+
+    // Save to mistake vault
     try {
       saveToMistakeVault(questions, answers);
     } catch (err) {
@@ -654,6 +714,7 @@ export default function TakeTest() {
 
   const setLabel = setParam ? ` (${setParam})` : "";
 
+  // Screen 1: Instructions
   if (screen === "instructions") {
     return (
       <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "50px", paddingBottom: "50px" }}>
@@ -665,7 +726,7 @@ export default function TakeTest() {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📝 100 Questions</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>⏱ 2 Hours (120 Mins)</span>
-            <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📋 6 Case Scenarios</span>
+            <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📋 ICAI Style Case Scenarios</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>🔒 No Instant Hints</span>
           </div>
 
@@ -674,7 +735,7 @@ export default function TakeTest() {
               Exam Rules &amp; Structure
             </h4>
             <ul style={{ lineHeight: "1.7", color: "#334155", margin: 0, paddingLeft: "18px", fontSize: "13.5px" }}>
-              <li><strong>Case Scenarios:</strong> Case scenarios appear at Questions 1, 21, 41, 61, 81, and 92. All related questions for each case appear consecutively.</li>
+              <li><strong>Case Scenarios:</strong> Integrated ICAI style case scenarios with related sub-questions presented consecutively.</li>
               <li><strong>No Instant Answers:</strong> Feedback and solutions will be revealed on the comprehensive scorecard upon submission.</li>
               <li><strong>Flexibility:</strong> You can navigate between questions, change selections, or clear responses anytime before submitting.</li>
               <li><strong>Results Access:</strong> Login is required to view your detailed scorecard and persist weak questions to your Mistake Vault.</li>
@@ -703,12 +764,12 @@ export default function TakeTest() {
     );
   }
 
+  // Screen 2: Test Active
   if (screen === "test") {
     const currentQ = questions[currentIndex];
     const isPriority = currentQ?.is_priority;
     const qType = currentQ?.type || "regular";
 
-    // How many sub-questions belong to this case?
     let caseSubQNum = 1;
     let caseTotalQs = 1;
     if (qType === "case" && currentQ?.case_id) {
@@ -724,15 +785,34 @@ export default function TakeTest() {
     return (
       <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         {/* Topbar */}
-        <div className="take-test-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "12px 24px", height: "60px", position: "sticky", top: 0, zIndex: 100 }}>
+        <div className="take-test-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "12px 28px", height: "60px", position: "sticky", top: 0, zIndex: 100 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <Link to="/" style={{ fontWeight: "bold", color: "#0F3D3E", fontSize: "18px", textDecoration: "none" }}>CA Quiz</Link>
-            <div style={{ color: "#64748b", fontSize: "14px", borderLeft: "1px solid #e2e8f0", paddingLeft: "16px" }}>
+            <button
+              type="button"
+              onClick={() => setShowExitModal(true)}
+              style={{
+                background: "#f8fafc",
+                border: "1.5px solid #cbd5e1",
+                borderRadius: "6px",
+                padding: "6px 12px",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                color: "#475569",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+            >
+              ← Exit Test
+            </button>
+            <div style={{ fontWeight: "bold", color: "#0F3D3E", fontSize: "17px" }}>CA Quiz</div>
+            <div style={{ color: "#64748b", fontSize: "13.5px", borderLeft: "1px solid #e2e8f0", paddingLeft: "14px" }}>
               {course?.course_name}{setLabel}
             </div>
             {qType === "case" && (
               <span style={{
-                fontSize: "11px",
+                fontSize: "11.5px",
                 fontWeight: "700",
                 background: "rgba(15,61,62,0.1)",
                 color: "#0F3D3E",
@@ -743,7 +823,7 @@ export default function TakeTest() {
               </span>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
             <div style={{ fontSize: "14px", fontWeight: "600" }}>Q {currentIndex + 1}/{questions.length}</div>
             <div style={{ fontSize: "17px", fontWeight: "bold", fontFamily: "monospace", color: timeLeft <= 600 ? "#dc2626" : "#0F3D3E", background: "#f8fafc", padding: "4px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
               ⏱ {formatTime(timeLeft)}
@@ -778,6 +858,42 @@ export default function TakeTest() {
           />
         )}
 
+        {/* Exit Confirmation Modal */}
+        {showExitModal && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.7)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 25000, padding: "20px" }}>
+            <div style={{ background: "#ffffff", padding: "28px 32px", borderRadius: "14px", width: "450px", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+              <div style={{ fontSize: "36px", marginBottom: "10px" }}>🚪</div>
+              <h3 style={{ margin: "0 0 10px 0", color: "#0F3D3E", fontSize: "20px" }}>Exit Exam Simulation?</h3>
+              <p style={{ marginBottom: "24px", color: "#475569", fontSize: "14px", lineHeight: "1.6" }}>
+                You can pause your exam to resume later, or discard your current session.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={handlePauseAndExit}
+                  style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "11px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "14px" }}
+                >
+                  ⏸ Pause &amp; Save (Resume Later)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAbandonAndExit}
+                  style={{ background: "#fff", color: "#dc2626", border: "1.5px solid #fca5a5", padding: "10px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "13.5px" }}
+                >
+                  🗑 Abandon &amp; Discard Test
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExitModal(false)}
+                  style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", padding: "10px", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13.5px" }}
+                >
+                  Cancel &amp; Continue Exam
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Time Up Modal */}
         {showTimeUpModal && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
@@ -794,12 +910,12 @@ export default function TakeTest() {
           </div>
         )}
 
-        {/* Main Body */}
-        <div className="take-test-body" style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Main Body with Expanded Breadth */}
+        <div className="take-test-body" style={{ display: "flex", flex: 1, overflow: "hidden", maxWidth: "1400px", width: "100%", margin: "0 auto" }}>
           
-          {/* Question Panel */}
-          <div className="take-test-qpanel" style={{ flex: 1, padding: "24px", overflowY: "auto" }}>
-            <div className="take-test-qcard" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "28px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", maxWidth: "840px", margin: "0 auto" }}>
+          {/* Question Panel (Wide Width) */}
+          <div className="take-test-qpanel" style={{ flex: 1, padding: "28px 36px", overflowY: "auto" }}>
+            <div className="take-test-qcard" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "32px 36px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", maxWidth: "1050px", margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
               
               {/* Case scenario block */}
               {qType === "case" && currentQ?.case_scenario && (
@@ -816,7 +932,7 @@ export default function TakeTest() {
                   display: "flex",
                   alignItems: "center",
                   gap: "10px",
-                  margin: "16px 0 16px",
+                  margin: "18px 0 16px",
                   paddingBottom: "8px",
                   borderBottom: "1.5px solid #e2e8f0"
                 }}>
@@ -834,13 +950,13 @@ export default function TakeTest() {
               </div>
 
               {/* Question Text */}
-              <div style={{ fontSize: "17px", fontWeight: "600", color: "#0f172a", marginBottom: "22px", lineHeight: "1.65" }}>
+              <div style={{ fontSize: "17.5px", fontWeight: "600", color: "#0f172a", marginBottom: "24px", lineHeight: "1.68" }}>
                 <span style={{ fontWeight: "800", color: "#0F3D3E", marginRight: "8px" }}>Q{currentIndex + 1}.</span>
                 {currentQ?.question}
               </div>
 
-              {/* Options List — Clean, Aligned Circle Badges with No Distortion */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Options List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 {["a", "b", "c", "d"].map((optKey) => {
                   const optText = currentQ?.[`option_${optKey}`];
                   if (!optText) return null;
@@ -853,7 +969,7 @@ export default function TakeTest() {
                       style={{
                         border: isSelected ? "2px solid #0F3D3E" : "1.5px solid #e2e8f0",
                         background: isSelected ? "rgba(15,61,62,0.05)" : "#ffffff",
-                        padding: "14px 18px",
+                        padding: "15px 20px",
                         borderRadius: "10px",
                         cursor: "pointer",
                         display: "flex",
@@ -883,7 +999,7 @@ export default function TakeTest() {
                       }}>
                         {optKey.toUpperCase()}
                       </span>
-                      <span style={{ color: "#1e293b", fontSize: "14.5px", lineHeight: "1.6", flex: 1, wordBreak: "break-word" }}>
+                      <span style={{ color: "#1e293b", fontSize: "15px", lineHeight: "1.6", flex: 1, wordBreak: "break-word" }}>
                         {optText}
                       </span>
                     </div>
@@ -892,14 +1008,14 @@ export default function TakeTest() {
               </div>
 
               {/* Navigation row */}
-              <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "32px", paddingTop: "20px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "10px" }}>
+              <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "36px", paddingTop: "22px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "10px" }}>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button onClick={handleClearResponse} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", color: "#475569", fontWeight: "600", fontSize: "13px" }}>Clear</button>
                   <button onClick={handleMarkAndNext} style={{ padding: "9px 16px", background: "#fff", border: "1px solid #f59e0b", borderRadius: "6px", cursor: "pointer", color: "#d97706", fontWeight: "600", fontSize: "13px" }}>Mark &amp; Next</button>
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={handlePrev} disabled={currentIndex === 0} style={{ padding: "9px 16px", background: currentIndex === 0 ? "#f1f5f9" : "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: currentIndex === 0 ? "not-allowed" : "pointer", color: "#475569", fontWeight: "600", fontSize: "13px" }}>Previous</button>
-                  <button onClick={handleNext} disabled={currentIndex === questions.length - 1} style={{ padding: "9px 24px", background: "#0F3D3E", border: "none", borderRadius: "6px", cursor: currentIndex === questions.length - 1 ? "not-allowed" : "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px" }}>Next</button>
+                  <button onClick={handlePrev} disabled={currentIndex === 0} style={{ padding: "9px 18px", background: currentIndex === 0 ? "#f1f5f9" : "#fff", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: currentIndex === 0 ? "not-allowed" : "pointer", color: "#475569", fontWeight: "600", fontSize: "13px" }}>Previous</button>
+                  <button onClick={handleNext} disabled={currentIndex === questions.length - 1} style={{ padding: "9px 26px", background: "#0F3D3E", border: "none", borderRadius: "6px", cursor: currentIndex === questions.length - 1 ? "not-allowed" : "pointer", color: "#fff", fontWeight: "700", fontSize: "13.5px" }}>Next</button>
                 </div>
               </div>
 
@@ -907,7 +1023,7 @@ export default function TakeTest() {
           </div>
 
           {/* Palette Panel */}
-          <div className="take-test-palette-panel" style={{ width: "300px", background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", padding: "20px" }}>
+          <div className="take-test-palette-panel" style={{ width: "310px", background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", padding: "22px" }}>
             <h4 style={{ margin: "0 0 14px 0", color: "#0F3D3E", fontSize: "14px", fontWeight: "700" }}>Question Palette</h4>
             
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", overflowY: "auto", alignContent: "flex-start", flex: 1, maxHeight: "calc(100vh - 240px)" }}>
@@ -964,7 +1080,7 @@ export default function TakeTest() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#1E7145" }}></div> Answered</div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#f59e0b" }}></div> Marked for Review</div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "50%", border: "1px solid #cbd5e1" }}></div> Not Answered</div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "2px", border: "1.5px solid #0F3D3E", background: "#f1f5f9" }}></div> Square = Case Scenario</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "10px", height: "10px", borderRadius: "3px", border: "1.5px solid #0F3D3E", background: "#f1f5f9" }}></div> Square = Case Scenario</div>
             </div>
 
           </div>
@@ -974,7 +1090,7 @@ export default function TakeTest() {
     );
   }
 
-  // Results Screen
+  // Screen 3: Results
   if (screen === "results") {
     const totalQuestions = questions.length;
     let correctCount = 0;
@@ -1025,7 +1141,7 @@ export default function TakeTest() {
           scorePercent={scorePercent}
         />
 
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "960px", margin: "0 auto" }}>
           
           {/* Summary Card */}
           <div style={{ background: "#fff", borderRadius: "14px", padding: "32px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)", marginBottom: "28px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", border: "1px solid #e2e8f0" }}>
@@ -1071,7 +1187,7 @@ export default function TakeTest() {
                   💬 Give Feedback
                 </button>
                 <Link to="/vault" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #B08628", background: "rgba(176,134,40,0.08)", borderRadius: "6px", color: "#B08628", fontSize: "13px", fontWeight: "700" }}>📚 Vault</Link>
-                <Link to="/" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", fontSize: "13px", fontWeight: "600" }}>Home</Link>
+                <Link to={`/course/${courseSlug}`} style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", fontSize: "13px", fontWeight: "600" }}>Course</Link>
                 <button onClick={() => window.location.reload()} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}>Restart</button>
               </div>
             </div>
