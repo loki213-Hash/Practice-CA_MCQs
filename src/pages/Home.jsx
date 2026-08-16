@@ -796,11 +796,6 @@ function Home() {
                 <div className="stripe"></div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                   <span className="tag">{course.tag}</span>
-                  {isAvailable && !isFinal && (
-                    <span style={{ fontSize: "10px", fontWeight: "700", background: "rgba(15,61,62,0.1)", color: "#0F3D3E", padding: "2px 7px", borderRadius: "10px" }}>
-                      🎯 100-Q Exam Live
-                    </span>
-                  )}
                 </div>
                 <h3>
                   <Link to={`/course/${course.course_slug}`} style={{ color: "inherit", textDecoration: "none" }}>
@@ -832,52 +827,13 @@ function Home() {
                   )}
                 </div>
 
-                {isAvailable && !isFinal ? (
-                  <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                    <Link
-                      to={`/course/${course.course_slug}/chapters`}
-                      className="cta"
-                      style={{
-                        flex: "1 1 calc(50% - 4px)",
-                        textAlign: "center",
-                        fontSize: "12.5px",
-                        padding: "9px 12px",
-                        background: "#1E7145",
-                        color: "#fff",
-                        borderRadius: "6px",
-                        fontWeight: "600",
-                        textDecoration: "none",
-                        boxSizing: "border-box"
-                      }}
-                    >
-                      📖 Practice
-                    </Link>
-                    <Link
-                      to={`/take-test/${course.course_slug}`}
-                      className="cta"
-                      style={{
-                        flex: "1 1 calc(50% - 4px)",
-                        textAlign: "center",
-                        fontSize: "12.5px",
-                        padding: "9px 12px",
-                        background: "#0F3D3E",
-                        color: "#fff",
-                        borderRadius: "6px",
-                        fontWeight: "600",
-                        textDecoration: "none",
-                        boxSizing: "border-box"
-                      }}
-                    >
-                      🎯 Take Test (100Q)
-                    </Link>
-                  </div>
-                ) : isAvailable ? (
+                {isAvailable ? (
                   <Link
                     to={`/course/${course.course_slug}`}
                     className="cta"
                     style={{ cursor: "pointer" }}
                   >
-                    {course.ctaText} <span className="arrow">→</span>
+                    Go <span className="arrow">→</span>
                   </Link>
                 ) : (
                   <span className="cta" style={{ opacity: 0.5 }}>
