@@ -1,4 +1,5 @@
 import { supabase } from "../supabase/supabase";
+import { cleanCorruptedText } from "../utils/helpers";
 
 export async function getCasesForCourse(courseId, setType = null) {
   try {
@@ -118,18 +119,22 @@ async function formatCasesWithQuestions(casesData) {
 
       const formattedQuestions = rawQuestions.map((q, qIdx) => {
         // DB column is 'question' not 'text' or 'question_text'
-        const text = q.question || q.text || q.question_text || q.title || "";
+        const rawText = q.question || q.text || q.question_text || q.title || "";
+        const text = cleanCorruptedText(rawText);
 
         let options = [
-          { letter: "A", text: q.option_a || q.optionA || q.a || "" },
-          { letter: "B", text: q.option_b || q.optionB || q.b || "" },
-          { letter: "C", text: q.option_c || q.optionC || q.c || "" },
-          { letter: "D", text: q.option_d || q.optionD || q.d || "" },
+          { letter: "A", text: cleanCorruptedText(q.option_a || q.optionA || q.a || "") },
+          { letter: "B", text: cleanCorruptedText(q.option_b || q.optionB || q.b || "") },
+          { letter: "C", text: cleanCorruptedText(q.option_c || q.optionC || q.c || "") },
+          { letter: "D", text: cleanCorruptedText(q.option_d || q.optionD || q.d || "") },
         ].filter((o) => o.text && o.text.trim());
 
         // If structured options array in DB
         if (!options.length && Array.isArray(q.options)) {
-          options = q.options;
+          options = q.options.map((o) => ({
+            ...o,
+            text: cleanCorruptedText(o.text || ""),
+          }));
         }
 
         // DB correct_option is uppercase letter (A/B/C/D)
@@ -137,8 +142,8 @@ async function formatCasesWithQuestions(casesData) {
           q.correct_option || q.correct_letter || q.correct || q.answer || "A"
         ).trim().toUpperCase();
 
-        const explanation = q.explanation || q.solution || "";
-        const explanations = q.explanations || null;
+        const explanation = cleanCorruptedText(q.explanation || q.solution || "");
+        const explanations = cleanCorruptedText(q.explanations || null);
 
         return {
           id: q.id || qIdx + 1,
@@ -150,15 +155,19 @@ async function formatCasesWithQuestions(casesData) {
         };
       });
 
-      const tableData = c.case_table || null;
+      const rawTableData = c.case_table || null;
+      const tableData = cleanCorruptedText(rawTableData);
 
       // Use case_intro for the text BEFORE the table.
       // Fall back to body/case_scenario only if case_intro is absent.
-      const introText = c.case_intro || c.body || c.case_scenario || c.description || c.content || c.case_text || "";
-      const outroText = c.case_outro || null;
+      const rawIntro = c.case_intro || c.body || c.case_scenario || c.description || c.content || c.case_text || "";
+      const rawOutro = c.case_outro || null;
+
+      const introText = cleanCorruptedText(rawIntro);
+      const outroText = cleanCorruptedText(rawOutro);
 
       const toParagraphs = (text) => {
-        if (Array.isArray(text)) return text;
+        if (Array.isArray(text)) return text.map((p) => cleanCorruptedText(p));
         if (typeof text === "string" && text.trim())
           return text.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
         return [];
@@ -174,13 +183,13 @@ async function formatCasesWithQuestions(casesData) {
       return {
         id: c.id || caseCode,
         case_code: caseCode,
-        tag: c.tag || `Case Scenario ${idx + 1}`,
-        title: c.title || c.name || `Case Scenario ${idx + 1}`,
+        tag: cleanCorruptedText(c.tag || `Case Scenario ${idx + 1}`),
+        title: cleanCorruptedText(c.title || c.name || `Case Scenario ${idx + 1}`),
         body: introText,
         case_intro: introText,
         case_table: tableData,
         case_outro: outroText,
-        topic: c.topic || "Case Scenario",
+        topic: cleanCorruptedText(c.topic || "Case Scenario"),
         paragraphs,
         outro_paragraphs: outroParagraphs,
         questions: formattedQuestions,

@@ -1,4 +1,5 @@
 import React from "react";
+import { cleanCorruptedText } from "../utils/helpers";
 
 export default function CaseTableRenderer({ tableData, title = null }) {
   if (!tableData) return null;
@@ -11,7 +12,7 @@ export default function CaseTableRenderer({ tableData, title = null }) {
       return (
         <div style={{ margin: "14px 0", overflowX: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "14px" }}>
           <pre style={{ margin: 0, fontSize: "13px", color: "#1e293b", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
-            {String(tableData)}
+            {cleanCorruptedText(String(tableData))}
           </pre>
         </div>
       );
@@ -75,7 +76,7 @@ export default function CaseTableRenderer({ tableData, title = null }) {
           <div key={tIdx} style={{ overflowX: "auto", margin: "10px 0 16px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             {tblTitle && (
               <div style={{ padding: "8px 14px", background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", fontSize: "12.5px", fontWeight: "700", color: "#0F3D3E" }}>
-                {tblTitle}
+                {cleanCorruptedText(tblTitle)}
               </div>
             )}
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px", textAlign: "left" }}>
@@ -84,7 +85,7 @@ export default function CaseTableRenderer({ tableData, title = null }) {
                   <tr style={{ background: "#0F3D3E", color: "#ffffff" }}>
                     {headers.map((h, hIdx) => (
                       <th key={hIdx} style={{ padding: "10px 14px", fontWeight: "700", borderBottom: "2px solid #0B2545", letterSpacing: "0.3px" }}>
-                        {String(h).replace(/_/g, " ")}
+                        {cleanCorruptedText(String(h).replace(/_/g, " "))}
                       </th>
                     ))}
                   </tr>
@@ -96,11 +97,11 @@ export default function CaseTableRenderer({ tableData, title = null }) {
                     {Array.isArray(row)
                       ? row.map((cell, cIdx) => (
                           <td key={cIdx} style={{ padding: "10px 14px", color: "#1e293b", lineHeight: "1.5" }}>
-                            {typeof cell === "object" ? JSON.stringify(cell) : String(cell)}
+                            {typeof cell === "object" ? JSON.stringify(cell) : cleanCorruptedText(String(cell))}
                           </td>
                         ))
                       : (
-                          <td style={{ padding: "10px 14px", color: "#1e293b" }}>{String(row)}</td>
+                          <td style={{ padding: "10px 14px", color: "#1e293b" }}>{cleanCorruptedText(String(row))}</td>
                         )}
                   </tr>
                 ))}

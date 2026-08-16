@@ -1,4 +1,5 @@
 import { supabase } from "../supabase/supabase";
+import { cleanCorruptedText } from "../utils/helpers";
 
 export async function getQuestionsForChapter(chapterId) {
   // DB stores chapter_id as TEXT — cast to string for safety
@@ -19,9 +20,26 @@ export async function getQuestionsForChapter(chapterId) {
       .order("display_order", { ascending: true })
       .order("id", { ascending: true });
     if (fbErr) throw fbErr;
-    return fallback || [];
+    return (fallback || []).map(formatQuestionData);
   }
-  return data || [];
+  return (data || []).map(formatQuestionData);
+}
+
+function formatQuestionData(q) {
+  if (!q) return q;
+  return {
+    ...q,
+    question: cleanCorruptedText(q.question),
+    option_a: cleanCorruptedText(q.option_a),
+    option_b: cleanCorruptedText(q.option_b),
+    option_c: cleanCorruptedText(q.option_c),
+    option_d: cleanCorruptedText(q.option_d),
+    explanation: cleanCorruptedText(q.explanation),
+    question_intro: cleanCorruptedText(q.question_intro),
+    question_outro: cleanCorruptedText(q.question_outro),
+    table_data: cleanCorruptedText(q.table_data),
+    topic: cleanCorruptedText(q.topic),
+  };
 }
 
 export async function getQuestionCount(chapterId) {
