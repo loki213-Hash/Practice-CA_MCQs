@@ -949,7 +949,7 @@ export default function Quiz() {
                           border: "1px solid var(--line)",
                           background: "var(--card)",
                           color: "var(--ink)",
-                          fontWeight: "600",
+                          fontWeight: "700",
                           fontSize: "13.5px",
                           cursor: "pointer",
                           display: "flex",

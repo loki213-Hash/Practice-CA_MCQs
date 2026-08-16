@@ -202,7 +202,7 @@ function Course() {
               type="button"
               onClick={() => setCurrentStep("mode_selection")}
               className="back-link"
-              style={{ border: "none", background: "transparent", cursor: "pointer", padding: "0 0 16px 0", fontSize: "14px", fontWeight: "600", color: "#0F3D3E" }}
+              style={{ border: "none", background: "transparent", cursor: "pointer", padding: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "#0F3D3E" }}
             >
               ← Back to Mode Selection
             </button>
@@ -218,37 +218,111 @@ function Course() {
               {/* SPOM SET A */}
               {isSpom && (
                 <>
-                  <div className="course-mode-card" style={{ border: "2px solid #0F3D3E", background: "#fff", display: "flex", flexDirection: "column" }}>
+                  <div
+                    className="course-mode-card"
+                    style={{
+                      border: "2px solid #0F3D3E",
+                      background: "linear-gradient(180deg, #f2f9f5 0%, #ffffff 42%)",
+                      display: "flex",
+                      flexDirection: "column",
+                      boxShadow: "0 4px 16px rgba(15, 61, 62, 0.07)",
+                      borderRadius: "14px"
+                    }}
+                  >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                      <span className="mode-card-badge exam-badge" style={{ margin: 0 }}>Active Set</span>
+                      <span
+                        className="mode-card-badge"
+                        style={{
+                          margin: 0,
+                          background: "#dcfce7",
+                          color: "#14532d",
+                          border: "1px solid #86efac",
+                          fontWeight: "700",
+                          fontSize: "11px",
+                          letterSpacing: "0.4px",
+                          textTransform: "uppercase",
+                          padding: "3px 10px",
+                          borderRadius: "20px"
+                        }}
+                      >
+                        Active Set
+                      </span>
                       <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F3D3E" }}>100 Questions · 2 Hrs</span>
                     </div>
-                    <h3 style={{ margin: "0 0 8px 0", color: "#0F3D3E", fontSize: "20px" }}>SET A — Corporate &amp; Economic Laws</h3>
+                    <h3 style={{ margin: "0 0 8px 0", color: "#0F3D3E", fontSize: "20px", fontWeight: "800" }}>SET A — Corporate &amp; Economic Laws</h3>
                     <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
                       Covers Companies Act 2013, SEBI Act &amp; Regulations, FEMA, FCRA, and IBC 2016 with 6 Case Scenarios.
                     </p>
                     <Link
                       to={`/take-test/${courseSlug}?set=SET%20A`}
-                      className="mode-card-cta exam-cta"
-                      style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                      className="mode-card-cta"
+                      style={{
+                        textAlign: "center",
+                        textDecoration: "none",
+                        display: "block",
+                        background: "#0F3D3E",
+                        color: "#ffffff",
+                        fontWeight: "700",
+                        padding: "12px 18px",
+                        borderRadius: "8px",
+                        boxShadow: "0 3px 10px rgba(15, 61, 62, 0.25)",
+                        transition: "all 0.15s ease"
+                      }}
                     >
                       Start SET A Exam →
                     </Link>
                   </div>
 
-                  <div className="course-mode-card" style={{ border: "2px solid #0F3D3E", background: "#fff", display: "flex", flexDirection: "column" }}>
+                  <div
+                    className="course-mode-card"
+                    style={{
+                      border: "2px solid #b45309",
+                      background: "linear-gradient(180deg, #fffbeb 0%, #ffffff 42%)",
+                      display: "flex",
+                      flexDirection: "column",
+                      boxShadow: "0 4px 16px rgba(180, 83, 9, 0.07)",
+                      borderRadius: "14px"
+                    }}
+                  >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                      <span className="mode-card-badge exam-badge" style={{ margin: 0 }}>Active Set</span>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F3D3E" }}>100 Questions · 2 Hrs</span>
+                      <span
+                        className="mode-card-badge"
+                        style={{
+                          margin: 0,
+                          background: "#fef3c7",
+                          color: "#92400e",
+                          border: "1px solid #fde68a",
+                          fontWeight: "700",
+                          fontSize: "11px",
+                          letterSpacing: "0.4px",
+                          textTransform: "uppercase",
+                          padding: "3px 10px",
+                          borderRadius: "20px"
+                        }}
+                      >
+                        Active Set
+                      </span>
+                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#b45309" }}>100 Questions · 2 Hrs</span>
                     </div>
-                    <h3 style={{ margin: "0 0 8px 0", color: "#0F3D3E", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
+                    <h3 style={{ margin: "0 0 8px 0", color: "#9a3412", fontSize: "20px", fontWeight: "800" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
                     <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
                       Covers SCMPE syllabus, Standard Costing, Decision Making, and Transfer Pricing with Case Scenarios.
                     </p>
                     <Link
                       to={`/take-test/${courseSlug}?set=SET%20B`}
-                      className="mode-card-cta exam-cta"
-                      style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                      className="mode-card-cta"
+                      style={{
+                        textAlign: "center",
+                        textDecoration: "none",
+                        display: "block",
+                        background: "#b45309",
+                        color: "#ffffff",
+                        fontWeight: "700",
+                        padding: "12px 18px",
+                        borderRadius: "8px",
+                        boxShadow: "0 3px 10px rgba(180, 83, 9, 0.25)",
+                        transition: "all 0.15s ease"
+                      }}
                     >
                       Start SET B Exam →
                     </Link>
@@ -326,7 +400,7 @@ function Course() {
               type="button"
               onClick={() => setCurrentStep("mode_selection")}
               className="back-link"
-              style={{ border: "none", background: "transparent", cursor: "pointer", padding: "0 0 16px 0", fontSize: "14px", fontWeight: "600", color: "#0F3D3E" }}
+              style={{ border: "none", background: "transparent", cursor: "pointer", padding: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "#0F3D3E" }}
             >
               ← Back to Mode Selection
             </button>
@@ -339,37 +413,111 @@ function Course() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
               
-              <div className="course-mode-card" style={{ border: "2px solid #1E7145", background: "#fff", display: "flex", flexDirection: "column" }}>
+              <div
+                className="course-mode-card"
+                style={{
+                  border: "2px solid #0F3D3E",
+                  background: "linear-gradient(180deg, #f2f9f5 0%, #ffffff 42%)",
+                  display: "flex",
+                  flexDirection: "column",
+                  boxShadow: "0 4px 16px rgba(15, 61, 62, 0.07)",
+                  borderRadius: "14px"
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <span className="mode-card-badge practice-badge" style={{ margin: 0 }}>Available</span>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#1E7145" }}>All Chapters + Cases</span>
+                  <span
+                    className="mode-card-badge"
+                    style={{
+                      margin: 0,
+                      background: "#dcfce7",
+                      color: "#14532d",
+                      border: "1px solid #86efac",
+                      fontWeight: "700",
+                      fontSize: "11px",
+                      letterSpacing: "0.4px",
+                      textTransform: "uppercase",
+                      padding: "3px 10px",
+                      borderRadius: "20px"
+                    }}
+                  >
+                    Available
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F3D3E" }}>All Chapters + Cases</span>
                 </div>
-                <h3 style={{ margin: "0 0 8px 0", color: "#1E7145", fontSize: "20px" }}>SET A — Corporate &amp; Economic Laws</h3>
+                <h3 style={{ margin: "0 0 8px 0", color: "#0F3D3E", fontSize: "20px", fontWeight: "800" }}>SET A — Corporate &amp; Economic Laws</h3>
                 <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
                   Companies Act 2013, SEBI Act &amp; Regulations, FEMA, FCRA, and IBC 2016 chapter-wise practice sets.
                 </p>
                 <Link
                   to={`/course/${courseSlug}/SET%20A`}
-                  className="mode-card-cta practice-cta"
-                  style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                  className="mode-card-cta"
+                  style={{
+                    textAlign: "center",
+                    textDecoration: "none",
+                    display: "block",
+                    background: "#0F3D3E",
+                    color: "#ffffff",
+                    fontWeight: "700",
+                    padding: "12px 18px",
+                    borderRadius: "8px",
+                    boxShadow: "0 3px 10px rgba(15, 61, 62, 0.25)",
+                    transition: "all 0.15s ease"
+                  }}
                 >
                   Select Chapters (SET A) →
                 </Link>
               </div>
 
-              <div className="course-mode-card" style={{ border: "2px solid #1E7145", background: "#fff", display: "flex", flexDirection: "column" }}>
+              <div
+                className="course-mode-card"
+                style={{
+                  border: "2px solid #b45309",
+                  background: "linear-gradient(180deg, #fffbeb 0%, #ffffff 42%)",
+                  display: "flex",
+                  flexDirection: "column",
+                  boxShadow: "0 4px 16px rgba(180, 83, 9, 0.07)",
+                  borderRadius: "14px"
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <span className="mode-card-badge practice-badge" style={{ margin: 0 }}>Available</span>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#1E7145" }}>All Chapters + Cases</span>
+                  <span
+                    className="mode-card-badge"
+                    style={{
+                      margin: 0,
+                      background: "#fef3c7",
+                      color: "#92400e",
+                      border: "1px solid #fde68a",
+                      fontWeight: "700",
+                      fontSize: "11px",
+                      letterSpacing: "0.4px",
+                      textTransform: "uppercase",
+                      padding: "3px 10px",
+                      borderRadius: "20px"
+                    }}
+                  >
+                    Available
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#b45309" }}>All Chapters + Cases</span>
                 </div>
-                <h3 style={{ margin: "0 0 8px 0", color: "#1E7145", fontSize: "20px" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
+                <h3 style={{ margin: "0 0 8px 0", color: "#9a3412", fontSize: "20px", fontWeight: "800" }}>SET B — Strategic Cost &amp; Performance Mgmt</h3>
                 <p style={{ fontSize: "13.5px", color: "#475569", lineHeight: "1.6", flex: 1, margin: "0 0 16px" }}>
                   SCMPE chapter-wise practice sets and integrated Case Scenarios with instant explanations.
                 </p>
                 <Link
                   to={`/course/${courseSlug}/SET%20B`}
-                  className="mode-card-cta practice-cta"
-                  style={{ textAlign: "center", textDecoration: "none", display: "block" }}
+                  className="mode-card-cta"
+                  style={{
+                    textAlign: "center",
+                    textDecoration: "none",
+                    display: "block",
+                    background: "#b45309",
+                    color: "#ffffff",
+                    fontWeight: "700",
+                    padding: "12px 18px",
+                    borderRadius: "8px",
+                    boxShadow: "0 3px 10px rgba(180, 83, 9, 0.25)",
+                    transition: "all 0.15s ease"
+                  }}
                 >
                   Select Chapters (SET B) →
                 </Link>

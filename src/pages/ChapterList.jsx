@@ -498,7 +498,7 @@ function ChapterList() {
                 <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto", lineHeight: "1.6" }}>
                   Add subjects and chapters in Supabase with <code>set_type = &apos;{safeDecodeURI(setType)}&apos;</code> to start practicing.
                 </p>
-                <Link to={`/course/${courseSlug}`} className="start-btn" style={{ fontSize: "13.5px", padding: "10px 22px", textDecoration: "none" }}>
+                <Link to={`/course/${courseSlug}`} className="start-btn" style={{ fontSize: "13.5px", padding: "10px 22px", textDecoration: "none", fontWeight: "700" }}>
                   ← Back to Set Selection
                 </Link>
               </div>

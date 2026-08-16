@@ -7,7 +7,7 @@ export default function NotFound() {
       <p style={{ fontSize: "18px", color: "var(--ink-soft)", marginBottom: "28px" }}>
         The page you&rsquo;re looking for doesn&rsquo;t exist.
       </p>
-      <Link className="btn primary" to="/" style={{ display: "inline-block" }}>
+      <Link className="btn primary" to="/" style={{ display: "inline-block", fontWeight: 700 }}>
         ← Back to Home
       </Link>
     </div>

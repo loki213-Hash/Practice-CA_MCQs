@@ -17,7 +17,7 @@ function ComingSoon() {
             Chapters and questions are being curated by our team.
             This course will appear here as soon as it's ready.
           </p>
-          <Link className="btn primary" to="/" style={{ marginTop: 20 }}>
+          <Link className="btn primary" to="/" style={{ marginTop: 20, fontWeight: 700 }}>
             ← Back to courses
           </Link>
         </div>

@@ -569,7 +569,7 @@ img { max-width: 100%; display: block; }
   gap: 6px;
   color: var(--navy);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   transition: color 0.15s ease;
 }
