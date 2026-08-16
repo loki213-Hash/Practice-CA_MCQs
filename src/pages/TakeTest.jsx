@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../supabase/supabase";
 import { buildTakeTestQuestions } from "../services/takeTestService";
 import { saveToMistakeVault } from "../services/mistakeVaultService";
+import { submitFeedback } from "../services/feedbackService";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
 
@@ -277,10 +278,205 @@ function FullCaseModal({ caseScenario, onClose }) {
   );
 }
 
+// Student Feedback Modal Component
+function FeedbackModal({ isOpen, onClose, course, scorePercent }) {
+  const { user, username } = useAuth();
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [category, setCategory] = useState("Exam Experience");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!isOpen) return null;
+
+  const categories = [
+    "Exam Experience",
+    "Question Error / Typo",
+    "ICAI Amendment Note",
+    "Feature Suggestion",
+    "General Praise"
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await submitFeedback({
+        userId: user?.id || null,
+        username: username || "Guest",
+        courseId: course?.id || null,
+        courseName: course?.course_name || "Exam",
+        rating,
+        category,
+        message,
+        testType: "take-test",
+        scorePercent
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+        setMessage("");
+      }, 2000);
+    } catch (err) {
+      console.error("Feedback error:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(15, 23, 42, 0.7)",
+      backdropFilter: "blur(4px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 20000,
+      padding: "20px"
+    }}>
+      <div style={{
+        background: "#ffffff",
+        borderRadius: "14px",
+        maxWidth: "500px",
+        width: "100%",
+        boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+        overflow: "hidden",
+        position: "relative"
+      }}>
+        {/* Header */}
+        <div style={{ padding: "18px 24px", background: "#0F3D3E", color: "#ffffff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "700" }}>💬 Test Feedback &amp; Suggestions</h3>
+            <span style={{ fontSize: "12px", opacity: 0.85 }}>Help us improve your CA MCQ practice experience</span>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: "transparent", border: "none", color: "#fff", fontSize: "22px", cursor: "pointer" }}>&times;</button>
+        </div>
+
+        {submitted ? (
+          <div style={{ padding: "40px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: "42px", marginBottom: "12px" }}>🎉</div>
+            <h3 style={{ color: "#1E7145", margin: "0 0 8px 0" }}>Thank you for your feedback!</h3>
+            <p style={{ color: "#475569", fontSize: "14px", margin: 0 }}>Your suggestions help us keep questions updated and exam-accurate.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ padding: "22px 24px" }}>
+            {/* Star Rating */}
+            <div style={{ marginBottom: "18px", textAlign: "center" }}>
+              <label style={{ fontSize: "12.5px", fontWeight: "700", color: "#475569", display: "block", marginBottom: "6px" }}>
+                How was your exam simulation experience?
+              </label>
+              <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      fontSize: "26px",
+                      cursor: "pointer",
+                      color: star <= (hoverRating || rating) ? "#f59e0b" : "#cbd5e1",
+                      transition: "transform 0.1s ease",
+                      padding: 0
+                    }}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category selection */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "700", color: "#475569", display: "block", marginBottom: "8px" }}>
+                Feedback Category:
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategory(cat)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "16px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      border: category === cat ? "1.5px solid #0F3D3E" : "1px solid #cbd5e1",
+                      background: category === cat ? "#0F3D3E" : "#f8fafc",
+                      color: category === cat ? "#ffffff" : "#475569"
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Text message */}
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "700", color: "#475569", display: "block", marginBottom: "6px" }}>
+                Your Message / Suggested Amendments:
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Share any thoughts, report question typos, or request features..."
+                rows={4}
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "13.5px",
+                  fontFamily: "inherit",
+                  boxSizing: "border-box",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "#0F3D3E",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(15,61,62,0.2)"
+              }}
+            >
+              {submitting ? "Submitting..." : "Send Feedback"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function TakeTest() {
   const { courseSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const setParam = searchParams.get("set") || null;
+
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, username } = useAuth();
 
   // Data state
   const [loading, setLoading] = useState(true);
@@ -303,6 +499,9 @@ export default function TakeTest() {
 
   // Auth Modal state for non-logged-in submit
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Feedback Modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Question tracking
   const [questionTime, setQuestionTime] = useState({}); // { index: seconds }
@@ -329,7 +528,7 @@ export default function TakeTest() {
         }
         setCourse(courseData);
 
-        const qData = await buildTakeTestQuestions(courseData.id);
+        const qData = await buildTakeTestQuestions(courseData.id, setParam);
         setQuestions(qData || []);
       } catch (err) {
         console.error(err);
@@ -340,7 +539,7 @@ export default function TakeTest() {
     if (courseSlug) {
       loadData();
     }
-  }, [courseSlug, navigate]);
+  }, [courseSlug, setParam, navigate]);
 
   // Timer interval
   useEffect(() => {
@@ -453,14 +652,16 @@ export default function TakeTest() {
     );
   }
 
+  const setLabel = setParam ? ` (${setParam})` : "";
+
   if (screen === "instructions") {
     return (
       <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "50px", paddingBottom: "50px" }}>
         <div style={{ background: "#fff", padding: "36px 40px", borderRadius: "14px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "640px", width: "100%", border: "1px solid #e2e8f0" }}>
           <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F3D3E", letterSpacing: "1px", textTransform: "uppercase" }}>
-            EXAM SIMULATION
+            EXAM SIMULATION{setParam && ` · ${setParam.toUpperCase()}`}
           </span>
-          <h1 style={{ margin: "6px 0 14px 0", color: "#0F3D3E", fontSize: "28px" }}>{course?.course_name}</h1>
+          <h1 style={{ margin: "6px 0 14px 0", color: "#0F3D3E", fontSize: "28px" }}>{course?.course_name}{setLabel}</h1>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📝 100 Questions</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>⏱ 2 Hours (120 Mins)</span>
@@ -526,7 +727,9 @@ export default function TakeTest() {
         <div className="take-test-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "12px 24px", height: "60px", position: "sticky", top: 0, zIndex: 100 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <Link to="/" style={{ fontWeight: "bold", color: "#0F3D3E", fontSize: "18px", textDecoration: "none" }}>CA Quiz</Link>
-            <div style={{ color: "#64748b", fontSize: "14px", borderLeft: "1px solid #e2e8f0", paddingLeft: "16px" }}>{course?.course_name}</div>
+            <div style={{ color: "#64748b", fontSize: "14px", borderLeft: "1px solid #e2e8f0", paddingLeft: "16px" }}>
+              {course?.course_name}{setLabel}
+            </div>
             {qType === "case" && (
               <span style={{
                 fontSize: "11px",
@@ -813,6 +1016,15 @@ export default function TakeTest() {
 
     return (
       <div className="take-test-results take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", padding: "40px 24px" }}>
+        
+        {/* Feedback Modal */}
+        <FeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+          course={course}
+          scorePercent={scorePercent}
+        />
+
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           
           {/* Summary Card */}
@@ -825,7 +1037,7 @@ export default function TakeTest() {
               </div>
               <div>
                 <h2 style={{ margin: "0 0 6px 0", color: "#0F3D3E", fontSize: "24px" }}>Test Scorecard</h2>
-                <div style={{ color: "#475569", fontSize: "15px", marginBottom: "6px" }}>Course: <strong>{course?.course_name}</strong></div>
+                <div style={{ color: "#475569", fontSize: "15px", marginBottom: "6px" }}>Course: <strong>{course?.course_name}{setLabel}</strong></div>
                 <div style={{ color: "#64748b", fontSize: "14px" }}>
                   Correct: <span style={{ color: "#1E7145", fontWeight: "bold" }}>{correctCount}</span> &bull; 
                   Wrong: <span style={{ color: "#dc2626", fontWeight: "bold", marginLeft: "4px" }}>{wrongCount}</span> &bull; 
@@ -838,8 +1050,27 @@ export default function TakeTest() {
               <div style={{ fontSize: "22px", fontWeight: "800", color: "#0F3D3E" }}>{formatDuration(effectiveTimeTaken)}</div>
               {isOvertime && <div style={{ color: "#dc2626", fontSize: "13px", fontWeight: "700" }}>+ {formatDuration(extraTime)} overtime</div>}
               
-              <div style={{ marginTop: "16px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                <Link to="/vault" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #B08628", background: "rgba(176,134,40,0.08)", borderRadius: "6px", color: "#B08628", fontSize: "13px", fontWeight: "700" }}>📚 View Mistake Vault</Link>
+              <div style={{ marginTop: "16px", display: "flex", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowFeedbackModal(true)}
+                  style={{
+                    padding: "8px 14px",
+                    border: "1.5px solid #0F3D3E",
+                    background: "#ffffff",
+                    borderRadius: "6px",
+                    color: "#0F3D3E",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px"
+                  }}
+                >
+                  💬 Give Feedback
+                </button>
+                <Link to="/vault" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #B08628", background: "rgba(176,134,40,0.08)", borderRadius: "6px", color: "#B08628", fontSize: "13px", fontWeight: "700" }}>📚 Vault</Link>
                 <Link to="/" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", fontSize: "13px", fontWeight: "600" }}>Home</Link>
                 <button onClick={() => window.location.reload()} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}>Restart</button>
               </div>

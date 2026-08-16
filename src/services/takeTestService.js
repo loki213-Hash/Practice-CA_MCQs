@@ -33,24 +33,40 @@ function shuffle(arr) {
  * The rest of each segment is filled with non-case questions (>=30% priority).
  *
  * @param {string|number} courseId
+ * @param {string|null} setType Optional set/module filter (e.g., "SET A", "Module-1")
  * @returns {Promise<Array>} Normalized question objects (total 100)
  */
-export async function buildTakeTestQuestions(courseId) {
+export async function buildTakeTestQuestions(courseId, setType = null) {
   if (!courseId) throw new Error("courseId is required.");
 
-  // Step 1: Fetch all chapters for this course
-  const { data: allChapters, error: chapErr } = await supabase
+  // Step 1: Fetch all chapters for this course (optionally filtered by set_type)
+  let chapQuery = supabase
     .from("chapters")
-    .select("id, chapter_name, course_id, subject_id")
+    .select("id, chapter_name, course_id, subject_id, set_type")
     .eq("course_id", courseId)
     .eq("available", true);
 
-  if (chapErr) console.warn("Chapter fetch notice:", chapErr.message);
-  if (!allChapters || allChapters.length === 0) {
-    throw new Error("No chapters found for this course.");
+  if (setType && setType.trim().toLowerCase() !== "all") {
+    chapQuery = chapQuery.ilike("set_type", `%${setType.trim()}%`);
   }
 
-  const chapterIds = allChapters.map((c) => String(c.id));
+  const { data: allChapters, error: chapErr } = await chapQuery;
+
+  if (chapErr) console.warn("Chapter fetch notice:", chapErr.message);
+  if (!allChapters || allChapters.length === 0) {
+    // Fallback: fetch without set filter
+    const { data: fallbackChaps } = await supabase
+      .from("chapters")
+      .select("id, chapter_name, course_id, subject_id, set_type")
+      .eq("course_id", courseId)
+      .eq("available", true);
+    if (!fallbackChaps || fallbackChaps.length === 0) {
+      throw new Error("No chapters found for this course.");
+    }
+  }
+
+  const activeChapters = (allChapters && allChapters.length > 0) ? allChapters : [];
+  const chapterIds = activeChapters.map((c) => String(c.id));
 
   // Step 2: Fetch ALL regular questions (batched)
   let allQuestions = [];
