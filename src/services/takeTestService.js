@@ -18,6 +18,109 @@ function shuffle(arr) {
   return a;
 }
 
+/**
+ * Fair Stratified Round-Robin Question Sampler across Chapters and Topics.
+ * Ensures every listed chapter and every topic within chapters has an equal opportunity
+ * to be represented in the test.
+ *
+ * @param {Array} allQuestions Pool of regular questions
+ * @param {number} targetCount Total number of non-case questions to pick
+ * @returns {Array} Shuffled array of stratified questions
+ */
+function sampleStratifiedNonCaseQuestions(allQuestions, targetCount) {
+  if (!allQuestions || allQuestions.length === 0 || targetCount <= 0) return [];
+
+  // Group questions by chapter_id -> topic
+  const questionsByChapter = {};
+  allQuestions.forEach((q) => {
+    const cid = String(q.chapter_id || "general");
+    const top = String(q.topic || "General").trim();
+    if (!questionsByChapter[cid]) questionsByChapter[cid] = {};
+    if (!questionsByChapter[cid][top]) questionsByChapter[cid][top] = [];
+    questionsByChapter[cid][top].push(q);
+  });
+
+  // Prepare chapter & topic randomized queues
+  const chapterIds = shuffle(Object.keys(questionsByChapter));
+  const chapterTopicQueues = {};
+
+  chapterIds.forEach((cid) => {
+    const topicsObj = questionsByChapter[cid];
+    const topicNames = shuffle(Object.keys(topicsObj));
+    chapterTopicQueues[cid] = {
+      topicNames,
+      topicQueues: {},
+      topicIndex: 0,
+      totalRemaining: 0,
+    };
+
+    topicNames.forEach((tname) => {
+      // Prioritize priority questions within the topic if available, while keeping selection randomized
+      const qList = topicsObj[tname];
+      const pQs = shuffle(qList.filter((q) => q.is_priority === true));
+      const regQs = shuffle(qList.filter((q) => !q.is_priority));
+      // Stack: regular at bottom, priority on top (popped first)
+      const topicStack = [...regQs, ...pQs];
+
+      chapterTopicQueues[cid].topicQueues[tname] = topicStack;
+      chapterTopicQueues[cid].totalRemaining += topicStack.length;
+    });
+  });
+
+  const selectedQuestions = [];
+  const selectedIds = new Set();
+  let activeChapterList = chapterIds.filter((cid) => chapterTopicQueues[cid].totalRemaining > 0);
+
+  // Multi-pass Round-Robin across chapters and topics
+  while (selectedQuestions.length < targetCount && activeChapterList.length > 0) {
+    const nextActiveList = [];
+
+    for (const cid of activeChapterList) {
+      if (selectedQuestions.length >= targetCount) break;
+
+      const cData = chapterTopicQueues[cid];
+      if (cData.totalRemaining <= 0) continue;
+
+      let pickedQ = null;
+      let attempts = 0;
+      const numTopics = cData.topicNames.length;
+
+      // Cycle through topics in this chapter
+      while (attempts < numTopics && !pickedQ) {
+        const currentTopic = cData.topicNames[cData.topicIndex];
+        const tQueue = cData.topicQueues[currentTopic];
+
+        cData.topicIndex = (cData.topicIndex + 1) % numTopics;
+        attempts++;
+
+        if (tQueue && tQueue.length > 0) {
+          pickedQ = tQueue.pop();
+          cData.totalRemaining--;
+        }
+      }
+
+      if (pickedQ && !selectedIds.has(pickedQ.id)) {
+        selectedIds.add(pickedQ.id);
+        selectedQuestions.push({
+          ...pickedQ,
+          type: pickedQ.is_priority ? "priority" : "regular",
+          case_id: null,
+          case_scenario: null,
+        });
+      }
+
+      if (cData.totalRemaining > 0) {
+        nextActiveList.push(cid);
+      }
+    }
+
+    activeChapterList = nextActiveList;
+  }
+
+  // Shuffle the selected pool so that questions from different chapters/topics are dispersed throughout the test
+  return shuffle(selectedQuestions);
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 /**
@@ -30,7 +133,7 @@ function shuffle(arr) {
  *  - 92nd question (Q92)
  *
  * Each case group's related questions appear consecutively.
- * The rest of each segment is filled with non-case questions (>=30% priority).
+ * Non-case questions are drawn fairly and randomly across EVERY chapter and topic.
  *
  * @param {string|number} courseId
  * @param {string|null} setType Optional set/module filter (e.g., "SET A", "Module-1")
@@ -139,29 +242,19 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
     console.warn("Case scenario fetch notice:", e);
   }
 
-  // Step 4: Separate priority vs regular non-case questions
-  const priorityQs = shuffle(allQuestions.filter((q) => q.is_priority === true));
-  const regularQs = shuffle(allQuestions.filter((q) => !q.is_priority));
-
-  const sampledPriorityPool = priorityQs.map((q) => ({
-    ...q,
-    type: "priority",
-    case_id: null,
-    case_scenario: null,
-  }));
-  const sampledRegularPool = regularQs.map((q) => ({
-    ...q,
-    type: "regular",
-    case_id: null,
-    case_scenario: null,
-  }));
-
-  // Non-case pool combined
-  let nonCasePool = shuffle([...sampledPriorityPool, ...sampledRegularPool]);
-
-  // Step 5: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
+  // Step 4: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
   const shuffledCaseGroups = shuffle(caseGroups);
   const selectedCasesForSegments = shuffledCaseGroups.slice(0, SEGMENT_CAPACITIES.length);
+
+  // Calculate total case questions to determine exact non-case questions needed
+  const totalCaseQsCount = selectedCasesForSegments.reduce(
+    (sum, cg, idx) => sum + Math.min(cg.length, SEGMENT_CAPACITIES[idx]),
+    0
+  );
+  const totalNonCaseNeeded = Math.max(0, TOTAL_QUESTIONS - totalCaseQsCount);
+
+  // Step 5: Sample non-case questions with equal-opportunity representation across every chapter & topic
+  const nonCasePool = sampleStratifiedNonCaseQuestions(allQuestions, totalNonCaseNeeded);
 
   // Step 6: Assemble questions segment-by-segment
   const final100 = [];
@@ -174,7 +267,7 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
     const caseQsToInclude = segCaseGroup.slice(0, targetCapacity);
     final100.push(...caseQsToInclude);
 
-    // Remaining slots in this segment to reach targetCapacity
+    // Remaining slots in this segment to reach targetCapacity filled from balanced non-case pool
     const remainingSlots = targetCapacity - caseQsToInclude.length;
     if (remainingSlots > 0 && nonCasePool.length > 0) {
       const nonCaseSlice = nonCasePool.splice(0, remainingSlots);
