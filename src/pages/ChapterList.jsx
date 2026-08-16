@@ -881,6 +881,11 @@ function ChapterList() {
                       })}
                       <span className="q-progress-label">
                         Question {caseCurrentQIndex + 1} of {activeCaseQuestions.length}
+                        {currentQ && (currentQ.raw_id || currentQ.id || currentQ.question_id) && (
+                          <span style={{ marginLeft: "8px", opacity: 0.85, fontWeight: 600 }}>
+                            &bull; Ref #{currentQ.raw_id || currentQ.id || currentQ.question_id}
+                          </span>
+                        )}
                       </span>
                     </div>
 
@@ -932,6 +937,15 @@ function ChapterList() {
                         );
                       })}
                     </div>
+
+                    {/* Question Reference ID at the corner of options */}
+                    {currentQ && (currentQ.id || currentQ.raw_id || currentQ.question_id) && (
+                      <div className="case-ref-id-container" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "12px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#6b7280", fontWeight: 600, background: "#f8fafc", padding: "3px 9px", borderRadius: "5px", border: "1px solid #e2e8f0", letterSpacing: "0.2px" }}>
+                          [Ref ID: #{currentQ.raw_id || currentQ.id || currentQ.question_id}]
+                        </span>
+                      </div>
+                    )}
 
                     {/* Result Tag & Explanation Feedback Panel — SPOM Visual Style */}
                     {caseAnswers[caseCurrentQIndex] !== undefined && (

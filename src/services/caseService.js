@@ -147,6 +147,8 @@ async function formatCasesWithQuestions(casesData) {
 
         return {
           id: q.id || qIdx + 1,
+          raw_id: q.id,
+          question_id: q.id,
           text,
           options,
           correctLetter,

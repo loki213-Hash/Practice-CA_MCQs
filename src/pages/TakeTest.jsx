@@ -1048,6 +1048,15 @@ export default function TakeTest() {
                 })}
               </div>
 
+              {/* Question Reference ID at the corner of options */}
+              {currentQ && (currentQ.raw_id || currentQ.case_question_id || currentQ.id) && (
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "10px", marginBottom: "2px" }}>
+                  <span style={{ fontSize: "11.5px", color: "#64748b", fontWeight: 500 }}>
+                    [Ref ID: #{currentQ.raw_id || currentQ.case_question_id || currentQ.id}]
+                  </span>
+                </div>
+              )}
+
               {/* Navigation row */}
               <div className="take-test-qnav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "36px", paddingTop: "22px", borderTop: "1px solid #e2e8f0", flexWrap: "wrap", gap: "10px" }}>
                 <div style={{ display: "flex", gap: "10px" }}>
@@ -1363,6 +1372,15 @@ export default function TakeTest() {
                         );
                       })}
                     </div>
+
+                    {/* Question Reference ID */}
+                    {(q.raw_id || q.case_question_id || q.id) && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "-10px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                          [Ref ID: #{q.raw_id || q.case_question_id || q.id}]
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "14px 16px", borderRadius: "8px" }}>
                       <div style={{ fontWeight: "700", color: "#166534", marginBottom: "6px", fontSize: "13.5px" }}>Explanation:</div>

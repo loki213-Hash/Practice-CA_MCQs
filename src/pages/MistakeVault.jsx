@@ -379,10 +379,17 @@ export default function MistakeVault() {
                             boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                            <span style={{ fontSize: "11.5px", fontWeight: "700", background: "rgba(220,38,38,0.08)", color: "#dc2626", padding: "3px 9px", borderRadius: "4px", textTransform: "uppercase" }}>
-                              {q.topic || "General"}
-                            </span>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ fontSize: "11.5px", fontWeight: "700", background: "rgba(220,38,38,0.08)", color: "#dc2626", padding: "3px 9px", borderRadius: "4px", textTransform: "uppercase" }}>
+                                {q.topic || "General"}
+                              </span>
+                              {qId && (
+                                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                                  [Ref ID: #{qId}]
+                                </span>
+                              )}
+                            </div>
                             <button
                               type="button"
                               onClick={(e) => handleRemoveFromVault(e, qId)}

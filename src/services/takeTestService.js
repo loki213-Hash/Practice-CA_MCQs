@@ -108,6 +108,8 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
 
         const groupQs = cs.questions.map((cq, qIdx) => ({
           id: `case_${cs.id}_${cq.id || qIdx}`,
+          raw_id: cq.raw_id || cq.id,
+          case_question_id: cq.raw_id || cq.id,
           case_id: String(cs.id),
           type: "case",
           question: cq.text || "",

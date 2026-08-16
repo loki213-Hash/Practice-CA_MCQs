@@ -12,6 +12,13 @@ export default function QuestionCard({ question, selectedOption, onSelect }) {
         return <button className={`option-button ${correct ? "option-correct" : ""} ${wrong ? "option-wrong" : ""}`} disabled={locked} key={key} onClick={() => onSelect(key)} type="button"><span className="option-letter">{key}</span><span>{question[`option_${key.toLowerCase()}`]}</span>{correct && <b>✓</b>}{wrong && <b>✕</b>}</button>;
       })}
     </div>
+    {(question.id || question.raw_id) && (
+      <div style={{ display: "flex", justifyContent: "flex-end", margin: "6px 0 10px" }}>
+        <span style={{ fontSize: "11px", color: "var(--ink-soft, #6b7280)", fontWeight: 500 }}>
+          [Ref ID: #{question.raw_id || question.id}]
+        </span>
+      </div>
+    )}
     {locked && <section className="explanation-box"><p className="explanation-label">Explanation</p><p>{question.explanation || "No explanation has been added for this question yet."}</p></section>}
   </article>;
 }
