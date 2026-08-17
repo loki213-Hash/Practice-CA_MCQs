@@ -741,13 +741,44 @@ export default function TakeTest() {
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#f8fafc" }}>
         <div style={{ textAlign: "center" }}>
           <div className="tt-spinner" style={{ margin: "0 auto 16px" }}></div>
-          <h3 style={{ color: "#0F3D3E", margin: 0 }}>Preparing 100-Question Exam Simulation...</h3>
+          <h3 style={{ color: "#0F3D3E", margin: 0 }}>Preparing Exam Simulation...</h3>
         </div>
       </div>
     );
   }
 
   const setLabel = setParam ? ` (${setParam})` : "";
+
+  // Guard: No questions available for this course/set
+  if (!loading && questions.length === 0) {
+    return (
+      <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
+        <div style={{ background: "#fff", padding: "36px 40px", borderRadius: "14px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "560px", width: "100%", border: "1px solid #e2e8f0", textAlign: "center" }}>
+          <div style={{ fontSize: "40px", marginBottom: "16px" }}>📚</div>
+          <h2 style={{ color: "#0F3D3E", margin: "0 0 12px 0", fontSize: "22px" }}>No Questions Added Yet</h2>
+          <p style={{ color: "#475569", fontSize: "14.5px", lineHeight: "1.6", margin: "0 0 24px 0" }}>
+            Questions and Case Scenarios for <strong>{course?.course_name}{setLabel}</strong> are currently being prepared.
+          </p>
+          <Link
+            to={`/course/${courseSlug}`}
+            style={{
+              display: "inline-block",
+              background: "#0F3D3E",
+              color: "#ffffff",
+              textDecoration: "none",
+              padding: "12px 24px",
+              borderRadius: "8px",
+              fontWeight: "700",
+              fontSize: "14px",
+              boxShadow: "0 2px 8px rgba(15,61,62,0.2)"
+            }}
+          >
+            ← Back to Course
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Screen 1: Instructions
   if (screen === "instructions") {
@@ -766,7 +797,7 @@ export default function TakeTest() {
           </span>
           <h1 style={{ margin: "6px 0 14px 0", color: "#0F3D3E", fontSize: "28px" }}>{course?.course_name}{setLabel}</h1>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
-            <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📝 100 Questions</span>
+            <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📝 {questions.length} Questions</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>⏱ 2 Hours (120 Mins)</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📋 ICAI Style Case Scenarios</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>🔒 No Instant Hints</span>

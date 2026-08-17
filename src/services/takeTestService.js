@@ -121,84 +121,154 @@ function sampleStratifiedNonCaseQuestions(allQuestions, targetCount) {
   return shuffle(selectedQuestions);
 }
 
+function normalizeQuestion(q) {
+  return {
+    id: q.id,
+    type: q.type || "regular",
+    case_id: q.case_id || null,
+    question: String(q.question || q.text || ""),
+    option_a: String(q.option_a || ""),
+    option_b: String(q.option_b || ""),
+    option_c: String(q.option_c || ""),
+    option_d: String(q.option_d || ""),
+    correct_option: String(q.correct_option || "A").toUpperCase(),
+    explanation: String(q.explanation || ""),
+    topic: String(q.topic || (q.type === "case" ? "Case Scenario" : "General")),
+    is_priority: !!q.is_priority,
+    chapter_id: q.chapter_id ? String(q.chapter_id) : null,
+    case_scenario: q.case_scenario || null,
+    has_table: !!q.has_table,
+    table_data: q.table_data || null,
+    question_intro: q.question_intro || null,
+    question_outro: q.question_outro || null,
+    raw_id: q.raw_id || q.id,
+    case_question_id: q.case_question_id || null,
+  };
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 /**
- * Build a 100-question take-test set with Case Scenarios placed at:
- *  - 1st question (Q1)
- *  - 21st question (Q21)
- *  - 41st question (Q41)
- *  - 61st question (Q61)
- *  - 81st question (Q81)
- *  - 92nd question (Q92)
+ * Build a take-test question set.
+ * For SET A (and sets with full questions available):
+ *  - 100-question exam simulation with Case Scenarios placed at anchor points (Q1, Q21, Q41, Q61, Q81, Q92)
+ *  - Fairly sampled stratified questions across chapters and topics
  *
- * Each case group's related questions appear consecutively.
- * Non-case questions are drawn fairly and randomly across EVERY chapter and topic.
+ * For SET B (or any set where regular questions are not added yet):
+ *  - Automatically loads and uses all available Case Scenario questions
+ *  - If regular questions ARE available for SET B, uses the full question pool
  *
  * @param {string|number} courseId
- * @param {string|null} setType Optional set/module filter (e.g., "SET A", "Module-1")
- * @returns {Promise<Array>} Normalized question objects (total 100)
+ * @param {string|null} setType Optional set/module filter (e.g., "SET A", "SET B", "Module-1")
+ * @returns {Promise<Array>} Normalized question objects
  */
 export async function buildTakeTestQuestions(courseId, setType = null) {
   if (!courseId) throw new Error("courseId is required.");
 
-  // Step 1: Fetch all chapters for this course (optionally filtered by set_type)
-  let chapQuery = supabase
-    .from("chapters")
-    .select("id, chapter_name, course_id, subject_id, set_type")
-    .eq("course_id", courseId)
-    .eq("available", true);
+  const isSetA =
+    !setType ||
+    setType.toLowerCase() === "all" ||
+    setType.toUpperCase().includes("SET A");
 
-  if (setType && setType.trim().toLowerCase() !== "all") {
-    chapQuery = chapQuery.ilike("set_type", `%${setType.trim()}%`);
-  }
+  let chapterIds = [];
 
-  const { data: allChapters, error: chapErr } = await chapQuery;
-
-  if (chapErr) console.warn("Chapter fetch notice:", chapErr.message);
-  if (!allChapters || allChapters.length === 0) {
-    // Fallback: fetch without set filter
-    const { data: fallbackChaps } = await supabase
+  // Step 1: Resolve chapters
+  if (isSetA) {
+    // ── SET A: Strictly preserve original behavior ──
+    let chapQuery = supabase
       .from("chapters")
       .select("id, chapter_name, course_id, subject_id, set_type")
       .eq("course_id", courseId)
       .eq("available", true);
-    if (!fallbackChaps || fallbackChaps.length === 0) {
-      throw new Error("No chapters found for this course.");
+
+    if (setType && setType.trim().toLowerCase() !== "all") {
+      chapQuery = chapQuery.or("set_type.ilike.%SET A%,set_type.is.null");
     }
-  }
 
-  const activeChapters = (allChapters && allChapters.length > 0) ? allChapters : [];
-  const chapterIds = activeChapters.map((c) => String(c.id));
+    const { data: allChapters, error: chapErr } = await chapQuery;
+    if (chapErr) console.warn("Chapter fetch notice (SET A):", chapErr.message);
 
-  // Step 2: Fetch ALL regular questions (batched)
-  let allQuestions = [];
-  const BATCH = 40;
-  for (let i = 0; i < chapterIds.length; i += BATCH) {
-    const batch = chapterIds.slice(i, i + BATCH);
+    if (allChapters && allChapters.length > 0) {
+      chapterIds = allChapters.map((c) => String(c.id));
+    } else {
+      // Fallback: fetch without set filter
+      const { data: fallbackChaps } = await supabase
+        .from("chapters")
+        .select("id, chapter_name, course_id, subject_id, set_type")
+        .eq("course_id", courseId)
+        .eq("available", true);
+      if (fallbackChaps && fallbackChaps.length > 0) {
+        chapterIds = fallbackChaps.map((c) => String(c.id));
+      }
+    }
+  } else {
+    // ── SET B or other sets: Query subjects & chapters for this set ──
+    const decodedSet = decodeURIComponent(setType).trim();
+
     try {
-      const { data: batchQs, error: bErr } = await supabase
-        .from("questions")
-        .select("*")
-        .in("chapter_id", batch)
-        .eq("active", true);
+      // Check subjects first
+      const { data: subData } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("course_id", courseId)
+        .ilike("set_type", `%${decodedSet}%`);
 
-      if (!bErr && batchQs) {
-        allQuestions = [...allQuestions, ...batchQs];
-      } else {
-        const { data: fallback } = await supabase
-          .from("questions")
-          .select("*")
-          .in("chapter_id", batch);
-        if (fallback) allQuestions = [...allQuestions, ...fallback];
+      if (subData && subData.length > 0) {
+        const subIds = subData.map((s) => s.id);
+        const { data: chapsBySub } = await supabase
+          .from("chapters")
+          .select("id")
+          .in("subject_id", subIds)
+          .eq("available", true);
+
+        if (chapsBySub && chapsBySub.length > 0) {
+          chapterIds = chapsBySub.map((c) => String(c.id));
+        }
+      }
+
+      // Also check chapters with direct set_type match
+      const { data: directChaps } = await supabase
+        .from("chapters")
+        .select("id")
+        .eq("course_id", courseId)
+        .ilike("set_type", `%${decodedSet}%`)
+        .eq("available", true);
+
+      if (directChaps && directChaps.length > 0) {
+        const directIds = directChaps.map((c) => String(c.id));
+        chapterIds = [...new Set([...chapterIds, ...directIds])];
       }
     } catch (e) {
-      console.warn("Question batch fetch error:", e);
+      console.warn("Set chapter resolution notice:", e);
     }
   }
 
-  if (allQuestions.length === 0) {
-    throw new Error("No questions available for this course.");
+  // Step 2: Fetch ALL regular questions for resolved chapters (if any exist)
+  let allQuestions = [];
+  if (chapterIds.length > 0) {
+    const BATCH = 40;
+    for (let i = 0; i < chapterIds.length; i += BATCH) {
+      const batch = chapterIds.slice(i, i + BATCH);
+      try {
+        const { data: batchQs, error: bErr } = await supabase
+          .from("questions")
+          .select("*")
+          .in("chapter_id", batch)
+          .eq("active", true);
+
+        if (!bErr && batchQs) {
+          allQuestions = [...allQuestions, ...batchQs];
+        } else {
+          const { data: fallback } = await supabase
+            .from("questions")
+            .select("*")
+            .in("chapter_id", batch);
+          if (fallback) allQuestions = [...allQuestions, ...fallback];
+        }
+      } catch (e) {
+        console.warn("Question batch fetch error:", e);
+      }
+    }
   }
 
   // Step 3: Fetch & group Case Scenario questions
@@ -242,7 +312,27 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
     console.warn("Case scenario fetch notice:", e);
   }
 
-  // Step 4: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
+  // Step 4: Handle Test Assembly
+  // Scenario 1: No regular questions are added yet (e.g. SET B with only Case Scenarios)
+  if (allQuestions.length === 0) {
+    if (caseGroups.length === 0) {
+      if (isSetA) {
+        throw new Error("No questions available for this course.");
+      }
+      return [];
+    }
+
+    // Include ALL questions from ALL available case scenarios (preserving consecutive group ordering)
+    const allCaseQuestions = [];
+    caseGroups.forEach((cg) => {
+      allCaseQuestions.push(...cg);
+    });
+
+    return allCaseQuestions.slice(0, TOTAL_QUESTIONS).map(normalizeQuestion);
+  }
+
+  // Scenario 2: Regular questions ARE available (SET A, or SET B when regular MCQs are present)
+  // Step 4b: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
   const shuffledCaseGroups = shuffle(caseGroups);
   const selectedCasesForSegments = shuffledCaseGroups.slice(0, SEGMENT_CAPACITIES.length);
 
@@ -257,7 +347,7 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
   const nonCasePool = sampleStratifiedNonCaseQuestions(allQuestions, totalNonCaseNeeded);
 
   // Step 6: Assemble questions segment-by-segment
-  const final100 = [];
+  const finalTestQuestions = [];
 
   for (let segIdx = 0; segIdx < SEGMENT_CAPACITIES.length; segIdx++) {
     const targetCapacity = SEGMENT_CAPACITIES[segIdx];
@@ -265,41 +355,32 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
 
     // Push the whole case group (capped if larger than segment, though typical cases have 4-6 questions)
     const caseQsToInclude = segCaseGroup.slice(0, targetCapacity);
-    final100.push(...caseQsToInclude);
+    finalTestQuestions.push(...caseQsToInclude);
 
     // Remaining slots in this segment to reach targetCapacity filled from balanced non-case pool
     const remainingSlots = targetCapacity - caseQsToInclude.length;
     if (remainingSlots > 0 && nonCasePool.length > 0) {
       const nonCaseSlice = nonCasePool.splice(0, remainingSlots);
-      final100.push(...nonCaseSlice);
+      finalTestQuestions.push(...nonCaseSlice);
     }
   }
 
   // If still under 100 due to short non-case pool, top up with remaining non-case
-  if (final100.length < TOTAL_QUESTIONS && nonCasePool.length > 0) {
-    const needed = TOTAL_QUESTIONS - final100.length;
-    final100.push(...nonCasePool.splice(0, needed));
+  if (finalTestQuestions.length < TOTAL_QUESTIONS && nonCasePool.length > 0) {
+    const needed = TOTAL_QUESTIONS - finalTestQuestions.length;
+    finalTestQuestions.push(...nonCasePool.splice(0, needed));
+  }
+
+  // If still under 100 and extra case groups were left over, add them
+  if (finalTestQuestions.length < TOTAL_QUESTIONS && shuffledCaseGroups.length > SEGMENT_CAPACITIES.length) {
+    const remainingCaseGroups = shuffledCaseGroups.slice(SEGMENT_CAPACITIES.length);
+    for (const cg of remainingCaseGroups) {
+      if (finalTestQuestions.length >= TOTAL_QUESTIONS) break;
+      const needed = TOTAL_QUESTIONS - finalTestQuestions.length;
+      finalTestQuestions.push(...cg.slice(0, needed));
+    }
   }
 
   // Step 7: Normalize to common schema
-  return final100.slice(0, TOTAL_QUESTIONS).map((q) => ({
-    id: q.id,
-    type: q.type || "regular",
-    case_id: q.case_id || null,
-    question: String(q.question || q.text || ""),
-    option_a: String(q.option_a || ""),
-    option_b: String(q.option_b || ""),
-    option_c: String(q.option_c || ""),
-    option_d: String(q.option_d || ""),
-    correct_option: String(q.correct_option || "A").toUpperCase(),
-    explanation: String(q.explanation || ""),
-    topic: String(q.topic || (q.type === "case" ? "Case Scenario" : "General")),
-    is_priority: !!q.is_priority,
-    chapter_id: q.chapter_id ? String(q.chapter_id) : null,
-    case_scenario: q.case_scenario || null,
-    has_table: !!q.has_table,
-    table_data: q.table_data || null,
-    question_intro: q.question_intro || null,
-    question_outro: q.question_outro || null,
-  }));
+  return finalTestQuestions.slice(0, TOTAL_QUESTIONS).map(normalizeQuestion);
 }

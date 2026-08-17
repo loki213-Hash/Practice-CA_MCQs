@@ -57,6 +57,26 @@ export default function CosmicSpotlightCard({
       iconBg: "linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(225, 29, 72, 0.2) 100%)",
       chartStroke: "#fb7185",
     },
+    purple: {
+      spotlight: "rgba(168, 85, 247, 0.22)",
+      border: "rgba(168, 85, 247, 0.45)",
+      badgeBg: "rgba(168, 85, 247, 0.12)",
+      badgeText: "#c084fc",
+      badgeBorder: "rgba(168, 85, 247, 0.3)",
+      glow: "0 12px 35px rgba(168, 85, 247, 0.22)",
+      iconBg: "linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)",
+      chartStroke: "#c084fc",
+    },
+    indigo: {
+      spotlight: "rgba(99, 102, 241, 0.22)",
+      border: "rgba(99, 102, 241, 0.45)",
+      badgeBg: "rgba(99, 102, 241, 0.12)",
+      badgeText: "#818cf8",
+      badgeBorder: "rgba(99, 102, 241, 0.3)",
+      glow: "0 12px 35px rgba(99, 102, 241, 0.22)",
+      iconBg: "linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.2) 100%)",
+      chartStroke: "#818cf8",
+    },
   };
 
   const t = themeColors[theme] || themeColors.cyan;

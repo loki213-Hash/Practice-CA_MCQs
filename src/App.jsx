@@ -34,22 +34,27 @@ const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const TakeTest = lazyWithRetry(() => import("./pages/TakeTest"));
 const MistakeVault = lazyWithRetry(() => import("./pages/MistakeVault"));
 
+import AnalyticsTracker from "./components/AnalyticsTracker";
+
 function App() {
   return (
-    <Suspense fallback={<div className="loader-container">Loading...</div>}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/course/:courseSlug" element={<Course />} />
-        <Route path="/course/:courseSlug/:setType" element={<ChapterList />} />
-        <Route path="/quiz/:chapterId" element={<Quiz />} />
-        <Route path="/take-test/:courseSlug" element={<TakeTest />} />
-        <Route path="/vault" element={<MistakeVault />} />
-        <Route path="/coming-soon" element={<ComingSoon />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <>
+      <AnalyticsTracker />
+      <Suspense fallback={<div className="loader-container">Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/course/:courseSlug" element={<Course />} />
+          <Route path="/course/:courseSlug/:setType" element={<ChapterList />} />
+          <Route path="/quiz/:chapterId" element={<Quiz />} />
+          <Route path="/take-test/:courseSlug" element={<TakeTest />} />
+          <Route path="/vault" element={<MistakeVault />} />
+          <Route path="/coming-soon" element={<ComingSoon />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }
 

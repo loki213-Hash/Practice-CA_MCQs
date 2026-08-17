@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification, broadcastNotification } from "../services/notificationService";
+import { fetchAnalyticsMetrics, setupRealtimePresence } from "../services/analyticsService";
 import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
 import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
@@ -14,8 +15,9 @@ export default function Admin() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Schema state alert
+  // Schema state alerts
   const [isFlagsTableMissing, setIsFlagsTableMissing] = useState(false);
+  const [isAnalyticsTableMissing, setIsAnalyticsTableMissing] = useState(false);
 
   // Chapters list from database
   const [dbChapters, setDbChapters] = useState([]);
@@ -23,10 +25,26 @@ export default function Admin() {
   // Stats / KPI states (Precise real-time counts)
   const [kpis, setKpis] = useState({
     totalUsersCount: 0,
-    onlineSimCount: 0,
     questionsCount: 0,
     flagsCount: 0,
   });
+
+  // Real-Time Live Presence & 24h Analytics State
+  const [analytics, setAnalytics] = useState({
+    liveTotalCount: 1,
+    liveLoggedInCount: 1,
+    liveGuestCount: 0,
+    activeVisitors: [],
+    uniqueVisitors24h: 0,
+    distinctLoggedIn24h: 0,
+    allTimeUniqueVisitors: 0,
+    peakLoggedIn24h: 0,
+    peakTotal24h: 0,
+    totalSessions24h: 0,
+    desktopCount24h: 0,
+    mobileCount24h: 0,
+  });
+  const [liveRosterFilter, setLiveRosterFilter] = useState("all"); // 'all' | 'students' | 'guests'
 
   const [flaggedItems, setFlaggedItems] = useState([]);
   const [flagsLoading, setFlagsLoading] = useState(false);
@@ -71,20 +89,33 @@ export default function Admin() {
     }
   };
 
-  // Simulate online users live status fluctuation (bounded to registered users count)
+  // Real-Time Live Presence Monitor (0s Latency Supabase Presence)
   useEffect(() => {
     if (!isAdmin) return;
-    const interval = setInterval(() => {
-      setKpis((prev) => {
-        const total = prev.totalUsersCount;
-        if (total <= 0) return { ...prev, onlineSimCount: 0 };
-        const fluctuation = Math.random() > 0.7 ? 1 : 0;
-        const onlineCount = Math.max(0, Math.min(total, prev.onlineSimCount + (Math.random() > 0.5 ? fluctuation : -fluctuation)));
-        return { ...prev, onlineSimCount: Math.max(1, onlineCount) };
-      });
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [isAdmin]);
+
+    const presenceTracker = setupRealtimePresence({
+      user: { id: "admin-session" },
+      username: username || "Admin",
+      pagePath: "/admin",
+      onPresenceChange: ({ liveTotalCount, liveLoggedInCount, liveGuestCount, activeVisitors }) => {
+        setAnalytics((prev) => ({
+          ...prev,
+          liveTotalCount: Math.max(1, liveTotalCount),
+          liveLoggedInCount: Math.max(1, liveLoggedInCount),
+          liveGuestCount,
+          activeVisitors,
+          peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, liveLoggedInCount),
+          peakTotal24h: Math.max(prev.peakTotal24h, liveTotalCount),
+        }));
+      },
+    });
+
+    return () => {
+      if (presenceTracker?.unsubscribe) {
+        presenceTracker.unsubscribe();
+      }
+    };
+  }, [isAdmin, username]);
 
   const handleManualRefresh = () => {
     setError(null);
@@ -186,9 +217,23 @@ export default function Admin() {
       setKpis((prev) => ({
         ...prev,
         totalUsersCount: exactRegisteredStudents,
-        onlineSimCount: exactRegisteredStudents > 0 ? 1 : 0, // Set online simulator to exact student size limit
         questionsCount: qCount || 0,
         flagsCount: flaggedCount,
+      }));
+
+      // 4. Fetch 24-hour and cumulative traffic analytics from database
+      const analyticsData = await fetchAnalyticsMetrics();
+      setIsAnalyticsTableMissing(Boolean(analyticsData.isTableMissing));
+      setAnalytics((prev) => ({
+        ...prev,
+        uniqueVisitors24h: Math.max(analyticsData.uniqueVisitors24h, prev.liveTotalCount),
+        distinctLoggedIn24h: Math.max(analyticsData.distinctLoggedIn24h, prev.liveLoggedInCount),
+        allTimeUniqueVisitors: Math.max(analyticsData.allTimeUniqueVisitors, analyticsData.uniqueVisitors24h, prev.liveTotalCount),
+        peakLoggedIn24h: Math.max(analyticsData.peakLoggedIn24h, prev.liveLoggedInCount),
+        peakTotal24h: Math.max(analyticsData.peakTotal24h, prev.liveTotalCount),
+        totalSessions24h: analyticsData.totalSessions24h,
+        desktopCount24h: analyticsData.desktopCount24h,
+        mobileCount24h: analyticsData.mobileCount24h,
       }));
     } catch (err) {
       console.warn("Failed to load statistics:", err.message);
@@ -810,6 +855,21 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Analytics Table Setup Warning banner */}
+        {isAnalyticsTableMissing && (
+          <div className="admin-alert success" style={{ background: "rgba(56, 189, 248, 0.15)", border: "1px solid rgba(56, 189, 248, 0.35)", color: "#bae6fd", fontSize: "12.5px", padding: "12px 18px", marginBottom: "18px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>⚡ <strong>Real-Time Analytics Sync</strong>: To store persistent 24-hour peak metrics &amp; visitor history, execute <code>supabase_analytics.sql</code> in your Supabase SQL editor. Real-time presence is actively live!</span>
+            <button
+              onClick={() => {
+                alert("Run this SQL in your Supabase console:\n\nCREATE TABLE IF NOT EXISTS public.site_analytics_visits (\n  id BIGSERIAL PRIMARY KEY,\n  visitor_id TEXT NOT NULL,\n  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,\n  username TEXT DEFAULT 'Guest',\n  is_authenticated BOOLEAN DEFAULT FALSE,\n  session_id TEXT,\n  entry_path TEXT DEFAULT '/',\n  current_path TEXT DEFAULT '/',\n  device_type TEXT DEFAULT 'Desktop',\n  user_agent TEXT,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  last_seen_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS public.site_traffic_peaks (\n  id BIGSERIAL PRIMARY KEY,\n  recorded_at TIMESTAMPTZ DEFAULT NOW(),\n  peak_type TEXT NOT NULL,\n  peak_count INTEGER NOT NULL,\n  date_key DATE DEFAULT CURRENT_DATE\n);\n\nALTER TABLE public.site_analytics_visits ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.site_traffic_peaks ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Allow public insert on site_analytics_visits\" ON public.site_analytics_visits FOR INSERT WITH CHECK (true);\nCREATE POLICY \"Allow public update on site_analytics_visits\" ON public.site_analytics_visits FOR UPDATE USING (true);\nCREATE POLICY \"Allow public select on site_analytics_visits\" ON public.site_analytics_visits FOR SELECT USING (true);\nCREATE POLICY \"Allow public all on site_traffic_peaks\" ON public.site_traffic_peaks FOR ALL USING (true) WITH CHECK (true);");
+              }}
+              style={{ background: "none", border: "none", textDecoration: "underline", color: "#38bdf8", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
+            >
+              Get SQL Snippet
+            </button>
+          </div>
+        )}
+
         <div className="admin-space-container">
           
           {/* SIDEBAR NAVIGATION */}
@@ -882,14 +942,90 @@ export default function Admin() {
             {/* TAB: DASHBOARD OVERVIEW */}
             {activeTab === "dashboard" && (
               <div className="admin-panel">
-                <div className="panel-head" style={{ marginBottom: "22px" }}>
-                  <h3 style={{ fontSize: "20px", color: "#f8fafc", fontWeight: "700", margin: "0 0 4px" }}>Overview &amp; Live Metrics</h3>
-                  <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Real-time database statistics and registered student parameters.</p>
+                <div className="panel-head" style={{ marginBottom: "22px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "20px", color: "#f8fafc", fontWeight: "700", margin: "0 0 4px" }}>Overview &amp; Live Metrics</h3>
+                    <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Real-time database statistics, 24-hour peak concurrency, and live visitor tracking.</p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "6px 14px", borderRadius: "20px", fontSize: "12px", color: "#34d399", fontWeight: "600" }}>
+                    <div className="pulse-ring-container" style={{ width: 10, height: 10 }}>
+                      <div className="pulse-ring-dot" style={{ width: 8, height: 8 }}></div>
+                      <div className="pulse-ring-wave" style={{ width: 18, height: 18 }}></div>
+                    </div>
+                    Supabase Realtime Live Sync Active
+                  </div>
                 </div>
 
-                {/* HYPER-REALISTIC COSMIC SPOTLIGHT CARDS GRID */}
+                {/* ROW 1: REAL-TIME LIVE ACTIVITY & 24-HOUR PEAK METRICS */}
+                <div className="cosmic-cards-grid" style={{ marginBottom: "16px" }}>
+                  {/* Card 1: Users Online (Live) */}
+                  <CosmicSpotlightCard
+                    theme="emerald"
+                    icon={
+                      <div className="pulse-ring-container">
+                        <div className="pulse-ring-dot"></div>
+                        <div className="pulse-ring-wave"></div>
+                      </div>
+                    }
+                    badgeText="Active Now"
+                    value={analytics.liveTotalCount}
+                    label="Live Users Online (Now)"
+                    trend="● Live"
+                    subtext={`${analytics.liveLoggedInCount} Logged-in · ${analytics.liveGuestCount} Guest visitors`}
+                    chartType="equalizer"
+                  />
+
+                  {/* Card 2: 24h Peak Logged In Users */}
+                  <CosmicSpotlightCard
+                    theme="purple"
+                    icon="⚡"
+                    badgeText="24h Peak Record"
+                    value={analytics.peakLoggedIn24h}
+                    label="24h Peak Logged-In Users"
+                    trend="▲ 24h High"
+                    subtext="Highest simultaneous logins in 24h"
+                    chartType="line"
+                  />
+
+                  {/* Card 3: 24h Total Unique Site Visitors */}
+                  <CosmicSpotlightCard
+                    theme="cyan"
+                    icon="🌐"
+                    badgeText="With / Without Login"
+                    value={analytics.uniqueVisitors24h}
+                    label="24h Unique Site Visitors"
+                    trend="24h Total"
+                    subtext="Unique devices visited in 24h"
+                    chartType="line"
+                  />
+
+                  {/* Card 4: 24h Distinct Student Logins */}
+                  <CosmicSpotlightCard
+                    theme="indigo"
+                    icon="🎓"
+                    badgeText="Verified Logins"
+                    value={analytics.distinctLoggedIn24h}
+                    label="24h Distinct Student Logins"
+                    subtext={`${kpis.totalUsersCount > 0 ? Math.round((analytics.distinctLoggedIn24h / Math.max(1, kpis.totalUsersCount)) * 100) : 0}% of student accounts active`}
+                    chartType="progress"
+                    progressPct={kpis.totalUsersCount > 0 ? Math.min(100, Math.round((analytics.distinctLoggedIn24h / Math.max(1, kpis.totalUsersCount)) * 100)) : 100}
+                  />
+                </div>
+
+                {/* ROW 2: PLATFORM CORE & ASSET METRICS */}
                 <div className="cosmic-cards-grid">
-                  {/* Card 1: Registered Students */}
+                  {/* Card 5: All-Time Unique Visitors */}
+                  <CosmicSpotlightCard
+                    theme="cyan"
+                    icon="✨"
+                    badgeText="Lifetime Reach"
+                    value={analytics.allTimeUniqueVisitors}
+                    label="All-Time Unique Visitors"
+                    subtext="Cumulative unique devices visited"
+                    chartType="line"
+                  />
+
+                  {/* Card 6: Registered Students */}
                   <CosmicSpotlightCard
                     theme="cyan"
                     icon="👥"
@@ -900,24 +1036,7 @@ export default function Admin() {
                     chartType="line"
                   />
 
-                  {/* Card 2: Users Logged In (Live) */}
-                  <CosmicSpotlightCard
-                    theme="emerald"
-                    icon={
-                      <div className="pulse-ring-container">
-                        <div className="pulse-ring-dot"></div>
-                        <div className="pulse-ring-wave"></div>
-                      </div>
-                    }
-                    badgeText="Active Now"
-                    value={kpis.onlineSimCount}
-                    label="Users Logged In (Live)"
-                    trend="● Live"
-                    subtext="Real-time activity pulse"
-                    chartType="equalizer"
-                  />
-
-                  {/* Card 3: Questions Bank */}
+                  {/* Card 7: Questions Bank */}
                   <CosmicSpotlightCard
                     theme="amber"
                     icon="📚"
@@ -929,7 +1048,7 @@ export default function Admin() {
                     progressPct={Math.min(100, Math.round((kpis.questionsCount / 2000) * 100))}
                   />
 
-                  {/* Card 4: Flagged Reports */}
+                  {/* Card 8: Flagged Reports */}
                   <CosmicSpotlightCard
                     theme="rose"
                     icon="🚩"
@@ -939,6 +1058,200 @@ export default function Admin() {
                     subtext={kpis.flagsCount > 0 ? "Requires admin review" : "0 pending reports"}
                     chartType="line"
                   />
+                </div>
+
+                {/* REAL-TIME LIVE PRESENCE & ACTIVE VISITORS MONITOR */}
+                <div className="cosmic-presence-monitor">
+                  <div className="presence-header-row">
+                    <div className="presence-title-wrap">
+                      <div className="live-pulse-radar">
+                        <div className="live-pulse-dot"></div>
+                        <div className="live-pulse-ring"></div>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: "16px", color: "#f8fafc", fontWeight: "700", margin: "0 0 2px" }}>
+                          Live Connected Visitors &amp; Students Monitor
+                        </h4>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
+                          Instant real-time socket presence showing active users, visited pages, and device types.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Filter Chips */}
+                    <div className="presence-filter-chips">
+                      <button
+                        type="button"
+                        className={`presence-chip-btn ${liveRosterFilter === "all" ? "active" : ""}`}
+                        onClick={() => setLiveRosterFilter("all")}
+                      >
+                        All Connected ({analytics.activeVisitors.length > 0 ? analytics.activeVisitors.length : analytics.liveTotalCount})
+                      </button>
+                      <button
+                        type="button"
+                        className={`presence-chip-btn ${liveRosterFilter === "students" ? "active" : ""}`}
+                        onClick={() => setLiveRosterFilter("students")}
+                      >
+                        🎓 Students ({analytics.liveLoggedInCount})
+                      </button>
+                      <button
+                        type="button"
+                        className={`presence-chip-btn ${liveRosterFilter === "guests" ? "active" : ""}`}
+                        onClick={() => setLiveRosterFilter("guests")}
+                      >
+                        👤 Guests ({analytics.liveGuestCount})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Visitors Table */}
+                  <div className="presence-table-wrap">
+                    <table className="presence-table">
+                      <thead>
+                        <tr>
+                          <th>User / Visitor</th>
+                          <th>Role / Status</th>
+                          <th>Current Active Route</th>
+                          <th>Device</th>
+                          <th>Status</th>
+                          <th>Connected At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const displayList = analytics.activeVisitors.length > 0
+                            ? analytics.activeVisitors
+                            : [
+                                {
+                                  key: "admin-self",
+                                  visitor_id: "self",
+                                  user_id: "admin-id",
+                                  username: username || "Admin",
+                                  is_logged_in: true,
+                                  page_path: "/admin",
+                                  device_type: "Desktop",
+                                  online_at: new Date().toISOString(),
+                                },
+                              ];
+
+                          const filteredList = displayList.filter((v) => {
+                            if (liveRosterFilter === "students") return v.is_logged_in;
+                            if (liveRosterFilter === "guests") return !v.is_logged_in;
+                            return true;
+                          });
+
+                          if (filteredList.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748b" }}>
+                                  No connected users found matching this filter.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filteredList.map((visitor, idx) => (
+                            <tr key={visitor.key || visitor.visitor_id || idx}>
+                              <td>
+                                <div className="presence-user-cell">
+                                  <div className={`presence-user-avatar ${visitor.is_logged_in ? "" : "guest"}`}>
+                                    {visitor.is_logged_in ? (visitor.username ? visitor.username.charAt(0).toUpperCase() : "S") : "👤"}
+                                  </div>
+                                  <div>
+                                    <div className="presence-user-name">
+                                      {visitor.username || "Guest Visitor"}
+                                      {visitor.username === username && (
+                                        <span style={{ fontSize: "10px", color: "#a855f7", fontWeight: 700, background: "rgba(168, 85, 247, 0.15)", padding: "1px 6px", borderRadius: "6px" }}>YOU</span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
+                                      {visitor.visitor_id ? visitor.visitor_id.substring(0, 14) + "..." : "client-session"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`presence-role-pill ${visitor.is_logged_in ? "student" : "guest"}`}>
+                                  {visitor.is_logged_in ? "🎓 Verified Student" : "👤 Guest Visitor"}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="presence-path-badge" title={visitor.page_path || "/"}>
+                                  🔗 {visitor.page_path || "/"}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="presence-device-tag">
+                                  {visitor.device_type === "Mobile" ? "📱 Mobile" : visitor.device_type === "Tablet" ? "📱 Tablet" : "💻 Desktop"}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="presence-status-live">
+                                  <span className="live-pulse-dot" style={{ position: "static", display: "inline-block", width: 8, height: 8 }}></span>
+                                  Active Now
+                                </span>
+                              </td>
+                              <td style={{ fontSize: "12px", color: "#64748b" }}>
+                                {visitor.online_at ? new Date(visitor.online_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Just now"}
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary Metric Strip */}
+                  <div className="presence-summary-bar">
+                    <div className="summary-metric-box">
+                      <div>
+                        <div className="summary-metric-lbl">24h Total Site Sessions</div>
+                        <div className="summary-metric-val">{analytics.totalSessions24h || analytics.uniqueVisitors24h}</div>
+                      </div>
+                      <span style={{ fontSize: "20px" }}>⚡</span>
+                    </div>
+
+                    <div className="summary-metric-box">
+                      <div style={{ width: "100%" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                          <span className="summary-metric-lbl">24h Device Split</span>
+                          <span style={{ fontSize: "11.5px", color: "#cbd5e1", fontWeight: 600 }}>
+                            {analytics.desktopCount24h} Desktop · {analytics.mobileCount24h} Mobile
+                          </span>
+                        </div>
+                        <div className="traffic-split-track">
+                          <div
+                            className="traffic-split-fill-desktop"
+                            style={{
+                              width: `${
+                                analytics.desktopCount24h + analytics.mobileCount24h > 0
+                                  ? Math.round((analytics.desktopCount24h / (analytics.desktopCount24h + analytics.mobileCount24h)) * 100)
+                                  : 70
+                              }%`,
+                            }}
+                          />
+                          <div
+                            className="traffic-split-fill-mobile"
+                            style={{
+                              width: `${
+                                analytics.desktopCount24h + analytics.mobileCount24h > 0
+                                  ? Math.round((analytics.mobileCount24h / (analytics.desktopCount24h + analytics.mobileCount24h)) * 100)
+                                  : 30
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="summary-metric-box">
+                      <div>
+                        <div className="summary-metric-lbl">24h Total Unique Reach</div>
+                        <div className="summary-metric-val">{analytics.uniqueVisitors24h} Users</div>
+                      </div>
+                      <span style={{ fontSize: "20px" }}>👥</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* FEEDBACK CARDS LIST */}
