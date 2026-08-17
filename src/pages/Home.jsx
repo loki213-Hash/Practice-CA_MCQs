@@ -8,16 +8,20 @@ import { getVaultCount } from "../services/mistakeVaultService";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
 
-function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
+function ChakraDial({ isGuest = true, masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
   const [revealed, setRevealed] = useState(0);
   const [pct, setPct] = useState(0);
   const dialRef = useRef(null);
 
   const total = Math.max(1, totalChapters);
-  const mastered = Math.min(masteredCount, total);
-  const targetPct = accuracy;
+  const mastered = isGuest ? 0 : Math.min(masteredCount, total);
+  const targetPct = isGuest ? 0 : accuracy;
 
   useEffect(() => {
+    if (isGuest) {
+      setRevealed(0);
+      return;
+    }
     setRevealed(0);
     const interval = setInterval(() => {
       setRevealed((prev) => {
@@ -30,13 +34,11 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
     }, Math.max(15, Math.floor(1200 / total)));
 
     return () => clearInterval(interval);
-  }, [total]);
+  }, [total, isGuest]);
 
   useEffect(() => {
-    // Reset pct and animate up when targetPct changes
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPct(0);
-    if (targetPct === 0) return;
+    if (isGuest || targetPct === 0) return;
     let currentPct = 0;
     const interval = setInterval(() => {
       currentPct += 1;
@@ -49,7 +51,7 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
     }, Math.max(10, Math.floor(1400 / targetPct)));
 
     return () => clearInterval(interval);
-  }, [targetPct]);
+  }, [targetPct, isGuest]);
 
   const handleMouseMove = (e) => {
     const svgEl = dialRef.current;
@@ -84,8 +86,8 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
       const y1 = cy + rInner * Math.sin(angle);
       const x2 = cx + rOuter * Math.cos(angle);
       const y2 = cy + rOuter * Math.sin(angle);
-      const isMastered = i < mastered;
-      const isRevealed = i < revealed;
+      const isMastered = !isGuest && i < mastered;
+      const isRevealed = !isGuest && i < revealed;
 
       arr.push(
         <line
@@ -106,7 +108,7 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
       );
     }
     return arr;
-  }, [revealed, total, mastered]);
+  }, [revealed, total, mastered, isGuest]);
 
   return (
     <div 
@@ -126,9 +128,19 @@ function ChakraDial({ masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
           <circle cx="150" cy="150" r="3.5" fill="var(--navy)" />
         </svg>
         <div className="dial-center">
-          <div className="pct">{pct}%</div>
-          <div className="sub">Accuracy this week</div>
-          <div className="score">{mastered} / {total} chapters mastered</div>
+          {isGuest ? (
+            <>
+              <div className="pct" style={{ fontSize: "42px", letterSpacing: "2px" }}>--</div>
+              <div className="sub">Accuracy this week</div>
+              <div className="score">-- / {total} chapters mastered</div>
+            </>
+          ) : (
+            <>
+              <div className="pct">{pct > 0 ? `${pct}%` : `${accuracy}%`}</div>
+              <div className="sub">Accuracy this week</div>
+              <div className="score">{mastered} / {total} chapters mastered</div>
+            </>
+          )}
         </div>
         <div className="dial-caption">Live progress &mdash; {total} chapters, {total} spokes</div>
       </div>
@@ -164,30 +176,7 @@ function Home() {
     return val.toLocaleString();
   };
 
-  // Fetch real attempts count, satisfaction rate + vault count from database & live updates
-  useEffect(() => {
-    async function fetchTrustStats() {
-      try {
-        const [count, satRate] = await Promise.all([
-          getTotalAttemptsCount(),
-          getSatisfactionRate(),
-        ]);
-        setRealTarget(count || 0);
-        if (satRate) setTargetFinderRate(satRate);
-      } catch (err) {
-        console.warn("Live trust stats fetch error:", err);
-      }
-    }
-    fetchTrustStats();
-
-    // Listen to real-time events when quizzes/tests complete anywhere
-    const handleProgressUpdate = () => {
-      fetchTrustStats();
-    };
-    window.addEventListener("ca_quiz_progress_updated", handleProgressUpdate);
-    return () => window.removeEventListener("ca_quiz_progress_updated", handleProgressUpdate);
-  }, []);
-
+  // Effect for loading mistake vault count
   useEffect(() => {
     async function fetchVaultCount() {
       try {
@@ -266,16 +255,32 @@ function Home() {
     }
   }, [username, navigate]);
 
-  // Load & listen to real-time user progress statistics from Supabase & localStorage for ChakraDial & Progress
+  // Load & listen to real-time user progress statistics from Supabase for ChakraDial & Trust Row
   useEffect(() => {
     async function loadUserStats() {
+      if (!user) {
+        setUserStats({
+          isGuest: true,
+          submittedTestsCount: 0,
+          averageAccuracy: 0,
+          chapterCount: 0,
+          masteredChapterCount: 0,
+          masteredChapterIds: [],
+        });
+        setRealTarget(0);
+        setTargetFinderRate(0);
+        return;
+      }
+
       try {
-        if (user && !sessionStorage.getItem("progress_initialized")) {
+        if (!sessionStorage.getItem("progress_initialized")) {
           await initializeUserProgress();
           sessionStorage.setItem("progress_initialized", "1");
         }
-        const progressData = await getUserProgressStats();
+        const progressData = await getUserProgressStats(user);
         setUserStats(progressData);
+        setRealTarget(progressData.submittedTestsCount || 0);
+        setTargetFinderRate(progressData.averageAccuracy || 0);
       } catch (err) {
         console.error("Error loading progress stats:", err);
       }
@@ -288,10 +293,10 @@ function Home() {
     };
     window.addEventListener("ca_quiz_progress_updated", handleProgressUpdate);
 
-    // Supabase Realtime channel for instant progress updates across devices/tabs
+    // Supabase Realtime channel for instant progress updates
     const channel = supabase
-      .channel("realtime-user-progress")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "user_progress" }, loadUserStats)
+      .channel(`realtime-user-progress-${user?.id || "guest"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_progress", filter: user ? `user_id=eq.${user.id}` : undefined }, loadUserStats)
       .subscribe();
 
     return () => {
@@ -727,18 +732,19 @@ function Home() {
               <span className="lbl">MCQs across all 3 levels</span>
             </div>
             <div className="trust-item">
-              <span className="num">{formatAttemptedCount(attemptedCount)}</span>
+              <span className="num">{!user ? "--" : formatAttemptedCount(attemptedCount)}</span>
               <span className="lbl">Tests attempted to date</span>
             </div>
             <div className="trust-item">
-              <span className="num">{finderRate}%</span>
-              <span className="lbl">Say weak-chapter finder helped</span>
+              <span className="num">{!user ? "--" : `${finderRate}%`}</span>
+              <span className="lbl">Average test accuracy</span>
             </div>
           </div>
         </div>
 
         <ChakraDial
-          masteredCount={userStats ? Math.min(userStats.chapterCount, totalChaptersInDb) : 0}
+          isGuest={!user}
+          masteredCount={userStats ? userStats.masteredChapterCount : 0}
           totalChapters={totalChaptersInDb}
           accuracy={userStats ? userStats.averageAccuracy : 0}
         />

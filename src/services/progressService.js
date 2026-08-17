@@ -46,69 +46,94 @@ export async function saveQuizAttempt({ chapterId, score, totalQuestions }) {
   return attemptObj;
 }
 
-export async function getUserProgressStats() {
-  let attempts = [];
-
-  // 1. Load from localStorage cache
-  try {
-    const localAttempts = JSON.parse(localStorage.getItem("ca_quiz_local_attempts") || "[]");
-    attempts = [...localAttempts];
-  } catch (e) {
-    console.warn("Failed to read local progress:", e);
+export async function getUserProgressStats(currentUser = null) {
+  let user = currentUser;
+  if (!user) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data?.user;
+    } catch {
+      user = null;
+    }
   }
 
-  // 2. Load from Supabase if logged in
+  // Guest users cannot submit tests, so stats are nil
+  if (!user) {
+    return {
+      isGuest: true,
+      submittedTestsCount: 0,
+      averageAccuracy: 0,
+      chapterCount: 0,
+      masteredChapterCount: 0,
+      masteredChapterIds: [],
+    };
+  }
+
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: dbAttempts, error } = await supabase
-        .from("user_progress")
-        .select("chapter_id, percentage")
-        .eq("user_id", user.id);
-      if (!error && dbAttempts) {
-        attempts = [...attempts, ...dbAttempts];
+    const { data: dbAttempts, error } = await supabase
+      .from("user_progress")
+      .select("id, chapter_id, score, total_questions, percentage, completed_at")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.warn("Notice querying user_progress for stats:", error.message);
+    }
+
+    // Filter out dummy registration placeholder rows where total_questions is 0 and percentage is 0
+    const validAttempts = (dbAttempts || []).filter(
+      (a) => a.chapter_id !== null && (a.total_questions > 0 || a.score > 0 || a.percentage > 0)
+    );
+
+    if (validAttempts.length === 0) {
+      return {
+        isGuest: false,
+        submittedTestsCount: 0,
+        averageAccuracy: 0,
+        chapterCount: 0,
+        masteredChapterCount: 0,
+        masteredChapterIds: [],
+      };
+    }
+
+    // 1. Total submitted tests count for this logged-in user
+    const submittedTestsCount = validAttempts.length;
+
+    // 2. Accurate average percentage across all submitted tests
+    const totalPercentage = validAttempts.reduce((sum, a) => sum + (Number(a.percentage) || 0), 0);
+    const averageAccuracy = Math.round(totalPercentage / submittedTestsCount);
+
+    // 3. Highest score per chapter to compute mastered chapters (>= 80%)
+    const highestScoresByChapter = {};
+    validAttempts.forEach((attempt) => {
+      const cid = String(attempt.chapter_id);
+      const score = Number(attempt.percentage) || 0;
+      if (highestScoresByChapter[cid] === undefined || score > highestScoresByChapter[cid]) {
+        highestScoresByChapter[cid] = score;
       }
-    }
-  } catch (e) {
-    console.warn("Failed to fetch Supabase progress:", e);
+    });
+
+    const uniqueChapters = Object.keys(highestScoresByChapter);
+    const masteredChapterIds = uniqueChapters.filter((cid) => highestScoresByChapter[cid] >= 80);
+
+    return {
+      isGuest: false,
+      submittedTestsCount,
+      averageAccuracy,
+      chapterCount: uniqueChapters.length,
+      masteredChapterCount: masteredChapterIds.length,
+      masteredChapterIds,
+    };
+  } catch (err) {
+    console.error("Error calculating user progress stats:", err);
+    return {
+      isGuest: false,
+      submittedTestsCount: 0,
+      averageAccuracy: 0,
+      chapterCount: 0,
+      masteredChapterCount: 0,
+      masteredChapterIds: [],
+    };
   }
-
-  if (!attempts || attempts.length === 0) {
-    return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
-  }
-
-  // Filter out chapter_id: null or 0 which are dummy registration placeholders
-  const activeAttempts = attempts.filter((attempt) => attempt.chapter_id !== null && attempt.chapter_id !== 0);
-
-  if (activeAttempts.length === 0) {
-    return { chapterCount: 0, averageAccuracy: 0, masteredChapterIds: [] };
-  }
-
-  // Group by chapter to find highest score per chapter
-  const highestScoresByChapter = {};
-  let totalPercentageSum = 0;
-
-  activeAttempts.forEach((attempt) => {
-    const cid = attempt.chapter_id;
-    const score = attempt.percentage;
-    if (highestScoresByChapter[cid] === undefined || score > highestScoresByChapter[cid]) {
-      highestScoresByChapter[cid] = score;
-    }
-  });
-
-  const uniqueChapters = Object.keys(highestScoresByChapter);
-  uniqueChapters.forEach((cid) => {
-    totalPercentageSum += highestScoresByChapter[cid];
-  });
-
-  const averageAccuracy = uniqueChapters.length > 0 ? Math.round(totalPercentageSum / uniqueChapters.length) : 0;
-  const masteredChapterIds = uniqueChapters.filter((cid) => highestScoresByChapter[cid] >= 80).map(Number);
-
-  return {
-    chapterCount: uniqueChapters.length,
-    averageAccuracy,
-    masteredChapterIds,
-  };
 }
 
 export async function initializeUserProgress() {
