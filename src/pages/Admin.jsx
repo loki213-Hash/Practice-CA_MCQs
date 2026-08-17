@@ -362,15 +362,17 @@ export default function Admin() {
           const u = updatedList[i];
           if (!u.recovery_code) {
             const newCode = generate7CharRecoveryCode();
-            
-            // Auto update database
-            supabase
-              .from("registered_users")
-              .update({ recovery_code: newCode })
-              .eq("id", u.id)
-              .catch((err) => console.warn("Notice updating recovery code for existing user:", err));
-              
             updatedList[i] = { ...u, recovery_code: newCode };
+            
+            // Update Supabase database safely
+            try {
+              await supabase
+                .from("registered_users")
+                .update({ recovery_code: newCode })
+                .eq("id", u.id);
+            } catch (updErr) {
+              console.warn("Notice updating recovery code for existing user:", updErr);
+            }
           }
         }
         setRegisteredUsers(updatedList);
