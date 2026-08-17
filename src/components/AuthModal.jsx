@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import RecoveryCodeModal from "./RecoveryCodeModal";
 
-export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login" }) {
+export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login", bannerNotice = null }) {
   const { login, register, resetPassword } = useAuth();
   const [isSignUp, setIsSignUp] = useState(initialMode === "register");
   const [username, setUsername] = useState("");
@@ -340,11 +340,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
               height: "36px",
               fontSize: "22px",
               cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
-              zIndex: 20,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               lineHeight: 1,
               fontWeight: "700"
             }}
@@ -352,6 +347,26 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
           >
             &times;
           </button>
+
+          {bannerNotice && (
+            <div style={{
+              background: "linear-gradient(135deg, #0F3D3E 0%, #1e7145 100%)",
+              color: "#ffffff",
+              padding: "14px 20px",
+              borderRadius: "12px",
+              marginBottom: "14px",
+              fontSize: "13.5px",
+              lineHeight: "1.55",
+              boxShadow: "0 4px 14px rgba(15, 61, 62, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              border: "1px solid rgba(255,255,255,0.15)"
+            }}>
+              <span style={{ fontSize: "20px" }}>🌟</span>
+              <span style={{ flex: 1, fontWeight: "500" }}>{bannerNotice}</span>
+            </div>
+          )}
 
           <div className="login-page-wrapper" style={{ minHeight: "auto", padding: 0, background: "transparent" }}>
             <div className={`stage ${loaded ? "loaded" : ""}`} style={{ maxWidth: "850px", margin: 0 }}>

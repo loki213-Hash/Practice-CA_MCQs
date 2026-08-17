@@ -35,11 +35,13 @@ const TakeTest = lazyWithRetry(() => import("./pages/TakeTest"));
 const MistakeVault = lazyWithRetry(() => import("./pages/MistakeVault"));
 
 import AnalyticsTracker from "./components/AnalyticsTracker";
+import GuestAuthPrompt from "./components/GuestAuthPrompt";
 
 function App() {
   return (
     <>
       <AnalyticsTracker />
+      <GuestAuthPrompt />
       <Suspense fallback={<div className="loader-container">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Home />} />
