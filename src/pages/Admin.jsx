@@ -54,6 +54,7 @@ export default function Admin() {
   const [registeredUsers, setRegisteredUsers] = useState([]);
   const [recoverySearch, setRecoverySearch] = useState("");
   const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState(null);
 
   // Bulk Importer states
   const [chapterId, setChapterId] = useState("1");
@@ -346,12 +347,16 @@ export default function Admin() {
 
   const loadRegisteredUsers = async () => {
     setIsUsersLoading(true);
+    setUsersError(null);
     try {
       const { data, error } = await supabase
         .from("registered_users")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!error && data) {
+      if (error) {
+        setUsersError(error.message);
+        console.warn("Failed to load registered users:", error);
+      } else if (data) {
         let updatedList = [...data];
         for (let i = 0; i < updatedList.length; i++) {
           const u = updatedList[i];
@@ -369,10 +374,9 @@ export default function Admin() {
           }
         }
         setRegisteredUsers(updatedList);
-      } else if (error) {
-        console.warn("Failed to load registered users:", error);
       }
     } catch (err) {
+      setUsersError(err.message);
       console.warn("Failed to load registered users:", err);
     } finally {
       setIsUsersLoading(false);
@@ -1749,33 +1753,19 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                   </div>
                 ) : (
                   <div className="card" style={{ padding: "24px", textAlign: "center", border: "1px dashed #e1e4eb" }}>
-                    <p style={{ fontSize: "13.5px", color: "#6b7280", margin: "0 0 16px" }}>No student recovery profiles found in database.</p>
+                    <p style={{ fontSize: "13.5px", color: "#6b7280", margin: "0 0 16px" }}>
+                      {usersError ? `Supabase Notice: ${usersError}` : "No student recovery profiles found in database."}
+                    </p>
                     <div style={{ maxWidth: "600px", margin: "0 auto", padding: "16px", background: "#fdf8f2", border: "1px solid #fbd5d5", borderRadius: "8px", textAlign: "left", fontSize: "12px", color: "#222" }}>
-                      <strong style={{ color: "#c27803" }}>Setup Required:</strong> Run this script in your Supabase SQL editor to enable student credentials & recovery:
+                      <strong style={{ color: "#c27803" }}>Setup Required:</strong> Run this script in your Supabase SQL editor to unlock student credentials & recovery permissions:
                       <pre style={{ background: "#272822", color: "#f8f8f2", padding: "10px", borderRadius: "4px", marginTop: "8px", overflowX: "auto", fontSize: "11px" }}>
-{`CREATE TABLE IF NOT EXISTS public.registered_users (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username text UNIQUE NOT NULL,
-  favourite_place text,
-  firstname_yob text,
-  recovery_code text,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
+{`-- 1. Ensure all columns exist
 ALTER TABLE IF EXISTS public.registered_users ADD COLUMN IF NOT EXISTS recovery_code text;
 ALTER TABLE IF EXISTS public.registered_users ADD COLUMN IF NOT EXISTS favourite_place text;
 ALTER TABLE IF EXISTS public.registered_users ADD COLUMN IF NOT EXISTS firstname_yob text;
 
-ALTER TABLE public.registered_users ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "anyone_can_insert" ON public.registered_users;
-DROP POLICY IF EXISTS "users_read_own_or_admin" ON public.registered_users;
-DROP POLICY IF EXISTS "allow_admin_and_own_select" ON public.registered_users;
-DROP POLICY IF EXISTS "allow_admin_update" ON public.registered_users;
-
-CREATE POLICY "anyone_can_insert" ON public.registered_users FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_admin_and_own_select" ON public.registered_users FOR SELECT USING (true);
-CREATE POLICY "allow_admin_update" ON public.registered_users FOR UPDATE USING (true) WITH CHECK (true);`}
+-- 2. Unlock permissions for Admin viewing
+ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                       </pre>
                     </div>
                   </div>
