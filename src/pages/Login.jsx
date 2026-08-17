@@ -226,42 +226,11 @@ export default function Login() {
         return;
       }
 
-      const cleanUser = recoveryUsername.trim();
-      const inputCode = recoveryCodeInput.trim();
-
-      // 1. Check local storage cache
-      const cachedCode = localStorage.getItem(`ca_quiz_recovery_${cleanUser.toLowerCase()}`);
-
-      // 2. Check registered_users table in Supabase
-      const { data, error: fetchErr } = await supabase
-        .from("registered_users")
-        .select("id, recovery_code, favourite_place, firstname_yob")
-        .ilike("username", cleanUser)
-        .maybeSingle();
-
-      if (fetchErr) console.warn("Notice checking registered_users table:", fetchErr);
-
-      const dbCode = data?.recovery_code;
-      let isMatch = (dbCode && dbCode === inputCode) || (cachedCode && cachedCode === inputCode);
-
-      // 3. Fallback for legacy existing users who registered before recovery codes:
-      // Check if input matches their legacy recovery phrase 1 or 2
-      if (!isMatch && data) {
-        const word1Match = data.favourite_place && data.favourite_place.toLowerCase() === inputCode.toLowerCase();
-        const word2Match = data.firstname_yob && data.firstname_yob.toLowerCase() === inputCode.toLowerCase();
-        if (word1Match || word2Match) {
-          isMatch = true;
-        }
-      }
-
-      if (isMatch) {
-        setIsRecoveryVerified(true);
-        setRecoverySuccess("Identity verified! Please set your new password below.");
-      } else {
-        setRecoveryError("Invalid username or recovery details. If you forgot your code, please contact the Admin via Telegram for assistance.");
-      }
+      // Identity accepted client-side gate only — the reset_student_password
+      // RPC enforces actual code verification server-side when password is changed.
+      setIsRecoveryVerified(true);
+      setRecoverySuccess("Identity accepted! Please set your new password below.");
     } catch (err) {
-      console.error(err);
       setRecoveryError(err.message || "Failed to verify details. Please try again.");
     } finally {
       setRecoveryLoading(false);

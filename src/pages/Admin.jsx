@@ -9,7 +9,7 @@ import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
 
 export default function Admin() {
-  const { logout, username } = useAuth();
+  const { logout, username, user } = useAuth();
 
   const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard' | 'flags' | 'submissions' | 'import'
   const [error, setError] = useState(null);
@@ -77,7 +77,14 @@ export default function Admin() {
   const [broadcastTarget, setBroadcastTarget] = useState("all");
   const [broadcastSending, setBroadcastSending] = useState(false);
 
-  const isAdmin = username === "admin";
+  const isAdmin = Boolean(
+    user && (
+      user.email === "admin.caquiz@gmail.com" ||
+      user.app_metadata?.role === "admin" ||
+      user.user_metadata?.is_admin === true ||
+      username === "admin"
+    ) && user.email === "admin.caquiz@gmail.com"
+  );
 
   // Helper: Read flagged question local cache
   const getLocalFlags = () => {
@@ -347,17 +354,13 @@ export default function Admin() {
         for (let i = 0; i < updatedList.length; i++) {
           const u = updatedList[i];
           if (!u.recovery_code) {
-            const cached = localStorage.getItem(`ca_quiz_recovery_${u.username?.toLowerCase()}`);
-            const newCode = cached || generate7CharRecoveryCode();
+            const newCode = generate7CharRecoveryCode();
             
             // Auto update database
             supabase
               .from("registered_users")
               .update({ recovery_code: newCode })
               .eq("id", u.id)
-              .then(() => {
-                localStorage.setItem(`ca_quiz_recovery_${u.username?.toLowerCase()}`, newCode);
-              })
               .catch((err) => console.warn("Notice updating recovery code for existing user:", err));
               
             updatedList[i] = { ...u, recovery_code: newCode };
@@ -380,7 +383,6 @@ export default function Admin() {
 
       if (error) throw error;
 
-      localStorage.setItem(`ca_quiz_recovery_${userObj.username.toLowerCase()}`, newCode);
       setSuccess(`Generated 7-character recovery code '${newCode}' for ${userObj.username}!`);
       loadRegisteredUsers();
     } catch (err) {
@@ -396,7 +398,6 @@ export default function Admin() {
         if (!u.recovery_code) {
           const newCode = generate7CharRecoveryCode();
           await supabase.from("registered_users").update({ recovery_code: newCode }).eq("id", u.id);
-          localStorage.setItem(`ca_quiz_recovery_${u.username.toLowerCase()}`, newCode);
           count++;
         }
       }
@@ -1663,7 +1664,7 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                         {registeredUsers
                           .filter((u) => !recoverySearch || u.username.toLowerCase().includes(recoverySearch.toLowerCase()))
                           .map((user) => {
-                            const code = user.recovery_code || localStorage.getItem(`ca_quiz_recovery_${user.username?.toLowerCase()}`);
+                            const code = user.recovery_code;
                             return (
                               <tr key={user.id}>
                                 <td style={{ padding: "10px 14px", fontWeight: "600", color: "var(--navy)" }}>{user.username}</td>

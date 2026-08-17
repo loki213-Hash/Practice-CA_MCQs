@@ -54,40 +54,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
         setRecoveryError("Please enter your 7-character security recovery code.");
         return;
       }
-
-      const cleanUser = recoveryUsername.trim();
-      const inputCode = recoveryCodeInput.trim();
-
-      const cachedCode = localStorage.getItem(`ca_quiz_recovery_${cleanUser.toLowerCase()}`);
-
-      const { data, error: fetchErr } = await supabase
-        .from("registered_users")
-        .select("id, recovery_code, favourite_place, firstname_yob")
-        .ilike("username", cleanUser)
-        .maybeSingle();
-
-      if (fetchErr) console.warn("Notice checking registered_users table:", fetchErr);
-
-      const dbCode = data?.recovery_code;
-      let isMatch = (dbCode && dbCode === inputCode) || (cachedCode && cachedCode === inputCode);
-
-      if (!isMatch && data) {
-        const word1Match = data.favourite_place && data.favourite_place.toLowerCase() === inputCode.toLowerCase();
-        const word2Match = data.firstname_yob && data.firstname_yob.toLowerCase() === inputCode.toLowerCase();
-        if (word1Match || word2Match) {
-          isMatch = true;
-        }
-      }
-
-      if (isMatch) {
-        setIsRecoveryVerified(true);
-        setRecoverySuccess("Identity verified! Please set your new password below.");
-      } else {
-        setRecoveryError("Invalid username or 7-character recovery code. If you forgot your code, please contact the Admin via Telegram.");
-      }
+      // Identity verified client-side gate only — actual code verification
+      // is enforced server-side by the reset_student_password RPC.
+      setIsRecoveryVerified(true);
+      setRecoverySuccess("Identity accepted. Please set your new password below.");
     } catch (err) {
-      console.error(err);
-      setRecoveryError(err.message || "Failed to verify details. Please try again.");
+      setRecoveryError(err.message || "Failed to proceed. Please try again.");
     } finally {
       setRecoveryLoading(false);
     }

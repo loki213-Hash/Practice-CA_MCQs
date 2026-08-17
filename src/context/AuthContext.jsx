@@ -61,12 +61,8 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.warn("Could not insert user recovery details into registered_users table:", err);
       }
-      
-      try {
-        localStorage.setItem(`ca_quiz_recovery_${username.trim().toLowerCase()}`, recoveryCode);
-      } catch (e) {
-        console.warn("Failed to store recovery code in localStorage:", e);
-      }
+      // Recovery code is shown once on-screen after registration.
+      // It is intentionally NOT stored in localStorage for security reasons.
     }
     return { ...data, recoveryCode };
   };
@@ -93,7 +89,7 @@ export function AuthProvider({ children }) {
 
         if (profile?.recovery_code) {
           recoveryCode = profile.recovery_code;
-          localStorage.setItem(`ca_quiz_recovery_${cleanUser}`, recoveryCode);
+          // Recovery code is available server-side only; never cached in localStorage.
         } else {
           // User registered before recovery codes were introduced: Auto-generate one now!
           const newCode = generate7CharRecoveryCode();
@@ -109,7 +105,6 @@ export function AuthProvider({ children }) {
               }
             ]);
           recoveryCode = newCode;
-          localStorage.setItem(`ca_quiz_recovery_${cleanUser}`, newCode);
           isNewlyGeneratedForExistingUser = true;
         }
       } catch (err) {
