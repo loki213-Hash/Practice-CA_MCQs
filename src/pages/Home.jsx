@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
 import { useAuth } from "../context/AuthContext";
-import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount, getSatisfactionRate } from "../services/progressService";
+import { getUserProgressStats, initializeUserProgress } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 import { getVaultCount } from "../services/mistakeVaultService";
 import { supabase } from "../supabase/supabase";
@@ -260,9 +260,6 @@ function Home() {
   useEffect(() => {
     async function loadUserStats() {
       try {
-        const pAttempts = await getTotalAttemptsCount();
-        const pAccuracy = await getSatisfactionRate();
-
         if (!user) {
           setUserStats({
             isGuest: true,
@@ -272,8 +269,8 @@ function Home() {
             masteredChapterCount: 0,
             masteredChapterIds: [],
           });
-          setRealTarget(pAttempts > 0 ? pAttempts : 1250);
-          setTargetFinderRate(pAccuracy || 92);
+          setRealTarget(0);
+          setTargetFinderRate(0);
           return;
         }
 
@@ -283,8 +280,8 @@ function Home() {
         }
         const progressData = await getUserProgressStats(user);
         setUserStats(progressData);
-        setRealTarget(progressData.submittedTestsCount > 0 ? progressData.submittedTestsCount : pAttempts || 1250);
-        setTargetFinderRate(progressData.submittedTestsCount > 0 ? progressData.averageAccuracy : pAccuracy || 92);
+        setRealTarget(progressData.submittedTestsCount || 0);
+        setTargetFinderRate(progressData.averageAccuracy || 0);
       } catch (err) {
         console.error("Error loading progress stats:", err);
       }
@@ -741,12 +738,12 @@ function Home() {
               <span className="lbl">MCQs across all 3 levels</span>
             </div>
             <div className="trust-item">
-              <span className="num">{formatAttemptedCount(attemptedCount)}</span>
-              <span className="lbl">{user ? "Tests attempted by you" : "Tests attempted to date"}</span>
+              <span className="num">{!user ? "--" : formatAttemptedCount(attemptedCount)}</span>
+              <span className="lbl">Tests attempted to date</span>
             </div>
             <div className="trust-item">
-              <span className="num">{`${finderRate}%`}</span>
-              <span className="lbl">{user ? "Your test accuracy" : "Average test accuracy"}</span>
+              <span className="num">{!user ? "--" : `${finderRate}%`}</span>
+              <span className="lbl">Average test accuracy</span>
             </div>
           </div>
         </div>
