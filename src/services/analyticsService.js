@@ -391,25 +391,30 @@ export async function fetchAnalyticsMetrics() {
   };
 }
 
-/**
- * Setup Realtime Presence Channel for instant live synchronization
- * @param {Object} options - { user, username, pagePath, onPresenceChange }
- */
-export function setupRealtimePresence({ user = null, username = "Guest", pagePath = "/", onPresenceChange = null }) {
-  const visitorId = getOrCreateVisitorId();
-  const isAuthenticated = Boolean(user && user.id);
-  const cleanUsername = isAuthenticated ? (username || user.email?.split("@")[0] || "Student") : "Guest";
-  const deviceType = getDeviceType();
+// ── Shared Singleton Presence Management ─────────────────────────────────────
+let globalPresenceChannel = null;
+const presenceListeners = new Set();
+let latestPresenceData = {
+  liveTotalCount: 0,
+  liveLoggedInCount: 0,
+  liveGuestCount: 0,
+  activeVisitors: [],
+};
 
-  const channel = supabase.channel("site_presence", {
-    config: {
-      presence: {
-        key: visitorId,
-      },
-    },
+function dispatchPresenceChange(data) {
+  latestPresenceData = data;
+  presenceListeners.forEach((listener) => {
+    try {
+      listener(data);
+    } catch (err) {
+      console.warn("Presence listener notice:", err);
+    }
   });
+}
 
-  const handlePresenceState = () => {
+function processPresenceState(channel) {
+  if (!channel) return;
+  try {
     const state = channel.presenceState();
     const activeVisitors = [];
     const uniqueVisitorIds = new Set();
@@ -444,71 +449,136 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
     recordPeakSnapshot("logged_in_concurrent", liveLoggedInCount);
     recordPeakSnapshot("total_concurrent", liveTotalCount);
 
-    if (typeof onPresenceChange === "function") {
-      onPresenceChange({
-        liveTotalCount,
-        liveLoggedInCount,
-        liveGuestCount,
-        activeVisitors,
-      });
-    }
-  };
+    const payload = {
+      liveTotalCount,
+      liveLoggedInCount,
+      liveGuestCount,
+      activeVisitors,
+    };
 
+    dispatchPresenceChange(payload);
+  } catch (e) {
+    console.warn("Error processing presence state:", e);
+  }
+}
+
+function getOrCreatePresenceChannel(visitorId) {
+  if (globalPresenceChannel) {
+    return globalPresenceChannel;
+  }
+
+  // Check if channel already exists in Supabase client to avoid duplicate registration error
+  try {
+    const existingChannels = supabase.getChannels ? supabase.getChannels() : [];
+    const prev = existingChannels.find((ch) => ch.topic === "realtime:site_presence");
+    if (prev) {
+      globalPresenceChannel = prev;
+      return prev;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const channel = supabase.channel("site_presence", {
+    config: {
+      presence: {
+        key: visitorId,
+      },
+    },
+  });
+
+  // Attach all presence event handlers BEFORE subscribe()
   channel
     .on("presence", { event: "sync" }, () => {
-      handlePresenceState();
+      processPresenceState(channel);
     })
     .on("presence", { event: "join" }, () => {
-      handlePresenceState();
+      processPresenceState(channel);
     })
     .on("presence", { event: "leave" }, () => {
-      handlePresenceState();
+      processPresenceState(channel);
     })
-    .subscribe(async (status) => {
+    .subscribe((status) => {
       if (status === "SUBSCRIBED") {
-        try {
-          await channel.track({
-            visitor_id: visitorId,
-            user_id: user?.id || null,
-            username: cleanUsername,
-            is_logged_in: isAuthenticated,
-            page_path: pagePath,
-            device_type: deviceType,
-            online_at: new Date().toISOString(),
-          });
-        } catch (trackErr) {
-          console.warn("Presence track notice:", trackErr);
-        }
+        processPresenceState(channel);
       }
     });
 
-  const updatePresence = async (newProps = {}) => {
-    const updatedUser = newProps.user !== undefined ? newProps.user : user;
-    const updatedUsername = newProps.username !== undefined ? newProps.username : username;
-    const updatedPath = newProps.pagePath !== undefined ? newProps.pagePath : pagePath;
+  globalPresenceChannel = channel;
+  return channel;
+}
+
+/**
+ * Setup Realtime Presence Channel for instant live synchronization
+ * Safe across multiple components, route changes, and admin monitor
+ * @param {Object} options - { user, username, pagePath, onPresenceChange }
+ */
+export function setupRealtimePresence({ user = null, username = "Guest", pagePath = "/", onPresenceChange = null }) {
+  const visitorId = getOrCreateVisitorId();
+  const isAuthenticated = Boolean(user && user.id);
+  const cleanUsername = isAuthenticated ? (username || user.email?.split("@")[0] || "Student") : "Guest";
+  const deviceType = getDeviceType();
+
+  const channel = getOrCreatePresenceChannel(visitorId);
+
+  // Register listener callback if supplied
+  if (typeof onPresenceChange === "function") {
+    presenceListeners.add(onPresenceChange);
+    // Immediately deliver current snapshot if already available
+    if (latestPresenceData.liveTotalCount > 0 || latestPresenceData.activeVisitors.length > 0) {
+      try {
+        onPresenceChange(latestPresenceData);
+      } catch (err) {
+        console.warn("Immediate presence listener error:", err);
+      }
+    }
+  }
+
+  const trackState = async (customProps = {}) => {
+    const updatedUser = customProps.user !== undefined ? customProps.user : user;
+    const updatedUsername = customProps.username !== undefined ? customProps.username : username;
+    const updatedPath = customProps.pagePath !== undefined ? customProps.pagePath : pagePath;
     const isAuth = Boolean(updatedUser && updatedUser.id);
     const resolvedName = isAuth ? (updatedUsername || updatedUser.email?.split("@")[0] || "Student") : "Guest";
 
+    const payload = {
+      visitor_id: visitorId,
+      user_id: updatedUser?.id || null,
+      username: resolvedName,
+      is_logged_in: isAuth,
+      page_path: updatedPath,
+      device_type: deviceType,
+      online_at: new Date().toISOString(),
+    };
+
     try {
-      await channel.track({
-        visitor_id: visitorId,
-        user_id: updatedUser?.id || null,
-        username: resolvedName,
-        is_logged_in: isAuth,
-        page_path: updatedPath,
-        device_type: deviceType,
-        online_at: new Date().toISOString(),
-      });
+      if (channel.state === "joined") {
+        await channel.track(payload);
+      } else {
+        // Retry tracking once channel has subscribed/joined
+        setTimeout(async () => {
+          try {
+            await channel.track(payload);
+          } catch (e) {
+            // quiet catch
+          }
+        }, 600);
+      }
     } catch (e) {
-      console.warn("Could not update presence:", e);
+      console.warn("Could not update presence track:", e);
     }
   };
 
+  // Track state
+  trackState();
+
+  const updatePresence = async (newProps = {}) => {
+    await trackState(newProps);
+  };
+
   const unsubscribe = () => {
-    try {
-      channel.unsubscribe();
-    } catch (e) {
-      console.warn("Error unsubscribing presence channel:", e);
+    if (typeof onPresenceChange === "function") {
+      presenceListeners.delete(onPresenceChange);
     }
   };
 
