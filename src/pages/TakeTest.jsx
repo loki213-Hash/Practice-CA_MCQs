@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom"
 import { supabase } from "../supabase/supabase";
 import { buildTakeTestQuestions } from "../services/takeTestService";
 import { saveToMistakeVault } from "../services/mistakeVaultService";
+import { saveQuizAttempt } from "../services/progressService";
 import { submitFeedback } from "../services/feedbackService";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
@@ -731,6 +732,23 @@ export default function TakeTest() {
       saveToMistakeVault(questions, answers);
     } catch (err) {
       console.error("Failed to save to mistake vault", err);
+    }
+
+    // Save test attempt to student progress & trigger live update across the platform
+    try {
+      let correct = 0;
+      questions.forEach((q, i) => {
+        if (answers[i] && answers[i] === q.correct_option?.toLowerCase()) {
+          correct++;
+        }
+      });
+      await saveQuizAttempt({
+        chapterId: course?.id ? String(course.id) : (courseSlug || "exam-simulation"),
+        score: correct,
+        totalQuestions: questions.length,
+      });
+    } catch (err) {
+      console.warn("Could not save take-test attempt:", err);
     }
 
     setScreen("results");

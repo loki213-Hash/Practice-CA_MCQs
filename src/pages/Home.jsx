@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCourses } from "../services/courseService";
 import { useAuth } from "../context/AuthContext";
-import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount } from "../services/progressService";
+import { getUserProgressStats, initializeUserProgress, getTotalAttemptsCount, getSatisfactionRate } from "../services/progressService";
 import { getNotificationsForUser, markAsRead } from "../services/notificationService";
 import { getVaultCount } from "../services/mistakeVaultService";
 import { supabase } from "../supabase/supabase";
@@ -146,6 +146,8 @@ function Home() {
   const [attemptedCount, setAttemptedCount] = useState(0);
   const [realTarget, setRealTarget] = useState(0);
   const [finderRate, setFinderRate] = useState(0);
+  const [targetFinderRate, setTargetFinderRate] = useState(92);
+  const [totalLiveMCQs, setTotalLiveMCQs] = useState(0);
   const [userStats, setUserStats] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifInbox, setShowNotifInbox] = useState(false);
@@ -162,13 +164,28 @@ function Home() {
     return val.toLocaleString();
   };
 
-  // Fetch real attempts count + vault count from database
+  // Fetch real attempts count, satisfaction rate + vault count from database & live updates
   useEffect(() => {
-    async function fetchRealCount() {
-      const count = await getTotalAttemptsCount();
-      setRealTarget(count);
+    async function fetchTrustStats() {
+      try {
+        const [count, satRate] = await Promise.all([
+          getTotalAttemptsCount(),
+          getSatisfactionRate(),
+        ]);
+        setRealTarget(count || 0);
+        if (satRate) setTargetFinderRate(satRate);
+      } catch (err) {
+        console.warn("Live trust stats fetch error:", err);
+      }
     }
-    fetchRealCount();
+    fetchTrustStats();
+
+    // Listen to real-time events when quizzes/tests complete anywhere
+    const handleProgressUpdate = () => {
+      fetchTrustStats();
+    };
+    window.addEventListener("ca_quiz_progress_updated", handleProgressUpdate);
+    return () => window.removeEventListener("ca_quiz_progress_updated", handleProgressUpdate);
   }, []);
 
   useEffect(() => {
@@ -358,6 +375,20 @@ function Home() {
           });
         }
 
+        // Fetch exact total questions and case questions across entire database
+        try {
+          const [{ count: qCount }, { count: cqCount }] = await Promise.all([
+            supabase.from("questions").select("*", { count: "exact", head: true }),
+            supabase.from("case_questions").select("*", { count: "exact", head: true }),
+          ]);
+          const totalValid = (qCount || 0) + (cqCount || 0);
+          if (totalValid > 0) {
+            setTotalLiveMCQs(totalValid);
+          }
+        } catch (e) {
+          console.warn("Direct live MCQ count notice:", e);
+        }
+
         const statsMap = {};
         fetchedCourses.forEach((course) => {
           const chapterIds = chaptersByCourse[course.id] || [];
@@ -385,11 +416,11 @@ function Home() {
     loadCoursesAndStats();
   }, []);
 
-  // Animate trust row counters
+  // Animate trust row counters with live database values
   useEffect(() => {
     let curAttempted = 0;
     const attemptedTarget = realTarget;
-    const attemptedStep = Math.max(1, Math.round(attemptedTarget / 20));
+    const attemptedStep = Math.max(1, Math.round(attemptedTarget / 25));
     const attemptedInterval = setInterval(() => {
       curAttempted += attemptedStep;
       if (curAttempted >= attemptedTarget) {
@@ -398,34 +429,37 @@ function Home() {
       } else {
         setAttemptedCount(curAttempted);
       }
-    }, 40);
+    }, 30);
 
     let curRate = 0;
-    const rateTarget = 92;
+    const rateTarget = targetFinderRate;
     const rateInterval = setInterval(() => {
-      curRate += 3;
+      curRate += 2;
       if (curRate >= rateTarget) {
         setFinderRate(rateTarget);
         clearInterval(rateInterval);
       } else {
         setFinderRate(curRate);
       }
-    }, 40);
+    }, 25);
 
     return () => {
       clearInterval(attemptedInterval);
       clearInterval(rateInterval);
     };
-  }, [realTarget]);
+  }, [realTarget, targetFinderRate]);
 
   // Sum total MCQs dynamically from Supabase
   const totalMCQsString = useMemo(() => {
+    if (totalLiveMCQs > 0) {
+      return `${totalLiveMCQs.toLocaleString()} MCQs`;
+    }
     let sum = 0;
     for (const val of Object.values(stats)) {
       sum += val.questionCount;
     }
-    return sum > 0 ? `${sum.toLocaleString()} MCQs` : "Loading...";
-  }, [stats]);
+    return sum > 0 ? `${sum.toLocaleString()} MCQs` : "3,699 MCQs";
+  }, [totalLiveMCQs, stats]);
 
   const cardData = useMemo(() => {
     return courses.map((course) => {
