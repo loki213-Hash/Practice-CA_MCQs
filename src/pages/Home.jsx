@@ -159,7 +159,6 @@ function Home() {
   const [realTarget, setRealTarget] = useState(0);
   const [finderRate, setFinderRate] = useState(0);
   const [targetFinderRate, setTargetFinderRate] = useState(92);
-  const [totalLiveMCQs, setTotalLiveMCQs] = useState(0);
   const [userStats, setUserStats] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifInbox, setShowNotifInbox] = useState(false);
@@ -380,20 +379,6 @@ function Home() {
           });
         }
 
-        // Fetch exact total questions and case questions across entire database
-        try {
-          const [{ count: qCount }, { count: cqCount }] = await Promise.all([
-            supabase.from("questions").select("*", { count: "exact", head: true }),
-            supabase.from("case_questions").select("*", { count: "exact", head: true }),
-          ]);
-          const totalValid = (qCount || 0) + (cqCount || 0);
-          if (totalValid > 0) {
-            setTotalLiveMCQs(totalValid);
-          }
-        } catch (e) {
-          console.warn("Direct live MCQ count notice:", e);
-        }
-
         const statsMap = {};
         fetchedCourses.forEach((course) => {
           const chapterIds = chaptersByCourse[course.id] || [];
@@ -454,17 +439,16 @@ function Home() {
     };
   }, [realTarget, targetFinderRate]);
 
-  // Sum total MCQs dynamically from Supabase
+  // Sum total MCQs dynamically across all 3 levels
   const totalMCQsString = useMemo(() => {
-    if (totalLiveMCQs > 0) {
-      return `${totalLiveMCQs.toLocaleString()} MCQs`;
-    }
     let sum = 0;
     for (const val of Object.values(stats)) {
-      sum += val.questionCount;
+      if (val && typeof val.questionCount === "number") {
+        sum += val.questionCount;
+      }
     }
     return sum > 0 ? `${sum.toLocaleString()} MCQs` : "3,699 MCQs";
-  }, [totalLiveMCQs, stats]);
+  }, [stats]);
 
   const cardData = useMemo(() => {
     return courses.map((course) => {
