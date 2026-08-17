@@ -87,7 +87,7 @@ function ChakraDial({ isGuest = true, masteredCount = 0, totalChapters = 5, accu
       const x2 = cx + rOuter * Math.cos(angle);
       const y2 = cy + rOuter * Math.sin(angle);
       const isMastered = !isGuest && i < mastered;
-      const isRevealed = !isGuest && i < revealed;
+      const isRevealed = isGuest || i < revealed;
 
       arr.push(
         <line
