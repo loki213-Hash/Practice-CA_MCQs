@@ -53,6 +53,7 @@ export default function Admin() {
   // Recovery phrase student registration list state
   const [registeredUsers, setRegisteredUsers] = useState([]);
   const [recoverySearch, setRecoverySearch] = useState("");
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
 
   // Bulk Importer states
   const [chapterId, setChapterId] = useState("1");
@@ -344,6 +345,7 @@ export default function Admin() {
   };
 
   const loadRegisteredUsers = async () => {
+    setIsUsersLoading(true);
     try {
       const { data, error } = await supabase
         .from("registered_users")
@@ -367,9 +369,13 @@ export default function Admin() {
           }
         }
         setRegisteredUsers(updatedList);
+      } else if (error) {
+        console.warn("Failed to load registered users:", error);
       }
     } catch (err) {
       console.warn("Failed to load registered users:", err);
+    } finally {
+      setIsUsersLoading(false);
     }
   };
 
@@ -478,6 +484,12 @@ export default function Admin() {
     return () => clearInterval(pollInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (activeTab === "recovery") {
+      loadRegisteredUsers();
+    }
+  }, [activeTab]);
 
   // Flag actions
   const handleKeepQuestion = async (questionId) => {
@@ -1631,6 +1643,26 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                       ⚡ Auto-Generate Codes For Existing Users
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() => loadRegisteredUsers()}
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        color: "#94a3b8",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      🔄 Refresh
+                    </button>
+
                     {/* Search filter */}
                     <div style={{ position: "relative", width: "220px" }}>
                       <input
@@ -1648,7 +1680,11 @@ Which Act replaced FERA?\tSecurities Contract\tRBI Act\tFEMA, 1999\tCompanies Ac
                   </div>
                 </div>
 
-                {registeredUsers.length > 0 ? (
+                {isUsersLoading ? (
+                  <div className="card" style={{ padding: "36px", textAlign: "center" }}>
+                    <p style={{ fontSize: "14px", color: "#94a3b8", margin: 0 }}>Loading registered student credentials from Supabase…</p>
+                  </div>
+                ) : registeredUsers.length > 0 ? (
                   <div style={{ overflowX: "auto", border: "1px solid #e1e4eb", borderRadius: "6px" }}>
                     <table className="topic-table" style={{ margin: 0, fontSize: "13px" }}>
                       <thead>
