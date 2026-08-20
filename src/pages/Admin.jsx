@@ -155,6 +155,9 @@ export default function Admin() {
     }
 
     // 4. Enrich every visitor with registered student profile & admin status
+    let guestCounter = 1;
+    const guestMap = new Map();
+
     const merged = Array.from(map.values()).map((v) => {
       const isSelf = Boolean(
         (currentVisitorId && v.visitor_id === currentVisitorId) ||
@@ -166,18 +169,35 @@ export default function Admin() {
 
       const regMatch = registeredUsers.find(
         (ru) => (v.user_id && ru.id === v.user_id) ||
-                (v.username && v.username !== "Guest" && v.username !== "Student" && ru.username?.toLowerCase() === v.username?.toLowerCase())
+                (v.username && v.username !== "Guest" && v.username !== "Student" && !v.username.startsWith("Guest #") && ru.username?.toLowerCase() === v.username?.toLowerCase())
       );
 
       const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
-      const resolvedName = isSelf ? (username || "admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
+      let resolvedName = isSelf
+        ? (username || "admin")
+        : (regMatch?.username || (v.username && v.username !== "Guest" && !v.username.startsWith("Guest #") ? v.username : (isAuth ? "Student" : "")));
+
       const isAdminUser = Boolean(v.is_admin || isSelf || resolvedName.toLowerCase() === "admin");
+
+      if (!isAuth && !isAdminUser) {
+        const vidKey = v.visitor_id || v.key;
+        if (!guestMap.has(vidKey)) {
+          guestMap.set(vidKey, `Guest #${guestCounter++}`);
+        }
+        resolvedName = guestMap.get(vidKey);
+      }
+
+      // Ensure online_at (Connected At) represents session opened time and does not exceed current time
+      const sessionOnlineAt = (v.online_at && new Date(v.online_at).getTime() <= now)
+        ? v.online_at
+        : new Date(v.last_seen_at && new Date(v.last_seen_at).getTime() <= now ? v.last_seen_at : now).toISOString();
 
       return {
         ...v,
         is_logged_in: isAuth,
         username: resolvedName,
         is_admin: isAdminUser,
+        online_at: sessionOnlineAt,
       };
     });
 

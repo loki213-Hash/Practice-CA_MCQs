@@ -750,12 +750,16 @@ export function setupRealtimePresence({ user = null, username = null, pagePath =
  * 45s = 1.5× the 30s heartbeat interval. Any user who hasn't heartbeated in 45s is gone.
  */
 export async function fetchLiveActiveVisitors() {
-  const ninetySecondsAgo = new Date(Date.now() - 90 * 1000).toISOString();
+  const nowMs = Date.now();
+  const ninetySecondsAgo = new Date(nowMs - 90 * 1000).toISOString();
+  const maxFutureAllowed = new Date(nowMs + 10 * 1000).toISOString();
+
   try {
     const { data, error } = await supabase
       .from("site_analytics_visits")
       .select("visitor_id, user_id, username, is_authenticated, current_path, device_type, created_at, last_seen_at")
       .gte("last_seen_at", ninetySecondsAgo)
+      .lte("last_seen_at", maxFutureAllowed)
       .order("last_seen_at", { ascending: false });
 
     if (!error && data) {
@@ -763,6 +767,12 @@ export async function fetchLiveActiveVisitors() {
       data.forEach((row) => {
         if (row.visitor_id && !visitorMap.has(row.visitor_id)) {
           const isAdm = row.username?.toLowerCase() === "admin" || row.user_id === "admin";
+          const rowCreatedTime = new Date(row.created_at).getTime();
+          const rowSeenTime = new Date(row.last_seen_at).getTime();
+          const validOnlineAt = (row.created_at && rowCreatedTime <= nowMs && rowCreatedTime <= rowSeenTime)
+            ? row.created_at
+            : row.last_seen_at;
+
           visitorMap.set(row.visitor_id, {
             key: row.visitor_id,
             visitor_id: row.visitor_id,
@@ -771,7 +781,7 @@ export async function fetchLiveActiveVisitors() {
             is_logged_in: Boolean(row.is_authenticated || isAdm),
             page_path: row.current_path || "/",
             device_type: row.device_type || "Desktop",
-            online_at: row.created_at || row.last_seen_at,
+            online_at: validOnlineAt,
             last_seen_at: row.last_seen_at,
             is_admin: isAdm,
           });
