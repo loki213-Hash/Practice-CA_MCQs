@@ -27,10 +27,6 @@ export async function submitFeedback({
     message: cleanMessage,
     category: cleanCategory,
     rating: cleanRating,
-    course_id: courseId,
-    course_name: courseName,
-    test_type: testType,
-    score_percent: scorePercent,
     created_at: now,
   };
 
@@ -47,31 +43,56 @@ export async function submitFeedback({
   }
 
   // 2. Attempt Supabase insert into student_feedbacks table
+  let inserted = false;
   try {
     const { data, error } = await supabase
       .from("student_feedbacks")
       .insert([payload])
       .select();
 
-    if (!error) {
-      return { success: true, data };
+    if (!error && data) {
+      inserted = true;
+    } else if (error) {
+      // Try with minimal columns if schema mismatch
+      const { data: minData, error: minErr } = await supabase
+        .from("student_feedbacks")
+        .insert([{ username: cleanUsername, message: cleanMessage, created_at: now }])
+        .select();
+      if (!minErr && minData) inserted = true;
     }
-
-    // Fallback: try singular table name if student_feedbacks doesn't exist
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from("student_feedback")
-      .insert([payload])
-      .select();
-
-    if (!fallbackError) {
-      return { success: true, data: fallbackData };
-    }
-
-    console.warn("Supabase student_feedbacks notice:", error?.message || fallbackError?.message);
-    return { success: true, localOnly: true };
   } catch (err) {
-    console.warn("Supabase feedback insert error:", err);
-    return { success: true, offline: true };
+    console.warn("Supabase student_feedbacks insert error:", err);
   }
+
+  // 3. Fallback: try student_feedback table
+  if (!inserted) {
+    try {
+      const { data, error } = await supabase
+        .from("student_feedback")
+        .insert([payload])
+        .select();
+
+      if (!error && data) {
+        inserted = true;
+      } else if (error) {
+        const { data: minData, error: minErr } = await supabase
+          .from("student_feedback")
+          .insert([{ username: cleanUsername, message: cleanMessage, created_at: now }])
+          .select();
+        if (!minErr && minData) inserted = true;
+      }
+    } catch (err) {
+      console.warn("Supabase student_feedback insert error:", err);
+    }
+  }
+
+  // Dispatch event for instant UI update
+  try {
+    window.dispatchEvent(new CustomEvent("ca_quiz_feedback_submitted", { detail: payload }));
+  } catch {
+    // quiet
+  }
+
+  return { success: true };
 }
 

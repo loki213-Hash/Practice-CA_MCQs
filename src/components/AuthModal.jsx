@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import RecoveryCodeModal from "./RecoveryCodeModal";
@@ -13,12 +13,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
   const [firstnameYob, setFirstnameYob] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const [loaded, setLoaded] = useState(false);
-  const [isFluttering, setIsFluttering] = useState(false);
-  const [isConfirmFluttering, setIsConfirmFluttering] = useState(false);
-  const [shakeUsername, setShakeUsername] = useState(false);
-  const [shakePassword, setShakePassword] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,165 +33,32 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
   const [recoverySuccess, setRecoverySuccess] = useState("");
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
-  const handleVerifyRecovery = async (e) => {
-    e.preventDefault();
-    setRecoveryError("");
-    setRecoverySuccess("");
-    setRecoveryLoading(true);
-
-    try {
-      if (!recoveryUsername.trim()) {
-        setRecoveryError("Please enter your username.");
-        return;
-      }
-      if (!recoveryCodeInput.trim()) {
-        setRecoveryError("Please enter your 7-character security recovery code.");
-        return;
-      }
-      // Identity verified client-side gate only — actual code verification
-      // is enforced server-side by the reset_student_password RPC.
-      setIsRecoveryVerified(true);
-      setRecoverySuccess("Identity accepted. Please set your new password below.");
-    } catch (err) {
-      setRecoveryError(err.message || "Failed to proceed. Please try again.");
-    } finally {
-      setRecoveryLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setRecoveryError("");
-    setRecoverySuccess("");
-    setRecoveryLoading(true);
-
-    try {
-      if (!recoveryNewPassword) {
-        setRecoveryError("Please enter a new password.");
-        return;
-      }
-      if (recoveryNewPassword.length < 6) {
-        setRecoveryError("New password must be at least 6 characters.");
-        return;
-      }
-      if (recoveryNewPassword !== recoveryConfirmPassword) {
-        setRecoveryError("Passwords do not match.");
-        return;
-      }
-
-      await resetPassword(recoveryUsername.trim(), recoveryCodeInput.trim(), recoveryNewPassword);
-
-      setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
-      setTimeout(() => {
-        setShowForgotPopover(false);
-        setRecoveryUsername("");
-        setRecoveryCodeInput("");
-        setRecoveryNewPassword("");
-        setRecoveryConfirmPassword("");
-        setIsRecoveryVerified(false);
-        setRecoverySuccess("");
-        setRecoveryError("");
-      }, 2500);
-    } catch (err) {
-      console.error(err);
-      setRecoveryError(err.message || "Password reset failed. Make sure your recovery code is correct.");
-    } finally {
-      setRecoveryLoading(false);
-    }
-  };
-
-  const birdLayerRef = useRef(null);
-
   useEffect(() => {
-    if (isOpen) {
-      requestAnimationFrame(() => setLoaded(true));
-    }
-  }, [isOpen]);
+    setIsSignUp(initialMode === "register");
+    setError("");
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
-
-  const birdSVG = `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-    <g class="wing wing-l" fill="#c9a667"><path d="M48 30 C 30 14, 4 14, 0 26 C 16 26, 34 32, 48 34 Z"/></g>
-    <g class="wing wing-r" fill="#e7c9a9"><path d="M52 30 C 70 14, 96 14, 100 26 C 84 26, 66 32, 52 34 Z"/></g>
-    <ellipse cx="50" cy="32" rx="14" ry="7" fill="#c9a667"/>
-    <path d="M60 30 L 70 32 L 60 35 Z" fill="#e7c9a9"/>
-  </svg>`;
-
-  const spawnFeathers = (bird) => {
-    const layer = birdLayerRef.current;
-    if (!layer) return null;
-    const interval = setInterval(() => {
-      const rect = bird.getBoundingClientRect();
-      const layerRect = layer.getBoundingClientRect();
-      const f = document.createElement("div");
-      f.className = "feather";
-      f.style.left = (rect.left - layerRect.left + rect.width * 0.15) + "px";
-      f.style.top = (rect.top - layerRect.top + rect.height * 0.5) + "px";
-      layer.appendChild(f);
-      f.addEventListener("animationend", () => f.remove());
-    }, 90);
-    return interval;
-  };
-
-  const flyBird = (direction) => {
-    const layer = birdLayerRef.current;
-    if (!layer) return;
-    const bird = document.createElement("div");
-    bird.className = "bird";
-    bird.innerHTML = birdSVG;
-    layer.appendChild(bird);
-
-    requestAnimationFrame(() => {
-      bird.classList.add(direction === "rtl" ? "flying-rtl" : "flying-ltr");
-    });
-
-    const featherInterval = spawnFeathers(bird);
-
-    bird.addEventListener("animationend", () => {
-      if (featherInterval) clearInterval(featherInterval);
-      bird.remove();
-    }, { once: true });
-  };
 
   const handleToggle = (signUpMode) => {
     setIsSignUp(signUpMode);
     setError("");
-    setFavouritePlace("");
-    setFirstnameYob("");
-    flyBird(signUpMode ? "rtl" : "ltr");
-  };
-
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-    setIsFluttering(true);
-    setTimeout(() => setIsFluttering(false), 550);
-  };
-
-  const handleConfirmPasswordChange = (e) => {
-    setConfirmPassword(e.target.value);
-    setIsConfirmFluttering(true);
-    setTimeout(() => setIsConfirmFluttering(false), 550);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    let hasValidationError = false;
-    if (!username.trim()) {
-      setShakeUsername(true);
-      setTimeout(() => setShakeUsername(false), 400);
-      hasValidationError = true;
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+      setError("Please enter your username.");
+      return;
     }
     if (!password) {
-      setShakePassword(true);
-      setTimeout(() => setShakePassword(false), 400);
-      hasValidationError = true;
+      setError("Please enter your password.");
+      return;
     }
 
-    if (hasValidationError) return;
-
-    const cleanUsername = username.trim();
     if (isSignUp && cleanUsername.toLowerCase() === "admin") {
       setError("Registration of administrative accounts is blocked.");
       return;
@@ -264,6 +125,71 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
     }
   };
 
+  const handleVerifyRecovery = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryUsername.trim()) {
+        setRecoveryError("Please enter your username.");
+        return;
+      }
+      if (!recoveryCodeInput.trim()) {
+        setRecoveryError("Please enter your 7-character security recovery code.");
+        return;
+      }
+      setIsRecoveryVerified(true);
+      setRecoverySuccess("Identity accepted. Please set your new password below.");
+    } catch (err) {
+      setRecoveryError(err.message || "Failed to proceed. Please try again.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setRecoveryError("");
+    setRecoverySuccess("");
+    setRecoveryLoading(true);
+
+    try {
+      if (!recoveryNewPassword) {
+        setRecoveryError("Please enter a new password.");
+        return;
+      }
+      if (recoveryNewPassword.length < 6) {
+        setRecoveryError("New password must be at least 6 characters.");
+        return;
+      }
+      if (recoveryNewPassword !== recoveryConfirmPassword) {
+        setRecoveryError("Passwords do not match.");
+        return;
+      }
+
+      await resetPassword(recoveryUsername.trim(), recoveryCodeInput.trim(), recoveryNewPassword);
+
+      setRecoverySuccess("Password updated successfully! You can now sign in with your new password.");
+      setTimeout(() => {
+        setShowForgotPopover(false);
+        setRecoveryUsername("");
+        setRecoveryCodeInput("");
+        setRecoveryNewPassword("");
+        setRecoveryConfirmPassword("");
+        setIsRecoveryVerified(false);
+        setRecoverySuccess("");
+        setRecoveryError("");
+      }, 2500);
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || "Password reset failed. Make sure your recovery code is correct.");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
   // Password Strength Meter Logic (for Registration)
   const getStrength = (val) => {
     if (!val) return 0;
@@ -276,358 +202,431 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
   };
 
   const strengthScore = getStrength(password);
-  const strengthColors = ["#c0564f", "#d99a4e", "#b8935a", "#c9a667"];
-  const strengthNames = ["Blank page", "Short story", "Full chapter", "Complete novel"];
-
-  // Book Toggle Logic
-  const isLoginBookClosed = password.length > 0 && !showPassword;
-  const isConfirmBookClosed = confirmPassword.length > 0 && !showPassword;
+  const strengthColors = ["#c0564f", "#d99a4e", "#b8935a", "#10b981"];
+  const strengthNames = ["Weak", "Fair", "Good", "Strong"];
 
   return (
     <>
       <div
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
         style={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(10, 15, 29, 0.8)",
-          backdropFilter: "blur(8px)",
+          inset: 0,
+          background: "rgba(10, 15, 29, 0.78)",
+          backdropFilter: "blur(6px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           zIndex: 15000,
-          padding: "20px",
+          padding: "16px",
           overflowY: "auto",
         }}
       >
         <div
           style={{
             position: "relative",
-            maxWidth: "850px",
+            maxWidth: "430px",
             width: "100%",
-            animation: "fadeInUp 0.3s ease-out forwards",
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "24px 26px",
+            boxShadow: "0 20px 45px rgba(0, 0, 0, 0.25)",
+            animation: "fadeInUp 0.25s ease-out forwards",
+            maxHeight: "92vh",
+            overflowY: "auto"
           }}
         >
-          {/* Close Modal Button */}
+          {/* Accessible Close / Cancel Modal Button */}
           <button
             type="button"
             onClick={onClose}
             style={{
               position: "absolute",
-              top: "-14px",
-              right: "-14px",
-              background: "#ffffff",
-              color: "#1e293b",
-              border: "none",
+              top: "14px",
+              right: "14px",
+              background: "#f1f5f9",
+              color: "#334155",
+              border: "1px solid #e2e8f0",
               borderRadius: "50%",
-              width: "36px",
-              height: "36px",
-              fontSize: "22px",
+              width: "32px",
+              height: "32px",
+              fontSize: "18px",
               cursor: "pointer",
-              lineHeight: 1,
-              fontWeight: "700"
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: "700",
+              zIndex: 10,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+              transition: "all 0.15s ease"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = "#e2e8f0";
+              e.currentTarget.style.color = "#0f172a";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = "#f1f5f9";
+              e.currentTarget.style.color = "#334155";
             }}
             aria-label="Close modal"
+            title="Cancel & Close"
           >
-            &times;
+            ✕
           </button>
 
           {bannerNotice && (
             <div style={{
               background: "linear-gradient(135deg, #0F3D3E 0%, #1e7145 100%)",
               color: "#ffffff",
-              padding: "14px 20px",
-              borderRadius: "12px",
+              padding: "10px 14px",
+              borderRadius: "8px",
               marginBottom: "14px",
-              fontSize: "13.5px",
-              lineHeight: "1.55",
-              boxShadow: "0 4px 14px rgba(15, 61, 62, 0.25)",
+              fontSize: "12.5px",
+              lineHeight: "1.45",
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              border: "1px solid rgba(255,255,255,0.15)"
+              gap: "8px",
+              paddingRight: "36px"
             }}>
-              <span style={{ fontSize: "20px" }}>🌟</span>
+              <span style={{ fontSize: "16px" }}>🌟</span>
               <span style={{ flex: 1, fontWeight: "500" }}>{bannerNotice}</span>
             </div>
           )}
 
-          <div className="login-page-wrapper" style={{ minHeight: "auto", padding: 0, background: "transparent" }}>
-            <div className={`stage ${loaded ? "loaded" : ""}`} style={{ maxWidth: "850px", margin: 0 }}>
-              <div className={`container ${isSignUp ? "active" : ""}`}>
-                
-                {/* LOGIN FORM BOX */}
-                <div className="form-box login">
-                  <form onSubmit={handleSubmit} noValidate>
-                    <h1>Welcome back</h1>
-                    <p>Sign in with your credentials to submit your test &amp; view your score.</p>
-                    
-                    {error && !isSignUp && <div className="form-error">{error}</div>}
+          {/* Header Title */}
+          <div style={{ textAlign: "center", marginBottom: "16px", paddingRight: "28px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--navy, #0B2545)", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>
+              {isSignUp ? "Create Student Account" : "Welcome Back"}
+            </h2>
+            <p style={{ fontSize: "12.5px", color: "#64748b", margin: 0 }}>
+              {isSignUp ? "Register to save your scores & track progress" : "Sign in to submit your test & view results"}
+            </p>
+          </div>
 
-                    <div className={`input-box ${shakeUsername ? "shake" : ""}`}>
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={loading}
-                        required
-                        autoComplete="username"
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </div>
+          {/* Mode Switcher Tabs */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            background: "#f1f5f9",
+            borderRadius: "8px",
+            padding: "4px",
+            marginBottom: "16px"
+          }}>
+            <button
+              type="button"
+              onClick={() => handleToggle(false)}
+              style={{
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                background: !isSignUp ? "#ffffff" : "transparent",
+                color: !isSignUp ? "var(--navy, #0B2545)" : "#64748b",
+                boxShadow: !isSignUp ? "0 2px 4px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s ease"
+              }}
+            >
+              🔑 Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => handleToggle(true)}
+              style={{
+                padding: "8px 12px",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                background: isSignUp ? "#ffffff" : "transparent",
+                color: isSignUp ? "var(--navy, #0B2545)" : "#64748b",
+                boxShadow: isSignUp ? "0 2px 4px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s ease"
+              }}
+            >
+              📝 Register
+            </button>
+          </div>
 
-                    <div className={`input-box ${shakePassword ? "shake" : ""}`}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        value={password}
-                        onChange={handlePasswordChange}
-                        disabled={loading}
-                        required
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button"
-                        className={`book-toggle ${isLoginBookClosed ? "is-closed" : ""} ${isFluttering ? "fluttering" : ""}`}
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        tabIndex="-1"
-                      >
-                        <div className="book-inner">
-                          <div className="book-face open">📖</div>
-                          <div className="book-face closed">📕</div>
-                        </div>
-                        <div className="book-pages">
-                          <i></i>
-                          <i></i>
-                          <i></i>
-                        </div>
-                      </button>
-                    </div>
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#dc2626",
+              padding: "9px 12px",
+              borderRadius: "8px",
+              fontSize: "12.5px",
+              marginBottom: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}>
+              <span>⚠️</span>
+              <span style={{ flex: 1 }}>{error}</span>
+            </div>
+          )}
 
-                    <div className="checkbox-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        <input
-                          type="checkbox"
-                          id="modalRememberMe"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                          disabled={loading}
-                        />
-                        <label htmlFor="modalRememberMe" className="checkbox-box">
-                          <svg viewBox="0 0 24 24" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M4 12l5 5L20 6" />
-                          </svg>
-                        </label>
-                        <label htmlFor="modalRememberMe" style={{ marginLeft: "4px" }}>Remember me</label>
-                      </div>
-                      <button
-                        type="button"
-                        style={{ background: "none", border: "none", fontSize: "12px", color: "var(--navy)", cursor: "pointer", textDecoration: "underline", padding: 0, fontWeight: 600 }}
-                        onClick={() => setShowForgotPopover(true)}
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-
-                    <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading} style={{ marginTop: "16px" }}>
-                      <span className="btn-label">Sign In &amp; Submit Test</span>
-                      <span className="btn-spinner">
-                        <span></span>
-                      </span>
-                    </button>
-                  </form>
-                </div>
-
-                {/* REGISTER FORM BOX */}
-                <div className="form-box register">
-                  <form onSubmit={handleSubmit} noValidate>
-                    <h1>Create account</h1>
-                    <p>Register a unique username to submit your test &amp; save your progress.</p>
-                    
-                    {error && isSignUp && <div className="form-error">{error}</div>}
-
-                    <div className={`input-box ${shakeUsername ? "shake" : ""}`}>
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={loading}
-                        required
-                        autoComplete="username"
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </div>
-
-                    <div className={`input-box ${shakePassword ? "shake" : ""}`}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        value={password}
-                        onChange={handlePasswordChange}
-                        disabled={loading}
-                        required
-                        autoComplete="new-password"
-                      />
-                      <button
-                        type="button"
-                        className={`book-toggle ${isLoginBookClosed ? "is-closed" : ""} ${isFluttering ? "fluttering" : ""}`}
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        tabIndex="-1"
-                      >
-                        <div className="book-inner">
-                          <div className="book-face open">📖</div>
-                          <div className="book-face closed">📕</div>
-                        </div>
-                        <div className="book-pages">
-                          <i></i>
-                          <i></i>
-                          <i></i>
-                        </div>
-                      </button>
-                    </div>
-
-                    {isSignUp && password && (
-                      <div className="strength-meter visible">
-                        <div className="strength-bars">
-                          {[0, 1, 2, 3].map((i) => (
-                            <i
-                              key={i}
-                              style={{
-                                background: i < strengthScore ? strengthColors[strengthScore - 1] : "#e6e1d6"
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <div
-                          className="strength-label"
-                          style={{ color: strengthColors[strengthScore - 1] }}
-                        >
-                          {strengthNames[strengthScore - 1]}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="input-box">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Confirm Password"
-                        value={confirmPassword}
-                        onChange={handleConfirmPasswordChange}
-                        disabled={loading}
-                        required
-                        autoComplete="new-password"
-                      />
-                      <button
-                        type="button"
-                        className={`book-toggle ${isConfirmBookClosed ? "is-closed" : ""} ${isConfirmFluttering ? "fluttering" : ""}`}
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        tabIndex="-1"
-                      >
-                        <div className="book-inner">
-                          <div className="book-face open">📖</div>
-                          <div className="book-face closed">📕</div>
-                        </div>
-                        <div className="book-pages">
-                          <i></i>
-                          <i></i>
-                          <i></i>
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Section Header for Recovery Words */}
-                    <div style={{ marginTop: "18px", marginBottom: "6px", borderTop: "1px dashed #e6e1d6", paddingTop: "12px", textAlign: "left" }}>
-                      <h4 style={{ fontSize: "12.5px", color: "var(--navy)", fontWeight: 700, margin: "0 0 2px" }}>🔑 Security Recovery Words</h4>
-                      <p style={{ fontSize: "11px", color: "#8a94a6", margin: 0, lineHeight: 1.35 }}>
-                        Provide these to the admin to reset your password if you ever forget it.
-                      </p>
-                    </div>
-
-                    {/* Recovery Phrase: Favourite Place */}
-                    <div style={{ textAlign: "left", marginBottom: "2px", paddingLeft: "4px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 1: Favourite Place</label>
-                    </div>
-                    <div className="input-box" style={{ margin: "0 0 10px 0" }}>
-                      <input
-                        type="text"
-                        placeholder="e.g. New Delhi"
-                        value={favouritePlace}
-                        onChange={(e) => setFavouritePlace(e.target.value)}
-                        disabled={loading}
-                        required
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                    </div>
-
-                    {/* Recovery Phrase: Firstname_Year of Birth */}
-                    <div style={{ textAlign: "left", marginBottom: "2px", paddingLeft: "4px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 2: Firstname_Year of Birth</label>
-                    </div>
-                    <div className="input-box" style={{ margin: "0 0 10px 0" }}>
-                      <input
-                        type="text"
-                        placeholder="e.g. John_1998"
-                        value={firstnameYob}
-                        onChange={(e) => setFirstnameYob(e.target.value)}
-                        disabled={loading}
-                        required
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                      </svg>
-                    </div>
-
-                    <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading} style={{ marginTop: "12px" }}>
-                      <span className="btn-label">Register &amp; Submit Test</span>
-                      <span className="btn-spinner">
-                        <span></span>
-                      </span>
-                    </button>
-                  </form>
-                </div>
-
-                {/* SLIDING PANEL OVERLAYS */}
-                <div className="toggle-box">
-                  <div className="toggle-panel toggle-left">
-                    <h1>New here?</h1>
-                    <p>Register a unique account to save your test scores and track your accuracy.</p>
-                    <button type="button" className="btn register-btn" onClick={() => handleToggle(true)}>
-                      Register
-                    </button>
-                  </div>
-                  <div className="toggle-panel toggle-right">
-                    <h1>One of us?</h1>
-                    <p>Sign in with your account to submit your test and view your results.</p>
-                    <button type="button" className="btn login-btn" onClick={() => handleToggle(false)}>
-                      Sign In
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bird-layer" id="modalBirdLayer" ref={birdLayerRef}></div>
-
+          {/* Auth Form */}
+          <form onSubmit={handleSubmit} noValidate>
+            {/* Username */}
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "11.5px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+                Username
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                  required
+                  autoComplete="username"
+                  style={{
+                    width: "100%",
+                    height: "38px",
+                    padding: "8px 12px 8px 36px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontSize: "13.5px",
+                    outline: "none",
+                    boxSizing: "border-box"
+                  }}
+                />
+                <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: "#94a3b8" }}>
+                  👤
+                </span>
               </div>
             </div>
-          </div>
+
+            {/* Password */}
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "11.5px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={isSignUp ? "Create password (min 6 chars)" : "Enter your password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  style={{
+                    width: "100%",
+                    height: "38px",
+                    padding: "8px 36px 8px 36px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontSize: "13.5px",
+                    outline: "none",
+                    boxSizing: "border-box"
+                  }}
+                />
+                <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: "#94a3b8" }}>
+                  🔒
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    padding: "4px"
+                  }}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+
+              {/* Password Strength Meter for Registration */}
+              {isSignUp && password && (
+                <div style={{ marginTop: "6px" }}>
+                  <div style={{ display: "flex", gap: "4px", height: "4px", marginBottom: "3px" }}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        style={{
+                          flex: 1,
+                          borderRadius: "2px",
+                          background: i < strengthScore ? strengthColors[strengthScore - 1] : "#e2e8f0",
+                          transition: "background 0.2s ease"
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: "600", color: strengthColors[strengthScore - 1] }}>
+                    Strength: {strengthNames[strengthScore - 1]}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Registration Extra Fields */}
+            {isSignUp && (
+              <>
+                {/* Confirm Password */}
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ display: "block", fontSize: "11.5px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+                    Confirm Password
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Repeat your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      autoComplete="new-password"
+                      style={{
+                        width: "100%",
+                        height: "38px",
+                        padding: "8px 12px 8px 36px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "8px",
+                        fontSize: "13.5px",
+                        outline: "none",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                    <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: "#94a3b8" }}>
+                      🔒
+                    </span>
+                  </div>
+                </div>
+
+                {/* Security Recovery Section */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", marginBottom: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "14px" }}>🔑</span>
+                    <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--navy, #0B2545)" }}>
+                      Security Recovery Words
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#64748b", margin: "0 0 10px", lineHeight: "1.4" }}>
+                    Used to securely reset your password if you ever forget it.
+                  </p>
+
+                  {/* Word 1: Favourite Place */}
+                  <div style={{ marginBottom: "8px" }}>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#475569", marginBottom: "3px" }}>
+                      Recovery Word 1: Favourite Place
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. New Delhi"
+                      value={favouritePlace}
+                      onChange={(e) => setFavouritePlace(e.target.value)}
+                      disabled={loading}
+                      required
+                      style={{
+                        width: "100%",
+                        height: "34px",
+                        padding: "6px 10px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        fontSize: "12.5px",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                  </div>
+
+                  {/* Word 2: Firstname_Year of Birth */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#475569", marginBottom: "3px" }}>
+                      Recovery Word 2: Firstname_Year of Birth
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. John_1998"
+                      value={firstnameYob}
+                      onChange={(e) => setFirstnameYob(e.target.value)}
+                      disabled={loading}
+                      required
+                      style={{
+                        width: "100%",
+                        height: "34px",
+                        padding: "6px 10px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        fontSize: "12.5px",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Login Remember & Forgot Password */}
+            {!isSignUp && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#475569", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    disabled={loading}
+                  />
+                  Remember me
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPopover(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "12px",
+                    color: "var(--navy, #0B2545)",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    padding: 0,
+                    textDecoration: "underline"
+                  }}
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                height: "42px",
+                background: "linear-gradient(135deg, var(--navy, #0B2545) 0%, #173d69 100%)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "13.5px",
+                fontWeight: "700",
+                cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(11, 37, 69, 0.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "opacity 0.15s ease"
+              }}
+            >
+              {loading ? "Processing..." : isSignUp ? "Register & Proceed" : "Sign In & Proceed"}
+            </button>
+          </form>
         </div>
       </div>
 
@@ -635,10 +634,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
       {showForgotPopover && (
         <div style={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           background: "rgba(0,0,0,0.65)",
           display: "flex",
           alignItems: "center",
@@ -648,9 +644,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
         }}>
           <div style={{
             background: "#fff",
-            borderRadius: "12px",
-            padding: "28px",
-            maxWidth: "440px",
+            borderRadius: "14px",
+            padding: "24px 26px",
+            maxWidth: "420px",
             width: "100%",
             boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
             position: "relative",
@@ -671,31 +667,36 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
               style={{
                 position: "absolute",
                 top: "14px",
-                right: "16px",
-                background: "transparent",
+                right: "14px",
+                background: "#f1f5f9",
                 border: "none",
-                fontSize: "22px",
+                borderRadius: "50%",
+                width: "28px",
+                height: "28px",
+                fontSize: "18px",
                 cursor: "pointer",
-                color: "#999",
-                lineHeight: "1"
+                color: "#64748b",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
             >
               &times;
             </button>
 
             <div style={{ textAlign: "center", marginBottom: "16px" }}>
-              <span style={{ fontSize: "36px" }}>🔑</span>
-              <h3 style={{ margin: "8px 0 4px", fontSize: "18px", color: "var(--navy)", fontWeight: 700 }}>
+              <span style={{ fontSize: "32px" }}>🔑</span>
+              <h3 style={{ margin: "6px 0 3px", fontSize: "17px", color: "var(--navy, #0B2545)", fontWeight: 700 }}>
                 Password Recovery
               </h3>
-              <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
-                Enter your Username and 7-character Recovery Code to update your password.
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                Enter your username and 7-character recovery code to update your password.
               </p>
             </div>
 
             {recoveryError && (
-              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12.5px", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
-                <div style={{ marginBottom: "8px", fontWeight: 500 }}>⚠️ {recoveryError}</div>
+              <div style={{ background: "#fdf2f2", border: "1px solid #fde2e2", color: "#b91c1c", fontSize: "12px", padding: "10px", borderRadius: "8px", marginBottom: "14px" }}>
+                <div style={{ marginBottom: "6px", fontWeight: 500 }}>⚠️ {recoveryError}</div>
                 <a
                   href="https://t.me/IsAIdangerous"
                   target="_blank"
@@ -706,36 +707,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                     gap: "6px",
                     color: "#ffffff",
                     background: "#24A1DE",
-                    padding: "8px 14px",
+                    padding: "6px 12px",
                     borderRadius: "6px",
                     textDecoration: "none",
-                    fontSize: "12px",
+                    fontSize: "11.5px",
                     fontWeight: 600,
-                    marginTop: "4px",
-                    boxShadow: "0 2px 4px rgba(36,161,222,0.2)",
-                    transition: "opacity 0.15s ease"
+                    marginTop: "2px"
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.opacity = 0.9}
-                  onMouseOut={(e) => e.currentTarget.style.opacity = 1}
                 >
-                  <svg viewBox="0 0 24 24" style={{ width: "14px", height: "14px", fill: "currentColor" }}>
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.35-.49.96-.75 3.78-1.65 6.31-2.74 7.58-3.27 3.61-1.5 4.36-1.76 4.85-1.77.11 0 .35.03.5.15.13.1.17.24.18.35-.01.08 0 .23-.02.34z"/>
-                  </svg>
                   Contact Admin via Telegram
                 </a>
               </div>
             )}
 
             {recoverySuccess && (
-              <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", color: "#166534", fontSize: "12.5px", padding: "10px 12px", borderRadius: "6px", marginBottom: "16px" }}>
+              <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", color: "#166534", fontSize: "12px", padding: "10px", borderRadius: "6px", marginBottom: "14px" }}>
                 ✅ {recoverySuccess}
               </div>
             )}
 
             {!isRecoveryVerified ? (
               <form onSubmit={handleVerifyRecovery}>
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
                     Username
                   </label>
                   <input
@@ -746,17 +740,18 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                     required
                     style={{
                       width: "100%",
-                      height: "38px",
-                      padding: "8px 12px",
+                      height: "36px",
+                      padding: "6px 10px",
                       border: "1px solid #d1d5db",
                       borderRadius: "6px",
-                      fontSize: "14px"
+                      fontSize: "13px",
+                      boxSizing: "border-box"
                     }}
                   />
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
                     7-Character Recovery Code
                   </label>
                   <input
@@ -768,14 +763,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                     maxLength={10}
                     style={{
                       width: "100%",
-                      height: "38px",
-                      padding: "8px 12px",
+                      height: "36px",
+                      padding: "6px 10px",
                       border: "1px solid #d1d5db",
                       borderRadius: "6px",
-                      fontSize: "14px",
+                      fontSize: "13px",
                       letterSpacing: "1.5px",
                       fontFamily: "monospace",
-                      fontWeight: "700"
+                      fontWeight: "700",
+                      boxSizing: "border-box"
                     }}
                   />
                 </div>
@@ -785,14 +781,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                   disabled={recoveryLoading}
                   style={{
                     width: "100%",
-                    height: "40px",
-                    background: "var(--navy)",
+                    height: "38px",
+                    background: "var(--navy, #0B2545)",
                     color: "#fff",
                     border: "none",
                     borderRadius: "6px",
                     fontWeight: 600,
                     cursor: "pointer",
-                    fontSize: "13.5px"
+                    fontSize: "13px"
                   }}
                 >
                   {recoveryLoading ? "Verifying..." : "Verify Code & Proceed"}
@@ -800,29 +796,30 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
               </form>
             ) : (
               <form onSubmit={handleResetPassword}>
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
                     New Password
                   </label>
                   <input
                     type="password"
-                    placeholder="Enter new password (min. 6 characters)"
+                    placeholder="Enter new password (min 6 chars)"
                     value={recoveryNewPassword}
                     onChange={(e) => setRecoveryNewPassword(e.target.value)}
                     required
                     style={{
                       width: "100%",
-                      height: "38px",
-                      padding: "8px 12px",
+                      height: "36px",
+                      padding: "6px 10px",
                       border: "1px solid #d1d5db",
                       borderRadius: "6px",
-                      fontSize: "14px"
+                      fontSize: "13px",
+                      boxSizing: "border-box"
                     }}
                   />
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ fontSize: "11.5px", fontWeight: 600, color: "#4b5563", display: "block", marginBottom: "4px" }}>
                     Confirm New Password
                   </label>
                   <input
@@ -833,11 +830,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                     required
                     style={{
                       width: "100%",
-                      height: "38px",
-                      padding: "8px 12px",
+                      height: "36px",
+                      padding: "6px 10px",
                       border: "1px solid #d1d5db",
                       borderRadius: "6px",
-                      fontSize: "14px"
+                      fontSize: "13px",
+                      boxSizing: "border-box"
                     }}
                   />
                 </div>
@@ -847,14 +845,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                   disabled={recoveryLoading}
                   style={{
                     width: "100%",
-                    height: "40px",
+                    height: "38px",
                     background: "#0f3d33",
                     color: "#fff",
                     border: "none",
                     borderRadius: "6px",
                     fontWeight: 600,
                     cursor: "pointer",
-                    fontSize: "13.5px"
+                    fontSize: "13px"
                   }}
                 >
                   {recoveryLoading ? "Saving Password..." : "Save New Password"}

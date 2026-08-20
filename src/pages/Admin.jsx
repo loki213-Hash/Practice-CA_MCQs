@@ -19,8 +19,9 @@ export default function Admin() {
   const [isFlagsTableMissing, setIsFlagsTableMissing] = useState(false);
   const [isAnalyticsTableMissing, setIsAnalyticsTableMissing] = useState(false);
 
-  // Chapters list from database
+  // Chapters and courses list from database
   const [dbChapters, setDbChapters] = useState([]);
+  const [dbCourses, setDbCourses] = useState([]);
 
   // Stats / KPI states (Precise real-time counts)
   const [kpis, setKpis] = useState({
@@ -143,10 +144,11 @@ export default function Admin() {
       // 1. Fetch courses to create mapping
       const { data: courseData } = await supabase
         .from("courses")
-        .select("id, course_name");
+        .select("id, course_name, course_slug");
       
       const courseMap = {};
       if (courseData) {
+        setDbCourses(courseData);
         courseData.forEach((c) => {
           courseMap[c.id] = c.course_name;
         });
@@ -422,31 +424,59 @@ export default function Admin() {
 
   const loadFeedbacks = async () => {
     try {
-      let feedbackList = [];
-      const { data, error } = await supabase
-        .from("student_feedbacks")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (!error && data) {
-        feedbackList = data;
-      } else {
-        const { data: fbData } = await supabase
+      let combinedFeedbacks = [];
+
+      // 1. Try querying student_feedbacks table
+      try {
+        const { data: data1, error: err1 } = await supabase
+          .from("student_feedbacks")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (!err1 && data1 && data1.length > 0) {
+          combinedFeedbacks.push(...data1);
+        }
+      } catch (e) {
+        console.warn("Notice querying student_feedbacks:", e);
+      }
+
+      // 2. Try querying student_feedback table
+      try {
+        const { data: data2, error: err2 } = await supabase
           .from("student_feedback")
           .select("*")
           .order("created_at", { ascending: false });
-        if (fbData) {
-          feedbackList = fbData;
-        } else {
-          try {
-            feedbackList = JSON.parse(localStorage.getItem("ca_quiz_student_feedbacks") || "[]");
-          } catch {
-            feedbackList = [];
-          }
+        if (!err2 && data2 && data2.length > 0) {
+          combinedFeedbacks.push(...data2);
+        }
+      } catch (e) {
+        console.warn("Notice querying student_feedback:", e);
+      }
+
+      // 3. Fallback & local merge: Always check localStorage cache
+      try {
+        const local = JSON.parse(localStorage.getItem("ca_quiz_student_feedbacks") || "[]");
+        if (local && local.length > 0) {
+          combinedFeedbacks.push(...local);
+        }
+      } catch (e) {
+        console.warn("Notice querying local feedbacks:", e);
+      }
+
+      // Deduplicate by id or (username + message + created_at)
+      const seen = new Set();
+      const uniqueList = [];
+      for (const item of combinedFeedbacks) {
+        const key = item.id || `${item.username}_${item.message}_${item.created_at}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueList.push(item);
         }
       }
 
-      const mapped = feedbackList.map((f) => ({
+      // Sort newest first
+      uniqueList.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      const mapped = uniqueList.map((f) => ({
         id: f.id,
         student: f.username || "Guest",
         type: f.category || f.type || "Feedback",
@@ -784,7 +814,15 @@ export default function Admin() {
 
   const formatActiveRoute = (path) => {
     if (!path || path === "/") return { label: "Home Page", icon: "🏠" };
-    const cleanPath = path.split("?")[0].split("#")[0];
+    let decodedPath = path;
+    try {
+      decodedPath = decodeURIComponent(path);
+    } catch {
+      decodedPath = path;
+    }
+    const cleanPath = decodedPath.split("?")[0].split("#")[0];
+    const searchParams = decodedPath.includes("?") ? new URLSearchParams(decodedPath.split("?")[1]) : null;
+    const querySet = searchParams?.get("set") || "";
 
     if (cleanPath === "/admin") return { label: "Admin Portal", icon: "⚡" };
     if (cleanPath === "/login") return { label: "Login / Register", icon: "🔑" };
@@ -799,22 +837,27 @@ export default function Admin() {
 
     if (cleanPath.startsWith("/take-test/")) {
       const slug = cleanPath.replace("/take-test/", "");
-      const formatted = slug.replace(/-/g, " ").toUpperCase();
-      return { label: `Test: ${formatted}`, icon: "📝" };
+      const course = dbCourses.find((c) => String(c.id) === String(slug) || c.course_slug === slug);
+      const courseName = course ? course.course_name : (slug === "1" || slug === "spom" ? "SPOM Set A" : slug.replace(/-/g, " ").toUpperCase());
+      const setLabel = querySet ? ` (${querySet})` : "";
+      return { label: `Full Test: ${courseName}${setLabel}`, icon: "📝" };
     }
 
     if (cleanPath.startsWith("/course/")) {
       const parts = cleanPath.split("/").filter(Boolean);
       const courseSlug = parts[1] || "";
-      const setType = parts[2];
-      const formattedCourse = courseSlug.replace(/-/g, " ").toUpperCase();
+      const setType = parts[2] || querySet;
+      
+      const course = dbCourses.find((c) => String(c.id) === String(courseSlug) || c.course_slug === courseSlug);
+      const courseName = course ? course.course_name : (courseSlug === "1" || courseSlug === "spom" ? "SPOM Set A" : courseSlug.replace(/-/g, " ").toUpperCase());
+      
       if (setType) {
-        return { label: `${formattedCourse} (${setType})`, icon: "📖" };
+        return { label: `${courseName}: Chapter Practice (${setType})`, icon: "📖" };
       }
-      return { label: `Course: ${formattedCourse}`, icon: "🗂️" };
+      return { label: `${courseName}: Mode Selection`, icon: "🗂️" };
     }
 
-    return { label: path, icon: "🔗" };
+    return { label: decodedPath, icon: "🔗" };
   };
 
   // Filter flagged questions
@@ -1365,9 +1408,27 @@ export default function Admin() {
                 </div>
 
                 {/* FEEDBACK CARDS LIST */}
-                <div className="panel-head" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "24px", marginTop: "24px" }}>
-                  <h3 style={{ fontSize: "18px", color: "#f8fafc", fontWeight: "600", margin: "0 0 4px" }}>Student Feedback Box</h3>
-                  <p style={{ fontSize: "12.5px", color: "#94a3b8", margin: 0 }}>Direct system corrections and comments submitted by users.</p>
+                <div className="panel-head" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "24px", marginTop: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: "18px", color: "#f8fafc", fontWeight: "600", margin: "0 0 4px" }}>Student Feedback Box</h3>
+                    <p style={{ fontSize: "12.5px", color: "#94a3b8", margin: 0 }}>Direct system corrections and comments submitted by users.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadFeedbacks()}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      color: "#94a3b8",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      fontWeight: 600
+                    }}
+                  >
+                    🔄 Refresh Feedbacks
+                  </button>
                 </div>
 
                 <div className="flagged-list" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px" }}>
