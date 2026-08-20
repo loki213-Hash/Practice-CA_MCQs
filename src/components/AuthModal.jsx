@@ -626,6 +626,24 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
             >
               {loading ? "Processing..." : isSignUp ? "Register & Proceed" : "Sign In & Proceed"}
             </button>
+
+            {/* Standalone Page Option */}
+            <div style={{ marginTop: "14px", textAlign: "center", borderTop: "1px solid #f1f5f9", paddingTop: "10px" }}>
+              <a
+                href={`/login?returnUrl=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search + window.location.hash : "/")}&mode=${isSignUp ? "register" : "login"}`}
+                style={{
+                  fontSize: "11.5px",
+                  color: "#64748b",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                Prefer full page? Open Standalone Login Page ↗
+              </a>
+            </div>
           </form>
         </div>
       </div>

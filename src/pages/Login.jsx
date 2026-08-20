@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import RecoveryCodeModal from "../components/RecoveryCodeModal";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register, resetPassword } = useAuth();
 
-  const [isSignUp, setIsSignUp] = useState(false);
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = location.state?.returnUrl || location.state?.from || searchParams.get("returnUrl") || "/";
+  const initialMode = location.state?.mode || searchParams.get("mode");
+
+  const [isSignUp, setIsSignUp] = useState(initialMode === "register");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -177,7 +182,7 @@ export default function Login() {
           setGeneratedCode(regResult.recoveryCode);
           setShowRecoveryModal(true);
         } else {
-          navigate("/", { replace: true });
+          navigate(returnUrl, { replace: true });
         }
       } else {
         const loginRes = await login(cleanUsername, password, rememberMe);
@@ -185,7 +190,7 @@ export default function Login() {
           setGeneratedCode(loginRes.recoveryCode);
           setShowRecoveryModal(true);
         } else {
-          navigate("/", { replace: true });
+          navigate(returnUrl, { replace: true });
         }
       }
     } catch (err) {
@@ -862,7 +867,7 @@ export default function Login() {
           username={username}
           onClose={() => {
             setShowRecoveryModal(false);
-            navigate("/", { replace: true });
+            navigate(returnUrl, { replace: true });
           }}
         />
       )}

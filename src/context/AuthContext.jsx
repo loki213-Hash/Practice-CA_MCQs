@@ -27,7 +27,27 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = async (username, password, favouritePlace = "", firstnameYob = "", customRecoveryCode = null) => {
-    const email = `${username.trim().toLowerCase()}.caquiz@gmail.com`;
+    const cleanUsername = (username || "").trim();
+    const cleanFavPlace = (favouritePlace || "").trim();
+    const cleanFirstnameYob = (firstnameYob || "").trim();
+
+    if (!cleanUsername) {
+      throw new Error("Username is required.");
+    }
+    if (!password || password.length < 6) {
+      throw new Error("Password must be at least 6 characters.");
+    }
+    if (!cleanFavPlace) {
+      throw new Error("Recovery Word 1 (Favourite Place) is mandatory to register.");
+    }
+    if (!cleanFirstnameYob) {
+      throw new Error("Recovery Word 2 (Firstname_Year of Birth) is mandatory to register.");
+    }
+    if (!/^[a-zA-Z0-9]+_[0-9]{4}$/.test(cleanFirstnameYob)) {
+      throw new Error("Firstname_Year of Birth must follow the format 'Firstname_YYYY' (e.g. John_1998).");
+    }
+
+    const email = `${cleanUsername.toLowerCase()}.caquiz@gmail.com`;
     const recoveryCode = customRecoveryCode || generate7CharRecoveryCode();
     
     const { data, error } = await supabase.auth.signUp({
@@ -35,9 +55,9 @@ export function AuthProvider({ children }) {
       password,
       options: {
         data: {
-          username: username.trim(),
-          favourite_place: favouritePlace.trim(),
-          firstname_yob: firstnameYob.trim(),
+          username: cleanUsername,
+          favourite_place: cleanFavPlace,
+          firstname_yob: cleanFirstnameYob,
           recovery_code: recoveryCode,
         }
       }
@@ -52,9 +72,9 @@ export function AuthProvider({ children }) {
           .upsert([
             {
               id: data.user.id,
-              username: username.trim(),
-              favourite_place: favouritePlace.trim(),
-              firstname_yob: firstnameYob.trim(),
+              username: cleanUsername,
+              favourite_place: cleanFavPlace,
+              firstname_yob: cleanFirstnameYob,
               recovery_code: recoveryCode,
             }
           ]);

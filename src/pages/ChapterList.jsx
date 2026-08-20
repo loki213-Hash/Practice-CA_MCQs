@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
 import CaseTableRenderer from "../components/CaseTableRenderer";
+import AuthModal from "../components/AuthModal";
 
 function getSubjectIcon(name) {
   const n = (name || "").toLowerCase();
@@ -994,123 +995,19 @@ function ChapterList() {
           </div>
         )}
 
-        {/* Guest Auth Modal Popup */}
+        {/* Unified Auth Modal with Security Recovery Words & 7-Char Code */}
         {showAuthModal && (
-          <div className="modal-overlay open" onClick={() => setShowAuthModal(false)}>
-            <div className="modal-doc" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-              <div className="modal-head">
-                <span className="lbl">🔒 UNLOCK RESULTS</span>
-                <button
-                  type="button"
-                  className="modal-close"
-                  onClick={() => setShowAuthModal(false)}
-                >
-                  &times;
-                </button>
-              </div>
-              <div className="modal-body" style={{ padding: "24px 28px" }}>
-                <h3 style={{ fontSize: 20, marginBottom: 8 }}>Unlock Performance Results</h3>
-                <p style={{ fontSize: 14, color: "#6b7268", marginTop: 0, marginBottom: 20, lineHeight: 1.5 }}>
-                  Your test answers have been saved! Please log in or create a free account to view your score percentage, detailed accuracy breakdown, and progress history.
-                </p>
-
-                <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-                  <button
-                    type="button"
-                    className={`pill ${authTab === "login" ? "active" : ""}`}
-                    onClick={() => { setAuthTab("login"); setAuthError(""); }}
-                    style={{ flex: 1 }}
-                  >
-                    Log In
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill ${authTab === "register" ? "active" : ""}`}
-                    onClick={() => { setAuthTab("register"); setAuthError(""); }}
-                    style={{ flex: 1 }}
-                  >
-                    Register
-                  </button>
-                </div>
-
-                {authError && (
-                  <p style={{ color: "#A83A3A", fontSize: 13, margin: "0 0 16px", background: "#F7EAEA", padding: "8px 12px", borderRadius: 8 }}>
-                    {authError}
-                  </p>
-                )}
-
-                <form onSubmit={handleGuestAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div>
-                    <label style={{ fontSize: 12.5, fontWeight: 600, color: "#1a1f1c", display: "block", marginBottom: 4 }}>
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={authUsername}
-                      onChange={(e) => setAuthUsername(e.target.value)}
-                      placeholder="e.g. rahul123"
-                      style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #e0e2dc", fontSize: 14 }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12.5, fontWeight: 600, color: "#1a1f1c", display: "block", marginBottom: 4 }}>
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      placeholder="••••••••"
-                      style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #e0e2dc", fontSize: 14 }}
-                    />
-                  </div>
-
-                  {authTab === "register" && (
-                    <>
-                      <div>
-                        <label style={{ fontSize: 12.5, fontWeight: 600, color: "#1a1f1c", display: "block", marginBottom: 4 }}>
-                          Favourite Place (Recovery Q1)
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={authFavPlace}
-                          onChange={(e) => setAuthFavPlace(e.target.value)}
-                          placeholder="e.g. Mumbai"
-                          style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #e0e2dc", fontSize: 14 }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12.5, fontWeight: 600, color: "#1a1f1c", display: "block", marginBottom: 4 }}>
-                          First Name + Birth Year (Recovery Q2)
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={authFirstnameYob}
-                          onChange={(e) => setAuthFirstnameYob(e.target.value)}
-                          placeholder="e.g. Rahul1998"
-                          style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #e0e2dc", fontSize: 14 }}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="start-btn"
-                    disabled={authLoading}
-                    style={{ marginTop: 8, width: "100%", textAlign: "center", justifyContent: "center" }}
-                  >
-                    {authLoading ? "Processing…" : authTab === "login" ? "Log In & View Score" : "Register & View Score"}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => {
+              setShowAuthModal(false);
+              setCaseTestFinished(true);
+              loadUserProgress();
+            }}
+            initialMode="register"
+            bannerNotice="🔒 Register or Sign In with your account to unlock your performance score and track your accuracy."
+          />
         )}
 
         {/* Modal Document Overlay for Full Case Reading */}
