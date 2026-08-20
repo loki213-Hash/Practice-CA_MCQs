@@ -12,7 +12,14 @@ export default function AnalyticsTracker() {
   const { user, username } = useAuth();
   const presenceRef = useRef(null);
 
-  const fullPath = location.pathname + location.search + location.hash;
+  let rawPath = location.pathname + location.search + location.hash;
+  let fullPath = rawPath;
+  try {
+    fullPath = decodeURI(rawPath);
+  } catch {
+    fullPath = rawPath;
+  }
+
   const currentPathRef = useRef(fullPath);
   const currentUserRef = useRef(user);
   const currentUsernameRef = useRef(username);

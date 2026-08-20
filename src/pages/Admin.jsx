@@ -1326,6 +1326,12 @@ export default function Admin() {
                                 {(() => {
                                   const fullRoute = visitor.page_path || "/";
                                   const routeInfo = formatActiveRoute(fullRoute);
+                                  let displayUrl = fullRoute;
+                                  try {
+                                    displayUrl = decodeURIComponent(fullRoute);
+                                  } catch {
+                                    displayUrl = fullRoute;
+                                  }
                                   return (
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
                                       <span
@@ -1347,7 +1353,7 @@ export default function Admin() {
                                       </span>
                                       <span
                                         className="presence-path-badge"
-                                        title={fullRoute}
+                                        title={displayUrl}
                                         style={{
                                           fontSize: "11.5px",
                                           color: "#94a3b8",
@@ -1358,7 +1364,7 @@ export default function Admin() {
                                           whiteSpace: "nowrap"
                                         }}
                                       >
-                                        🔗 {fullRoute}
+                                        🔗 {displayUrl}
                                       </span>
                                     </div>
                                   );
