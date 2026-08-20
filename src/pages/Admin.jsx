@@ -228,6 +228,14 @@ export default function Admin() {
       },
     });
 
+    // Immediate initial sync
+    syncVisitors([]);
+
+    // 10s background sync poll to guarantee mobile devices and non-WebSocket sessions are continuously live
+    const livePoll = setInterval(() => {
+      syncVisitors(currentRealtime);
+    }, 10000);
+
     return () => {
       clearInterval(livePoll);
       if (presenceTracker?.unsubscribe) {
