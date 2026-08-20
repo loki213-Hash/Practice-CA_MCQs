@@ -118,22 +118,58 @@ function saveLocalPeaks(peaks) {
 }
 
 /**
+ * Helper: Resolve user identity accurately from active props, user_metadata, email, or cached profile
+ */
+export function resolveUserIdentity({ user = null, username = null } = {}) {
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem("ca_quiz_user_profile");
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+
+  const activeUser = user || cachedUser;
+  const isAuth = Boolean(activeUser && (activeUser.id || (activeUser.username && activeUser.username !== "Guest" && activeUser.username !== "Student")));
+  
+  let resolvedName = "Guest";
+  if (isAuth) {
+    if (username && username !== "Guest" && username !== "Student") {
+      resolvedName = username;
+    } else if (activeUser?.username && activeUser.username !== "Guest" && activeUser.username !== "Student") {
+      resolvedName = activeUser.username;
+    } else if (activeUser?.user_metadata?.username) {
+      resolvedName = activeUser.user_metadata.username;
+    } else if (activeUser?.email) {
+      resolvedName = activeUser.email.split("@")[0].replace(".caquiz", "");
+    } else {
+      resolvedName = "Student";
+    }
+  }
+
+  return {
+    isAuth,
+    userId: activeUser?.id || (isAuth ? `u_${resolvedName.toLowerCase()}` : null),
+    username: resolvedName,
+  };
+}
+
+/**
  * Record or update visit heartbeat in Supabase and local cache
  */
-export async function recordVisitAndHeartbeat({ user = null, username = "Guest", pagePath = "/" } = {}) {
+export async function recordVisitAndHeartbeat({ user = null, username = null, pagePath = "/" } = {}) {
   const visitorId = getOrCreateVisitorId();
   const sessionId = getOrCreateSessionId();
   const deviceType = getDeviceType();
   const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  const isAuthenticated = Boolean(user && user.id);
-  const cleanUsername = isAuthenticated ? (username || user.email?.split("@")[0] || "Student") : "Guest";
+  const identity = resolveUserIdentity({ user, username });
   const now = new Date().toISOString();
 
   const record = {
     visitor_id: visitorId,
-    user_id: user?.id || null,
-    username: cleanUsername,
-    is_authenticated: isAuthenticated,
+    user_id: identity.userId,
+    username: identity.username,
+    is_authenticated: identity.isAuth,
     session_id: sessionId,
     current_path: pagePath,
     device_type: deviceType,
@@ -164,7 +200,6 @@ export async function recordVisitAndHeartbeat({ user = null, username = "Guest",
 
   // 2. Write to Supabase table
   try {
-    // Check if session row exists for this visitor session in Supabase
     const { data: existing, error: selectErr } = await supabase
       .from("site_analytics_visits")
       .select("id")
@@ -181,9 +216,9 @@ export async function recordVisitAndHeartbeat({ user = null, username = "Guest",
       await supabase
         .from("site_analytics_visits")
         .update({
-          user_id: user?.id || null,
-          username: cleanUsername,
-          is_authenticated: isAuthenticated,
+          user_id: identity.userId,
+          username: identity.username,
+          is_authenticated: identity.isAuth,
           current_path: pagePath,
           device_type: deviceType,
           last_seen_at: now,
@@ -196,9 +231,9 @@ export async function recordVisitAndHeartbeat({ user = null, username = "Guest",
         .insert([
           {
             visitor_id: visitorId,
-            user_id: user?.id || null,
-            username: cleanUsername,
-            is_authenticated: isAuthenticated,
+            user_id: identity.userId,
+            username: identity.username,
+            is_authenticated: identity.isAuth,
             session_id: sessionId,
             entry_path: pagePath,
             current_path: pagePath,
@@ -410,6 +445,7 @@ export async function fetchAnalyticsMetrics() {
 
 // ── Shared Singleton Presence Management ─────────────────────────────────────
 let globalPresenceChannel = null;
+let currentTrackedPayload = null;
 const presenceListeners = new Set();
 let latestPresenceData = {
   liveTotalCount: 0,
@@ -441,21 +477,26 @@ function processPresenceState(channel) {
     Object.keys(state).forEach((key) => {
       const presences = state[key];
       if (Array.isArray(presences) && presences.length > 0) {
-        const latest = presences[presences.length - 1];
-        uniqueVisitorIds.add(latest.visitor_id || key);
-        if (latest.is_logged_in && latest.user_id) {
-          uniqueUserIds.add(latest.user_id);
+        // If multiple tabs are open on the same device, prefer any tab that is authenticated
+        const chosen = presences.find((p) => p.is_logged_in) || presences[presences.length - 1];
+        const isAuth = Boolean(chosen.is_logged_in);
+        const visitorId = chosen.visitor_id || key;
+        
+        uniqueVisitorIds.add(visitorId);
+        if (isAuth) {
+          uniqueUserIds.add(chosen.user_id || chosen.username || visitorId);
         }
+
         activeVisitors.push({
           key,
-          visitor_id: latest.visitor_id || key,
-          user_id: latest.user_id || null,
-          username: latest.username || "Guest",
-          is_logged_in: Boolean(latest.is_logged_in),
-          page_path: latest.page_path || "/",
-          device_type: latest.device_type || "Desktop",
-          online_at: latest.online_at || sessionStartTime,
-          last_seen_at: latest.last_seen_at || new Date().toISOString(),
+          visitor_id: visitorId,
+          user_id: chosen.user_id || null,
+          username: chosen.username || (isAuth ? "Student" : "Guest"),
+          is_logged_in: isAuth,
+          page_path: chosen.page_path || "/",
+          device_type: chosen.device_type || "Desktop",
+          online_at: chosen.online_at || sessionStartTime,
+          last_seen_at: chosen.last_seen_at || new Date().toISOString(),
         });
       }
     });
@@ -494,7 +535,7 @@ function getOrCreatePresenceChannel(visitorId) {
       globalPresenceChannel = prev;
       return prev;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -519,6 +560,9 @@ function getOrCreatePresenceChannel(visitorId) {
     })
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {
+        if (currentTrackedPayload) {
+          channel.track(currentTrackedPayload).catch(() => {});
+        }
         processPresenceState(channel);
       }
     });
@@ -532,11 +576,9 @@ function getOrCreatePresenceChannel(visitorId) {
  * Safe across multiple components, route changes, and admin monitor
  * @param {Object} options - { user, username, pagePath, onPresenceChange }
  */
-export function setupRealtimePresence({ user = null, username = "Guest", pagePath = "/", onPresenceChange = null }) {
+export function setupRealtimePresence({ user = null, username = null, pagePath = "/", onPresenceChange = null }) {
   const visitorId = getOrCreateVisitorId();
   const sessionStartTime = getOrCreateSessionStartTime();
-  const isAuthenticated = Boolean(user && user.id);
-  const cleanUsername = isAuthenticated ? (username || user.email?.split("@")[0] || "Student") : "Guest";
   const deviceType = getDeviceType();
 
   const channel = getOrCreatePresenceChannel(visitorId);
@@ -555,29 +597,30 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
   }
 
   const trackState = async (customProps = {}) => {
-    const updatedUser = customProps.user !== undefined ? customProps.user : user;
-    const updatedUsername = customProps.username !== undefined ? customProps.username : username;
-    const updatedPath = customProps.pagePath !== undefined ? customProps.pagePath : pagePath;
-    const isAuth = Boolean(updatedUser && updatedUser.id);
-    const resolvedName = isAuth ? (updatedUsername || updatedUser.email?.split("@")[0] || "Student") : "Guest";
+    const targetUser = customProps.user !== undefined ? customProps.user : user;
+    const targetUsername = customProps.username !== undefined ? customProps.username : username;
+    const targetPath = customProps.pagePath !== undefined ? customProps.pagePath : pagePath;
+    const identity = resolveUserIdentity({ user: targetUser, username: targetUsername });
 
-    let cleanPath = updatedPath;
+    let cleanPath = targetPath;
     try {
-      cleanPath = decodeURI(updatedPath);
+      cleanPath = decodeURI(targetPath);
     } catch {
-      cleanPath = updatedPath;
+      cleanPath = targetPath;
     }
 
     const payload = {
       visitor_id: visitorId,
-      user_id: updatedUser?.id || null,
-      username: resolvedName,
-      is_logged_in: isAuth,
+      user_id: identity.userId,
+      username: identity.username,
+      is_logged_in: identity.isAuth,
       page_path: cleanPath,
       device_type: deviceType,
       online_at: sessionStartTime,
       last_seen_at: new Date().toISOString(),
     };
+
+    currentTrackedPayload = payload;
 
     try {
       if (channel.state === "joined" || channel.status === "SUBSCRIBED") {
@@ -586,8 +629,10 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
         // Retry tracking once channel has subscribed/joined
         setTimeout(async () => {
           try {
-            await channel.track(payload);
-          } catch (e) {
+            if (currentTrackedPayload) {
+              await channel.track(currentTrackedPayload);
+            }
+          } catch {
             // quiet catch
           }
         }, 500);
@@ -597,7 +642,7 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
     }
   };
 
-  // Track state
+  // Track state immediately
   trackState();
 
   const updatePresence = async (newProps = {}) => {

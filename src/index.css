@@ -8035,6 +8035,12 @@ img { max-width: 100%; display: block; }
   color: #94a3b8;
 }
 
+.presence-user-avatar.admin {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.35) 0%, rgba(249, 115, 22, 0.35) 100%);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #fef08a;
+}
+
 .presence-user-name {
   font-weight: 600;
   color: #f8fafc;
@@ -8051,6 +8057,12 @@ img { max-width: 100%; display: block; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.presence-role-pill.admin {
+  background: rgba(234, 179, 8, 0.18);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.4);
 }
 
 .presence-role-pill.student {

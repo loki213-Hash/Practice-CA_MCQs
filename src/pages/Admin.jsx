@@ -109,42 +109,64 @@ export default function Admin() {
 
     let hasReceivedRealtimeSync = false;
 
+    const enrichVisitors = (list = []) => {
+      return list.map((v) => {
+        const isSelf = v.username === username || (username && v.username?.toLowerCase() === username?.toLowerCase()) || (v.user_id === "admin-session" && v.page_path === "/admin");
+        const regMatch = registeredUsers.find(
+          (ru) => (v.user_id && ru.id === v.user_id) ||
+                  (v.username && v.username !== "Guest" && v.username !== "Student" && ru.username?.toLowerCase() === v.username?.toLowerCase())
+        );
+        const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
+        const resolvedName = isSelf ? (username || "Admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
+        const isAdminUser = isSelf || resolvedName.toLowerCase() === "admin";
+
+        return {
+          ...v,
+          is_logged_in: isAuth,
+          username: resolvedName,
+          is_admin: isAdminUser,
+        };
+      });
+    };
+
     const presenceTracker = setupRealtimePresence({
       user: { id: "admin-session" },
       username: username || "Admin",
       pagePath: "/admin",
       onPresenceChange: ({ liveTotalCount, liveLoggedInCount, liveGuestCount, activeVisitors }) => {
         hasReceivedRealtimeSync = true;
-        // Realtime presence is always authoritative once we have a sync
-        const visitors = activeVisitors || [];
-        const uniqueTotal = Math.max(1, new Set(visitors.map((m) => m.visitor_id)).size);
-        const uniqueLoggedIn = Math.max(1, new Set(visitors.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+        const enriched = enrichVisitors(activeVisitors || []);
+        const uniqueTotal = Math.max(1, new Set(enriched.map((m) => m.visitor_id)).size);
+        const uniqueLoggedIn = Math.max(1, new Set(enriched.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+        const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
 
         setAnalytics((prev) => ({
           ...prev,
           liveTotalCount: uniqueTotal,
           liveLoggedInCount: uniqueLoggedIn,
-          liveGuestCount: Math.max(0, uniqueTotal - uniqueLoggedIn),
-          activeVisitors: visitors,
+          liveGuestCount: uniqueGuest,
+          activeVisitors: enriched,
           peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, uniqueLoggedIn),
           peakTotal24h: Math.max(prev.peakTotal24h, uniqueTotal),
         }));
       },
     });
 
-    // Cold-load: use DB for the first ~5s only before realtime channel syncs
+    // Cold-load: use DB for the first ~2s only before realtime channel syncs
     const coldLoadTimer = setTimeout(async () => {
       if (!hasReceivedRealtimeSync) {
         const dbVisits = await fetchLiveActiveVisitors();
         if (dbVisits.length > 0) {
-          const uniqueTotal = Math.max(1, new Set(dbVisits.map((m) => m.visitor_id)).size);
-          const uniqueLoggedIn = Math.max(1, new Set(dbVisits.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+          const enriched = enrichVisitors(dbVisits);
+          const uniqueTotal = Math.max(1, new Set(enriched.map((m) => m.visitor_id)).size);
+          const uniqueLoggedIn = Math.max(1, new Set(enriched.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+          const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
           setAnalytics((prev) => ({
             ...prev,
             liveTotalCount: uniqueTotal,
             liveLoggedInCount: uniqueLoggedIn,
-            liveGuestCount: Math.max(0, uniqueTotal - uniqueLoggedIn),
-            activeVisitors: dbVisits,
+            liveGuestCount: uniqueGuest,
+            activeVisitors: enriched,
           }));
         }
       }
@@ -156,7 +178,7 @@ export default function Admin() {
         presenceTracker.unsubscribe();
       }
     };
-  }, [isAdmin, username]);
+  }, [isAdmin, username, registeredUsers]);
 
   const handleManualRefresh = () => {
     setError(null);
@@ -1327,17 +1349,24 @@ export default function Admin() {
                             );
                           }
 
-                          return filteredList.map((visitor, idx) => (
+                          return filteredList.map((visitor, idx) => {
+                            const isAdm = Boolean(visitor.is_admin || visitor.username?.toLowerCase() === "admin" || visitor.username === username);
+                            const isStud = Boolean(visitor.is_logged_in && !isAdm);
+                            const roleClass = isAdm ? "admin" : (isStud ? "student" : "guest");
+                            const roleLabel = isAdm ? "⚡ Verified Admin" : (isStud ? "🎓 Verified Student" : "👤 Guest Visitor");
+                            const avatarChar = isAdm ? "⚡" : (isStud ? (visitor.username ? visitor.username.charAt(0).toUpperCase() : "S") : "👤");
+
+                            return (
                             <tr key={visitor.key || visitor.visitor_id || idx}>
                               <td>
                                 <div className="presence-user-cell">
-                                  <div className={`presence-user-avatar ${visitor.is_logged_in ? "" : "guest"}`}>
-                                    {visitor.is_logged_in ? (visitor.username ? visitor.username.charAt(0).toUpperCase() : "S") : "👤"}
+                                  <div className={`presence-user-avatar ${roleClass}`}>
+                                    {avatarChar}
                                   </div>
                                   <div>
                                     <div className="presence-user-name">
                                       {visitor.username || "Guest Visitor"}
-                                      {visitor.username === username && (
+                                      {isAdm && (
                                         <span style={{ fontSize: "10px", color: "#a855f7", fontWeight: 700, background: "rgba(168, 85, 247, 0.15)", padding: "1px 6px", borderRadius: "6px" }}>YOU</span>
                                       )}
                                     </div>
@@ -1348,8 +1377,8 @@ export default function Admin() {
                                 </div>
                               </td>
                               <td>
-                                <span className={`presence-role-pill ${visitor.is_logged_in ? "student" : "guest"}`}>
-                                  {visitor.is_logged_in ? "🎓 Verified Student" : "👤 Guest Visitor"}
+                                <span className={`presence-role-pill ${roleClass}`}>
+                                  {roleLabel}
                                 </span>
                               </td>
                               <td>
@@ -1415,7 +1444,8 @@ export default function Admin() {
                                 {visitor.online_at ? new Date(visitor.online_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Just now"}
                               </td>
                             </tr>
-                          ));
+                            );
+                          });
                         })()}
                       </tbody>
                     </table>

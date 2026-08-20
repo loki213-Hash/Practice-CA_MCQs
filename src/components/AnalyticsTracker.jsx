@@ -48,38 +48,74 @@ export default function AnalyticsTracker() {
     });
     presenceRef.current = presenceObj;
 
-    // Periodic Heartbeat every 30 seconds using latest ref values
+    // Periodic Heartbeat every 25 seconds using latest ref values
     const heartbeatInterval = setInterval(() => {
+      const u = currentUserRef.current;
+      const un = currentUsernameRef.current;
+      const p = currentPathRef.current;
       recordVisitAndHeartbeat({
-        user: currentUserRef.current,
-        username: currentUsernameRef.current,
-        pagePath: currentPathRef.current,
+        user: u,
+        username: un,
+        pagePath: p,
       });
-    }, 30000);
+      if (presenceRef.current?.updatePresence) {
+        presenceRef.current.updatePresence({
+          user: u,
+          username: un,
+          pagePath: p,
+        });
+      }
+    }, 25000);
 
     // Tab visibility change handler
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        const u = currentUserRef.current;
+        const un = currentUsernameRef.current;
+        const p = currentPathRef.current;
         recordVisitAndHeartbeat({
-          user: currentUserRef.current,
-          username: currentUsernameRef.current,
-          pagePath: currentPathRef.current,
+          user: u,
+          username: un,
+          pagePath: p,
         });
         if (presenceRef.current?.updatePresence) {
           presenceRef.current.updatePresence({
-            user: currentUserRef.current,
-            username: currentUsernameRef.current,
-            pagePath: currentPathRef.current,
+            user: u,
+            username: un,
+            pagePath: p,
           });
         }
       }
     };
 
+    // Instant auth/progress update handler
+    const handleAuthOrProgressUpdate = () => {
+      const u = currentUserRef.current;
+      const un = currentUsernameRef.current;
+      const p = currentPathRef.current;
+      recordVisitAndHeartbeat({
+        user: u,
+        username: un,
+        pagePath: p,
+      });
+      if (presenceRef.current?.updatePresence) {
+        presenceRef.current.updatePresence({
+          user: u,
+          username: un,
+          pagePath: p,
+        });
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("ca_quiz_auth_changed", handleAuthOrProgressUpdate);
+    window.addEventListener("ca_quiz_progress_updated", handleAuthOrProgressUpdate);
 
     return () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("ca_quiz_auth_changed", handleAuthOrProgressUpdate);
+      window.removeEventListener("ca_quiz_progress_updated", handleAuthOrProgressUpdate);
       if (presenceRef.current?.unsubscribe) {
         presenceRef.current.unsubscribe();
       }

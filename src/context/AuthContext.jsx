@@ -10,16 +10,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const saveCachedProfile = (usr, uname) => {
+    try {
+      if (usr && usr.id) {
+        const resolved = uname || usr.user_metadata?.username || (usr.email ? usr.email.split("@")[0].replace(".caquiz", "") : "Student");
+        localStorage.setItem("ca_quiz_user_profile", JSON.stringify({ id: usr.id, username: resolved }));
+      } else {
+        localStorage.removeItem("ca_quiz_user_profile");
+      }
+    } catch {
+      // ignore
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("ca_quiz_auth_changed"));
+    }
+  };
+
   useEffect(() => {
     // Check active sessions
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const activeUser = session?.user ?? null;
+      setUser(activeUser);
+      saveCachedProfile(activeUser);
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const activeUser = session?.user ?? null;
+      setUser(activeUser);
+      saveCachedProfile(activeUser);
       setLoading(false);
     });
 
@@ -66,6 +86,7 @@ export function AuthProvider({ children }) {
 
     // Failsafe insert into registered_users public profile table for admin panel lookup
     if (data?.user) {
+      saveCachedProfile(data.user, cleanUsername);
       try {
         await supabase
           .from("registered_users")
@@ -81,14 +102,13 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.warn("Could not insert user recovery details into registered_users table:", err);
       }
-      // Recovery code is shown once on-screen after registration.
-      // It is intentionally NOT stored in localStorage for security reasons.
     }
     return { ...data, recoveryCode };
   };
 
   const login = async (username, password, rememberMe = false) => {
-    const email = `${username.trim().toLowerCase()}.caquiz@gmail.com`;
+    const cleanUsername = username.trim();
+    const email = `${cleanUsername.toLowerCase()}.caquiz@gmail.com`;
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -97,9 +117,9 @@ export function AuthProvider({ children }) {
 
     let recoveryCode = null;
     let isNewlyGeneratedForExistingUser = false;
-    const cleanUser = username.trim().toLowerCase();
 
     if (data?.user) {
+      saveCachedProfile(data.user, cleanUsername);
       try {
         const { data: profile } = await supabase
           .from("registered_users")
@@ -109,7 +129,6 @@ export function AuthProvider({ children }) {
 
         if (profile?.recovery_code) {
           recoveryCode = profile.recovery_code;
-          // Recovery code is available server-side only; never cached in localStorage.
         } else {
           // User registered before recovery codes were introduced: Auto-generate one now!
           const newCode = generate7CharRecoveryCode();
@@ -118,7 +137,7 @@ export function AuthProvider({ children }) {
             .upsert([
               {
                 id: data.user.id,
-                username: username.trim(),
+                username: cleanUsername,
                 favourite_place: profile?.favourite_place || "Default",
                 firstname_yob: profile?.firstname_yob || "Default_2000",
                 recovery_code: newCode,
@@ -139,14 +158,27 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    saveCachedProfile(null);
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   const getUsername = () => {
-    if (!user || !user.email) return null;
-    const prefix = user.email.split("@")[0];
-    return prefix.replace(".caquiz", "");
+    if (user?.user_metadata?.username) return user.user_metadata.username;
+    if (user?.email) {
+      const prefix = user.email.split("@")[0];
+      return prefix.replace(".caquiz", "");
+    }
+    try {
+      const raw = localStorage.getItem("ca_quiz_user_profile");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.username) return parsed.username;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
   };
 
   const resetPassword = async (username, recoveryCodeInput, newPassword) => {
