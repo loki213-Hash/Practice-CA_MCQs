@@ -76,7 +76,7 @@ export default function Admin() {
   const [activeFeedbackDetails, setActiveFeedbackDetails] = useState(null);
   const [subSearch, setSubSearch] = useState("");
 
-  // Broadcast updates state
+
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("all");
@@ -106,7 +106,7 @@ export default function Admin() {
   const mergeVisitors = (realtimeList = [], dbList = []) => {
     const map = new Map();
     const now = Date.now();
-    const ACTIVE_CUTOFF_MS = 40 * 1000; // 40 seconds
+    const ACTIVE_CUTOFF_MS = 90 * 1000; // 90 seconds
 
     let currentVisitorId = null;
     try {
@@ -115,7 +115,7 @@ export default function Admin() {
       // ignore
     }
 
-    // 1. Add DB active visits (if seen in last 40 seconds)
+    // 1. Add DB active visits (if seen in last 90 seconds)
     for (const v of dbList) {
       if (v.visitor_id) {
         const seenTime = new Date(v.last_seen_at || v.online_at).getTime();
@@ -138,7 +138,23 @@ export default function Admin() {
       }
     }
 
-    // 3. Enrich every visitor with registered student profile & admin status
+    // 3. Fallback: Always ensure the active Admin browser tab viewing this dashboard is present
+    if (isAdmin && currentVisitorId && !map.has(currentVisitorId)) {
+      map.set(currentVisitorId, {
+        key: currentVisitorId,
+        visitor_id: currentVisitorId,
+        user_id: user?.id || "admin",
+        username: username || "admin",
+        is_logged_in: true,
+        is_admin: true,
+        page_path: "/admin",
+        device_type: "Desktop",
+        online_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      });
+    }
+
+    // 4. Enrich every visitor with registered student profile & admin status
     const merged = Array.from(map.values()).map((v) => {
       const isSelf = Boolean(
         (currentVisitorId && v.visitor_id === currentVisitorId) ||
@@ -179,14 +195,10 @@ export default function Admin() {
     if (!isAdmin) return;
 
     let currentRealtime = [];
-    let hasRealtimeSnapshot = false;
 
-    const syncVisitors = async (rtList = currentRealtime, useDatabaseFallback = !hasRealtimeSnapshot) => {
+    const syncVisitors = async (rtList = currentRealtime) => {
       currentRealtime = rtList;
-      // A heartbeat proves recent activity, not a current WebSocket connection.
-      // Use it only during cold load; once Presence has supplied a snapshot it
-      // is authoritative, including an intentionally empty snapshot.
-      const dbVisits = useDatabaseFallback ? await fetchLiveActiveVisitors() : [];
+      const dbVisits = await fetchLiveActiveVisitors();
       const merged = mergeVisitors(rtList, dbVisits);
       const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
       const liveAdmins = merged.filter((m) => m.is_admin).length;
@@ -212,19 +224,9 @@ export default function Admin() {
       username: username || "admin",
       pagePath: "/admin",
       onPresenceChange: ({ activeVisitors }) => {
-        hasRealtimeSnapshot = true;
-        syncVisitors(activeVisitors || [], false);
+        syncVisitors(activeVisitors || []);
       },
     });
-
-    // Immediate initial sync
-    syncVisitors([]);
-
-    // Keep the cold-load fallback fresh until Presence delivers its first state.
-    // After that, recent heartbeats must not be shown as fake live users.
-    const livePoll = setInterval(() => {
-      syncVisitors(currentRealtime, !hasRealtimeSnapshot);
-    }, 10000);
 
     return () => {
       clearInterval(livePoll);
@@ -243,8 +245,9 @@ export default function Admin() {
     loadRegisteredUsers();
     loadFeedbacks();
     loadFormSubmissions();
+    const dbVisits = await fetchLiveActiveVisitors();
     setAnalytics((prev) => {
-      const merged = prev.activeVisitors;
+      const merged = mergeVisitors(prev.activeVisitors, dbVisits);
       const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
       const liveAdmins = merged.filter((m) => m.is_admin).length;
       const liveStudents = merged.filter((m) => m.is_logged_in && !m.is_admin).length;
@@ -361,9 +364,6 @@ export default function Admin() {
       setIsAnalyticsTableMissing(Boolean(analyticsData.isTableMissing));
       setAnalytics((prev) => ({
         ...prev,
-        // Historical cards use their own persisted definitions. Merging a
-        // connection count into a distinct-account/device total created values
-        // that were mathematically plausible but not actually measured.
         uniqueVisitors24h: analyticsData.uniqueVisitors24h,
         distinctLoggedIn24h: analyticsData.distinctLoggedIn24h,
         allTimeUniqueVisitors: analyticsData.allTimeUniqueVisitors,
@@ -374,7 +374,7 @@ export default function Admin() {
         mobileCount24h: analyticsData.mobileCount24h,
       }));
     } catch (err) {
-      console.warn("Failed to load statistics:", err.message);
+      console.warn("Failed to load statistics:", err?.message || err);
     }
   };
 
