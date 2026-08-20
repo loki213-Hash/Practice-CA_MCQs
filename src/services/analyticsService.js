@@ -618,15 +618,16 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
 }
 
 /**
- * Direct DB active visitors fetch (fallback & instant cold-load helper)
+ * Direct DB active visitors fetch (cold-load fallback only — uses tight 45s window)
+ * 45s = 1.5× the 30s heartbeat interval. Any user who hasn't heartbeated in 45s is gone.
  */
 export async function fetchLiveActiveVisitors() {
-  const ninetySecondsAgo = new Date(Date.now() - 90 * 1000).toISOString();
+  const fortyFiveSecondsAgo = new Date(Date.now() - 45 * 1000).toISOString();
   try {
     const { data, error } = await supabase
       .from("site_analytics_visits")
       .select("visitor_id, user_id, username, is_authenticated, current_path, device_type, created_at, last_seen_at")
-      .gte("last_seen_at", ninetySecondsAgo)
+      .gte("last_seen_at", fortyFiveSecondsAgo)
       .order("last_seen_at", { ascending: false });
 
     if (!error && data) {
