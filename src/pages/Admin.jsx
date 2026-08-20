@@ -826,33 +826,34 @@ export default function Admin() {
 
     if (cleanPath === "/admin") return { label: "Admin Portal", icon: "⚡" };
     if (cleanPath === "/login") return { label: "Login / Register", icon: "🔑" };
-    if (cleanPath === "/vault") return { label: "Mistake Vault", icon: "📚" };
+    if (cleanPath === "/vault") return { label: "Mistake Vault (Revision)", icon: "📚" };
     if (cleanPath === "/coming-soon") return { label: "Coming Soon", icon: "⏳" };
 
     if (cleanPath.startsWith("/quiz/")) {
       const chapterId = cleanPath.replace("/quiz/", "");
-      const chapterName = getChapterName(chapterId);
-      return { label: `Quiz: ${chapterName}`, icon: "🎯" };
+      const chap = dbChapters.find((c) => String(c.id) === String(chapterId));
+      const chapName = chap ? chap.chapter_name : (chapterId === "9" ? "Appointment and Remuneration of Managerial Personnel" : `Chapter ${chapterId}`);
+      return { label: `SPOM: Chapter Practice (SET A) — Ch.${chapterId}: ${chapName}`, icon: "🎯" };
     }
 
     if (cleanPath.startsWith("/take-test/")) {
       const slug = cleanPath.replace("/take-test/", "");
       const course = dbCourses.find((c) => String(c.id) === String(slug) || c.course_slug === slug);
-      const courseName = course ? course.course_name : (slug === "1" || slug === "spom" ? "SPOM Set A" : slug.replace(/-/g, " ").toUpperCase());
-      const setLabel = querySet ? ` (${querySet})` : "";
-      return { label: `Full Test: ${courseName}${setLabel}`, icon: "📝" };
+      const courseName = course ? course.course_name : (slug === "1" || slug === "spom" ? "SPOM (SET A)" : slug.replace(/-/g, " ").toUpperCase());
+      const setLabel = querySet ? ` (${querySet})` : " (SET A)";
+      return { label: `SPOM: Full Mock Test${setLabel} — ${courseName}`, icon: "📝" };
     }
 
     if (cleanPath.startsWith("/course/")) {
       const parts = cleanPath.split("/").filter(Boolean);
       const courseSlug = parts[1] || "";
-      const setType = parts[2] || querySet;
+      const setType = parts[2] || querySet || "SET A";
       
       const course = dbCourses.find((c) => String(c.id) === String(courseSlug) || c.course_slug === courseSlug);
       const courseName = course ? course.course_name : (courseSlug === "1" || courseSlug === "spom" ? "SPOM Set A" : courseSlug.replace(/-/g, " ").toUpperCase());
       
-      if (setType) {
-        return { label: `${courseName}: Chapter Practice (${setType})`, icon: "📖" };
+      if (parts.length >= 3 || querySet) {
+        return { label: `SPOM: Chapter Practice (${setType})`, icon: "📖" };
       }
       return { label: `${courseName}: Mode Selection`, icon: "🗂️" };
     }
@@ -1318,10 +1319,10 @@ export default function Admin() {
                                         className="presence-path-badge"
                                         title={fullRoute}
                                         style={{
-                                          fontSize: "11px",
+                                          fontSize: "11.5px",
                                           color: "#94a3b8",
                                           fontFamily: "monospace",
-                                          maxWidth: "240px",
+                                          maxWidth: "340px",
                                           overflow: "hidden",
                                           textOverflow: "ellipsis",
                                           whiteSpace: "nowrap"
