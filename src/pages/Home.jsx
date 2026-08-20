@@ -617,7 +617,19 @@ function Home() {
             <button
               type="button"
               className="bell-btn"
-              onClick={() => setShowNotifInbox(!showNotifInbox)}
+              onClick={async () => {
+                const opening = !showNotifInbox;
+                setShowNotifInbox(opening);
+                // Auto-mark all unread notifications as read when the inbox is opened
+                if (opening) {
+                  const unread = notifications.filter((n) => !n.is_read);
+                  if (unread.length > 0) {
+                    await Promise.all(unread.map((n) => markAsRead(n.id, username || "guest")));
+                    const updated = await getNotificationsForUser(username || "guest");
+                    setNotifications(updated);
+                  }
+                }
+              }}
               style={{
                 position: "relative",
                 background: "none",
