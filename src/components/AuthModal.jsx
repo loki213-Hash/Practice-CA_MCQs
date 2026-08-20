@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import RecoveryCodeModal from "./RecoveryCodeModal";
 
-export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login", bannerNotice = null }) {
+export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login", bannerNotice = null, allowClose = true }) {
   const { login, register, resetPassword } = useAuth();
   const [isSignUp, setIsSignUp] = useState(initialMode === "register");
   const [username, setUsername] = useState("");
@@ -209,7 +209,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
     <>
       <div
         onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
+          if (allowClose && e.target === e.currentTarget) onClose();
         }}
         style={{
           position: "fixed",
@@ -239,42 +239,44 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
           }}
         >
           {/* Accessible Close / Cancel Modal Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              position: "absolute",
-              top: "14px",
-              right: "14px",
-              background: "#f1f5f9",
-              color: "#334155",
-              border: "1px solid #e2e8f0",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              fontSize: "18px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "700",
-              zIndex: 10,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-              transition: "all 0.15s ease"
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = "#e2e8f0";
-              e.currentTarget.style.color = "#0f172a";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = "#f1f5f9";
-              e.currentTarget.style.color = "#334155";
-            }}
-            aria-label="Close modal"
-            title="Cancel & Close"
-          >
-            ✕
-          </button>
+          {allowClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                position: "absolute",
+                top: "14px",
+                right: "14px",
+                background: "#f1f5f9",
+                color: "#334155",
+                border: "1px solid #e2e8f0",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                fontSize: "18px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "700",
+                zIndex: 10,
+                boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                transition: "all 0.15s ease"
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "#e2e8f0";
+                e.currentTarget.style.color = "#0f172a";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "#f1f5f9";
+                e.currentTarget.style.color = "#334155";
+              }}
+              aria-label="Close modal"
+              title="Cancel & Close"
+            >
+              ✕
+            </button>
+          )}
 
           {bannerNotice && (
             <div style={{

@@ -96,6 +96,7 @@ export default function GuestAuthPrompt() {
       onClose={handleClose}
       onSuccess={handleSuccess}
       initialMode="register"
+      allowClose={false}
       bannerNotice="✨ You've been practicing for over 5 minutes as a guest! Create a free account or sign in to save your test progress, track chapter accuracy, and access your Mistake Vault across all devices."
     />
   );
