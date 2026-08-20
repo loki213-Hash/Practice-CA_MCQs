@@ -7,6 +7,7 @@ import { getNotificationsForUser, markAsRead } from "../services/notificationSer
 import { getVaultCount } from "../services/mistakeVaultService";
 import { supabase } from "../supabase/supabase";
 import Loading from "../components/Loading";
+import FeedbackModal from "../components/FeedbackModal";
 
 function ChakraDial({ isGuest = true, masteredCount = 0, totalChapters = 5, accuracy = 0 }) {
   const [revealed, setRevealed] = useState(0);
@@ -169,6 +170,7 @@ function Home() {
   const [showInterruptedModal, setShowInterruptedModal] = useState(false);
   const [totalChaptersInDb, setTotalChaptersInDb] = useState(5);
   const [vaultCount, setVaultCount] = useState(0);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const formatAttemptedCount = (val) => {
     if (val >= 100000) {
@@ -549,7 +551,7 @@ function Home() {
 
         <div className="nav-actions" style={{ position: "relative", display: "flex", alignItems: "center", gap: "10px" }}>
           
-          {/* Mistake Vault Link (Leftmost of actions) */}
+          {/* Mistake Vault Link (Left of actions) */}
           <Link
             to="/vault"
             className="vault-nav-link"
@@ -584,6 +586,31 @@ function Home() {
               }}>{vaultCount}</span>
             )}
           </Link>
+
+          {/* Feedback Button (Side to Vault) */}
+          <button
+            type="button"
+            onClick={() => setShowFeedbackModal(true)}
+            className="feedback-nav-btn"
+            title="Share your feedback, suggestions, or report issues"
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              fontSize: "13px",
+              fontWeight: "600",
+              color: "var(--navy, #0B2545)",
+              padding: "5px 10px",
+              borderRadius: "6px",
+              border: "1px solid var(--hairline, #e2e8f0)",
+              background: "rgba(11, 37, 69, 0.04)",
+              cursor: "pointer",
+              transition: "all 0.15s ease"
+            }}
+          >
+            💬 Feedback
+          </button>
 
           {/* Notification Bell (Right of Vault, Left of Login / Profile) */}
           <div style={{ position: "relative" }}>
@@ -1103,6 +1130,12 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Student Feedback Submission Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+      />
     </div>
   );
 }

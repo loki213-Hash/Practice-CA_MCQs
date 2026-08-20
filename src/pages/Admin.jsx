@@ -422,20 +422,39 @@ export default function Admin() {
 
   const loadFeedbacks = async () => {
     try {
+      let feedbackList = [];
       const { data, error } = await supabase
         .from("student_feedbacks")
         .select("*")
         .order("created_at", { ascending: false });
+      
       if (!error && data) {
-        const mapped = data.map((f) => ({
-          id: f.id,
-          student: f.username,
-          type: "Feedback",
-          comment: f.message,
-          date: new Date(f.created_at).toLocaleDateString()
-        }));
-        setFeedbacks(mapped);
+        feedbackList = data;
+      } else {
+        const { data: fbData } = await supabase
+          .from("student_feedback")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (fbData) {
+          feedbackList = fbData;
+        } else {
+          try {
+            feedbackList = JSON.parse(localStorage.getItem("ca_quiz_student_feedbacks") || "[]");
+          } catch {
+            feedbackList = [];
+          }
+        }
       }
+
+      const mapped = feedbackList.map((f) => ({
+        id: f.id,
+        student: f.username || "Guest",
+        type: f.category || f.type || "Feedback",
+        rating: f.rating || 5,
+        comment: f.message,
+        date: f.created_at ? new Date(f.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently"
+      }));
+      setFeedbacks(mapped);
     } catch (err) {
       console.warn("Failed to load student feedbacks:", err);
     }
@@ -761,6 +780,41 @@ export default function Admin() {
   const getChapterName = (id) => {
     const chap = dbChapters.find((c) => String(c.id) === String(id));
     return chap ? chap.chapter_name : `Chapter ${id}`;
+  };
+
+  const formatActiveRoute = (path) => {
+    if (!path || path === "/") return { label: "Home Page", icon: "🏠" };
+    const cleanPath = path.split("?")[0].split("#")[0];
+
+    if (cleanPath === "/admin") return { label: "Admin Portal", icon: "⚡" };
+    if (cleanPath === "/login") return { label: "Login / Register", icon: "🔑" };
+    if (cleanPath === "/vault") return { label: "Mistake Vault", icon: "📚" };
+    if (cleanPath === "/coming-soon") return { label: "Coming Soon", icon: "⏳" };
+
+    if (cleanPath.startsWith("/quiz/")) {
+      const chapterId = cleanPath.replace("/quiz/", "");
+      const chapterName = getChapterName(chapterId);
+      return { label: `Quiz: ${chapterName}`, icon: "🎯" };
+    }
+
+    if (cleanPath.startsWith("/take-test/")) {
+      const slug = cleanPath.replace("/take-test/", "");
+      const formatted = slug.replace(/-/g, " ").toUpperCase();
+      return { label: `Test: ${formatted}`, icon: "📝" };
+    }
+
+    if (cleanPath.startsWith("/course/")) {
+      const parts = cleanPath.split("/").filter(Boolean);
+      const courseSlug = parts[1] || "";
+      const setType = parts[2];
+      const formattedCourse = courseSlug.replace(/-/g, " ").toUpperCase();
+      if (setType) {
+        return { label: `${formattedCourse} (${setType})`, icon: "📖" };
+      }
+      return { label: `Course: ${formattedCourse}`, icon: "🗂️" };
+    }
+
+    return { label: path, icon: "🔗" };
   };
 
   // Filter flagged questions
@@ -1195,9 +1249,46 @@ export default function Admin() {
                                 </span>
                               </td>
                               <td>
-                                <span className="presence-path-badge" title={visitor.page_path || "/"}>
-                                  🔗 {visitor.page_path || "/"}
-                                </span>
+                                {(() => {
+                                  const fullRoute = visitor.page_path || "/";
+                                  const routeInfo = formatActiveRoute(fullRoute);
+                                  return (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "5px",
+                                          fontSize: "12px",
+                                          fontWeight: 600,
+                                          color: "#f8fafc",
+                                          background: "rgba(255, 255, 255, 0.08)",
+                                          padding: "3px 9px",
+                                          borderRadius: "6px",
+                                          border: "1px solid rgba(255, 255, 255, 0.12)"
+                                        }}
+                                      >
+                                        <span>{routeInfo.icon}</span>
+                                        <span>{routeInfo.label}</span>
+                                      </span>
+                                      <span
+                                        className="presence-path-badge"
+                                        title={fullRoute}
+                                        style={{
+                                          fontSize: "11px",
+                                          color: "#94a3b8",
+                                          fontFamily: "monospace",
+                                          maxWidth: "240px",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis",
+                                          whiteSpace: "nowrap"
+                                        }}
+                                      >
+                                        🔗 {fullRoute}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                               </td>
                               <td>
                                 <span className="presence-device-tag">
@@ -1309,8 +1400,19 @@ export default function Admin() {
                         >
                           <div>
                             <div className="fc-top" style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span className="fc-chap" style={{ color: "#f8fafc", fontWeight: "600", fontSize: "13px" }}>{f.student}</span>
-                              <span className="fc-flag-count" style={{ background: "rgba(251, 191, 36, 0.15)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.3)", fontSize: "10.5px", padding: "2px 8px", borderRadius: "10px" }}>{f.type}</span>
+                              <span className="fc-chap" style={{ color: "#f8fafc", fontWeight: "600", fontSize: "13px" }}>
+                                👤 {f.student}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                {f.rating ? (
+                                  <span style={{ fontSize: "11px", color: "#fbbf24", fontWeight: 700 }}>
+                                    {"⭐".repeat(Math.min(5, Math.max(1, f.rating)))}
+                                  </span>
+                                ) : null}
+                                <span className="fc-flag-count" style={{ background: "rgba(251, 191, 36, 0.15)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.3)", fontSize: "10.5px", padding: "2px 8px", borderRadius: "10px" }}>
+                                  {f.type}
+                                </span>
+                              </div>
                             </div>
                             <p style={{ fontSize: "13px", color: "#cbd5e1", lineHeight: "1.5", margin: "6px 0", wordBreak: "break-all" }}>
                               "{truncated}"
@@ -1922,9 +2024,16 @@ ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                   </div>
 
                   <div style={{ marginBottom: "20px", textAlign: "left" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
-                      <span>Student: <b>{activeFeedbackDetails.student}</b></span>
-                      <span>Submitted: {activeFeedbackDetails.date}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12.5px", color: "#6b7280", marginBottom: "8px" }}>
+                      <span>Student: <b style={{ color: "var(--navy)" }}>👤 {activeFeedbackDetails.student}</b></span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        {activeFeedbackDetails.rating ? (
+                          <span style={{ color: "#b45309", fontWeight: 700, fontSize: "12px" }}>
+                            {"⭐".repeat(Math.min(5, Math.max(1, activeFeedbackDetails.rating)))} ({activeFeedbackDetails.rating}/5)
+                          </span>
+                        ) : null}
+                        <span>Submitted: {activeFeedbackDetails.date}</span>
+                      </div>
                     </div>
                     <div style={{
                       padding: "16px",

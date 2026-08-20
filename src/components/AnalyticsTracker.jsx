@@ -12,29 +12,41 @@ export default function AnalyticsTracker() {
   const { user, username } = useAuth();
   const presenceRef = useRef(null);
 
+  const fullPath = location.pathname + location.search + location.hash;
+  const currentPathRef = useRef(fullPath);
+  const currentUserRef = useRef(user);
+  const currentUsernameRef = useRef(username);
+
+  // Keep refs always up to date
+  useEffect(() => {
+    currentPathRef.current = fullPath;
+    currentUserRef.current = user;
+    currentUsernameRef.current = username;
+  }, [fullPath, user, username]);
+
   // Initial Presence Channel Setup
   useEffect(() => {
     // Record initial visit immediately
     recordVisitAndHeartbeat({
       user,
       username,
-      pagePath: location.pathname,
+      pagePath: fullPath,
     });
 
     // Setup Supabase Realtime Presence Channel
     const presenceObj = setupRealtimePresence({
       user,
       username,
-      pagePath: location.pathname,
+      pagePath: fullPath,
     });
     presenceRef.current = presenceObj;
 
-    // Periodic Heartbeat every 30 seconds
+    // Periodic Heartbeat every 30 seconds using latest ref values
     const heartbeatInterval = setInterval(() => {
       recordVisitAndHeartbeat({
-        user,
-        username,
-        pagePath: location.pathname,
+        user: currentUserRef.current,
+        username: currentUsernameRef.current,
+        pagePath: currentPathRef.current,
       });
     }, 30000);
 
@@ -42,15 +54,15 @@ export default function AnalyticsTracker() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         recordVisitAndHeartbeat({
-          user,
-          username,
-          pagePath: location.pathname,
+          user: currentUserRef.current,
+          username: currentUsernameRef.current,
+          pagePath: currentPathRef.current,
         });
         if (presenceRef.current?.updatePresence) {
           presenceRef.current.updatePresence({
-            user,
-            username,
-            pagePath: location.pathname,
+            user: currentUserRef.current,
+            username: currentUsernameRef.current,
+            pagePath: currentPathRef.current,
           });
         }
       }
@@ -73,17 +85,17 @@ export default function AnalyticsTracker() {
     recordVisitAndHeartbeat({
       user,
       username,
-      pagePath: location.pathname,
+      pagePath: fullPath,
     });
 
     if (presenceRef.current?.updatePresence) {
       presenceRef.current.updatePresence({
         user,
         username,
-        pagePath: location.pathname,
+        pagePath: fullPath,
       });
     }
-  }, [location.pathname, user, username]);
+  }, [fullPath, user, username]);
 
   return null;
 }

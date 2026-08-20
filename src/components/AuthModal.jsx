@@ -218,6 +218,20 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
       setError("Passwords do not match.");
       return;
     }
+    if (isSignUp) {
+      if (!favouritePlace.trim()) {
+        setError("Please enter your Favourite Place (Recovery Word 1).");
+        return;
+      }
+      if (!firstnameYob.trim()) {
+        setError("Please enter your Firstname_Year of Birth (Recovery Word 2).");
+        return;
+      }
+      if (!/^[a-zA-Z0-9]+_[0-9]{4}$/.test(firstnameYob.trim())) {
+        setError("Firstname_Year of Birth must follow the format 'Firstname_YYYY' (e.g. John_1998).");
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -534,7 +548,55 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
                       </button>
                     </div>
 
-                    <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading} style={{ marginTop: "16px" }}>
+                    {/* Section Header for Recovery Words */}
+                    <div style={{ marginTop: "18px", marginBottom: "6px", borderTop: "1px dashed #e6e1d6", paddingTop: "12px", textAlign: "left" }}>
+                      <h4 style={{ fontSize: "12.5px", color: "var(--navy)", fontWeight: 700, margin: "0 0 2px" }}>🔑 Security Recovery Words</h4>
+                      <p style={{ fontSize: "11px", color: "#8a94a6", margin: 0, lineHeight: 1.35 }}>
+                        Provide these to the admin to reset your password if you ever forget it.
+                      </p>
+                    </div>
+
+                    {/* Recovery Phrase: Favourite Place */}
+                    <div style={{ textAlign: "left", marginBottom: "2px", paddingLeft: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 1: Favourite Place</label>
+                    </div>
+                    <div className="input-box" style={{ margin: "0 0 10px 0" }}>
+                      <input
+                        type="text"
+                        placeholder="e.g. New Delhi"
+                        value={favouritePlace}
+                        onChange={(e) => setFavouritePlace(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+
+                    {/* Recovery Phrase: Firstname_Year of Birth */}
+                    <div style={{ textAlign: "left", marginBottom: "2px", paddingLeft: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#8a94a6" }}>Recovery Word 2: Firstname_Year of Birth</label>
+                    </div>
+                    <div className="input-box" style={{ margin: "0 0 10px 0" }}>
+                      <input
+                        type="text"
+                        placeholder="e.g. John_1998"
+                        value={firstnameYob}
+                        onChange={(e) => setFirstnameYob(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" stroke="#a3a09a">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                    </div>
+
+                    <button type="submit" className={`btn ${loading ? "is-loading" : ""}`} disabled={loading} style={{ marginTop: "12px" }}>
                       <span className="btn-label">Register &amp; Submit Test</span>
                       <span className="btn-spinner">
                         <span></span>
