@@ -60,7 +60,9 @@ export function getOrCreateSessionId() {
 export function getOrCreateSessionStartTime() {
   try {
     let startTime = sessionStorage.getItem(SESSION_START_KEY);
-    if (!startTime) {
+    const now = Date.now();
+    // Reset session start time if missing or if timestamp is stale (> 30 mins old)
+    if (!startTime || isNaN(new Date(startTime).getTime()) || (now - new Date(startTime).getTime() > 30 * 60 * 1000)) {
       startTime = new Date().toISOString();
       sessionStorage.setItem(SESSION_START_KEY, startTime);
     }
@@ -772,9 +774,8 @@ export async function fetchLiveActiveVisitors() {
           const isAdm = row.username?.toLowerCase() === "admin" || row.user_id === "admin";
           const rowCreatedTime = new Date(row.created_at).getTime();
           const rowSeenTime = new Date(row.last_seen_at).getTime();
-          const validOnlineAt = (row.created_at && rowCreatedTime <= nowMs && rowCreatedTime <= rowSeenTime)
-            ? row.created_at
-            : row.last_seen_at;
+          const isRecentCreation = row.created_at && rowCreatedTime <= nowMs && rowCreatedTime <= rowSeenTime && (nowMs - rowCreatedTime <= 15 * 60 * 1000);
+          const validOnlineAt = isRecentCreation ? row.created_at : row.last_seen_at;
 
           visitorMap.set(row.visitor_id, {
             key: row.visitor_id,
