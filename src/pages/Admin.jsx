@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
-import { sendAppreciationNotification, broadcastNotification } from "../services/notificationService";
+import { sendAppreciationNotification, broadcastNotification, deleteNotification } from "../services/notificationService";
 import { fetchAnalyticsMetrics, setupRealtimePresence } from "../services/analyticsService";
 import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
 import SpaceBackground from "../components/SpaceBackground";
@@ -79,6 +79,7 @@ export default function Admin() {
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("all");
   const [broadcastSending, setBroadcastSending] = useState(false);
+  const [sentBroadcasts, setSentBroadcasts] = useState([]);
 
   const isAdmin = Boolean(
     user && (
@@ -544,6 +545,9 @@ export default function Admin() {
     if (activeTab === "recovery") {
       loadRegisteredUsers();
     }
+    if (activeTab === "broadcast") {
+      loadSentBroadcasts();
+    }
   }, [activeTab]);
 
   // Flag actions
@@ -671,6 +675,20 @@ export default function Admin() {
     }
   };
 
+  const loadSentBroadcasts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_notifications")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setSentBroadcasts(data);
+      }
+    } catch (e) {
+      console.warn("Notice loading sent broadcasts:", e);
+    }
+  };
+
   // Send Broadcast Update
   const handleSendBroadcast = async (e) => {
     e.preventDefault();
@@ -689,10 +707,22 @@ export default function Admin() {
       setSuccess(`Broadcast update successfully dispatched to ${broadcastTarget === "all" ? "all registered & guest students" : broadcastTarget}!`);
       setBroadcastTitle("");
       setBroadcastMessage("");
+      await loadSentBroadcasts();
     } catch (err) {
       setError("Failed to broadcast message: " + err.message);
     } finally {
       setBroadcastSending(false);
+    }
+  };
+
+  const handleDeleteBroadcast = async (id) => {
+    if (!window.confirm("Are you sure you want to permanently delete this broadcast announcement?")) return;
+    try {
+      await deleteNotification(id);
+      setSentBroadcasts((prev) => prev.filter((b) => b.id !== id));
+      setSuccess("Broadcast announcement deleted successfully.");
+    } catch (err) {
+      setError("Failed to delete broadcast: " + err.message);
     }
   };
 
@@ -2049,6 +2079,111 @@ ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                     </div>
                   </div>
 
+                </div>
+
+                {/* Sent Broadcasts History */}
+                <div style={{ marginTop: "32px", background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <div>
+                      <h4 style={{ margin: "0 0 4px", fontSize: "16px", color: "#f8fafc", fontWeight: 700 }}>
+                        📋 Dispatched Announcements &amp; Broadcast History
+                      </h4>
+                      <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8" }}>
+                        All active announcements currently visible to registered students and visitors in their 🔔 notification inboxes.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => loadSentBroadcasts()}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: "#94a3b8",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        fontWeight: 600
+                      }}
+                    >
+                      🔄 Refresh History
+                    </button>
+                  </div>
+
+                  {sentBroadcasts.length === 0 ? (
+                    <div style={{ padding: "24px", textAlign: "center", color: "#64748b", background: "rgba(0,0,0,0.2)", borderRadius: "10px" }}>
+                      No broadcast announcements dispatched yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {sentBroadcasts.map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            padding: "14px 18px",
+                            background: "rgba(30, 41, 59, 0.6)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            borderRadius: "10px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "16px"
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                              <span style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "2px 8px",
+                                borderRadius: "4px",
+                                background: b.username === "all" ? "rgba(59, 130, 246, 0.2)" : "rgba(168, 85, 247, 0.2)",
+                                color: b.username === "all" ? "#60a5fa" : "#c084fc"
+                              }}>
+                                {b.username === "all" ? "📢 Global Broadcast" : `👤 To: ${b.username}`}
+                              </span>
+                              <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                                {b.created_at ? new Date(b.created_at).toLocaleString("en-IN") : "Recent"}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: "13px", color: "#e2e8f0", whiteSpace: "pre-wrap", lineHeight: "1.5" }}>
+                              {b.message}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBroadcast(b.id)}
+                            style={{
+                              background: "rgba(239, 68, 68, 0.15)",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              color: "#f87171",
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Supabase SQL Helper */}
+                  <div style={{ marginTop: "24px", padding: "16px", background: "rgba(0,0,0,0.35)", borderRadius: "10px", border: "1px dashed rgba(255,255,255,0.15)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "14px" }}>💡</span>
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#38bdf8" }}>
+                        Supabase Database Setup Note
+                      </span>
+                    </div>
+                    <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
+                      Broadcasts are saved into the <code style={{ color: "#f1f5f9" }}>public.user_notifications</code> table in Supabase. Run the script in <code style={{ color: "#f1f5f9" }}>supabase_notifications.sql</code> in your Supabase SQL Editor if you haven't created the table yet.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

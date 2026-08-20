@@ -110,6 +110,17 @@ export async function broadcastNotification({ title, message, target = "all" }) 
 export async function getNotificationsForUser(username) {
   const cleanUsername = username ? username.trim().toLowerCase() : "guest";
 
+  // Get local read IDs for this user
+  let readIds = new Set();
+  try {
+    const raw = localStorage.getItem(`ca_quiz_read_notifs_${cleanUsername}`);
+    if (raw) {
+      readIds = new Set(JSON.parse(raw));
+    }
+  } catch (e) {
+    console.warn("Notice reading local read notifs:", e);
+  }
+
   let dbNotifs = [];
   try {
     // Fetch notifications where username matches user OR username is 'all' or 'broadcast'
@@ -143,30 +154,44 @@ export async function getNotificationsForUser(username) {
     const key = `${n.id || n.message}_${n.created_at}`;
     if (!seen.has(key)) {
       seen.add(key);
-      deduplicated.push(n);
+      const isRead = readIds.has(String(n.id)) || Boolean(n.is_read);
+      deduplicated.push({
+        ...n,
+        is_read: isRead,
+      });
     }
   }
 
   return deduplicated.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
-export async function markAsRead(id) {
-  if (typeof id === "number" || (!isNaN(id) && !String(id).includes("-"))) {
-    try {
-      const { error } = await supabase
-        .from("user_notifications")
-        .delete()
-        .eq("id", Number(id));
+export async function markAsRead(id, username) {
+  const cleanUsername = username ? username.trim().toLowerCase() : "guest";
 
-      if (!error) return true;
+  // 1. Mark read in user's localStorage so global broadcast stays intact for others
+  try {
+    const storageKey = `ca_quiz_read_notifs_${cleanUsername}`;
+    const raw = localStorage.getItem(storageKey);
+    const set = raw ? new Set(JSON.parse(raw)) : new Set();
+    set.add(String(id));
+    localStorage.setItem(storageKey, JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.warn("Notice saving read notification ID:", e);
+  }
+
+  // 2. If it's a direct personal notification, also mark is_read in Supabase
+  if (cleanUsername !== "guest" && cleanUsername !== "all" && (typeof id === "number" || (!isNaN(id) && !String(id).includes("-")))) {
+    try {
+      await supabase
+        .from("user_notifications")
+        .update({ is_read: true })
+        .eq("id", Number(id))
+        .eq("username", cleanUsername);
     } catch (err) {
-      console.warn("Supabase notification delete failed:", err);
+      console.warn("Notice updating notification status:", err);
     }
   }
 
-  const notifs = getLocalNotifications();
-  const filtered = notifs.filter((n) => String(n.id) !== String(id));
-  saveLocalNotifications(filtered);
   return true;
 }
 
