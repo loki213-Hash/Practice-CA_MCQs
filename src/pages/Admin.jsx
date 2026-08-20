@@ -106,6 +106,13 @@ export default function Admin() {
     const now = Date.now();
     const ACTIVE_CUTOFF_MS = 40 * 1000; // 40 seconds
 
+    let currentVisitorId = null;
+    try {
+      currentVisitorId = localStorage.getItem("ca_quiz_visitor_uuid");
+    } catch {
+      // ignore
+    }
+
     // 1. Add DB active visits (if seen in last 40 seconds)
     for (const v of dbList) {
       if (v.visitor_id) {
@@ -131,14 +138,22 @@ export default function Admin() {
 
     // 3. Enrich every visitor with registered student profile & admin status
     const merged = Array.from(map.values()).map((v) => {
-      const isSelf = v.username === username || (username && v.username?.toLowerCase() === username?.toLowerCase()) || (v.user_id === "admin-session" && v.page_path === "/admin");
+      const isSelf = Boolean(
+        (currentVisitorId && v.visitor_id === currentVisitorId) ||
+        (user?.id && v.user_id === user.id) ||
+        (v.user_id === "admin-session") ||
+        (v.username?.toLowerCase() === "admin") ||
+        (username && v.username?.toLowerCase() === username.toLowerCase())
+      );
+
       const regMatch = registeredUsers.find(
         (ru) => (v.user_id && ru.id === v.user_id) ||
                 (v.username && v.username !== "Guest" && v.username !== "Student" && ru.username?.toLowerCase() === v.username?.toLowerCase())
       );
+
       const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
-      const resolvedName = isSelf ? (username || "Admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
-      const isAdminUser = isSelf || resolvedName.toLowerCase() === "admin";
+      const resolvedName = isSelf ? (username || "admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
+      const isAdminUser = Boolean(isSelf || resolvedName.toLowerCase() === "admin");
 
       return {
         ...v,
@@ -149,8 +164,8 @@ export default function Admin() {
     });
 
     merged.sort((a, b) => {
-      if (a.is_admin && !b.is_admin) return 1;
-      if (!a.is_admin && b.is_admin) return -1;
+      if (a.is_admin && !b.is_admin) return -1;
+      if (!a.is_admin && b.is_admin) return 1;
       return new Date(b.last_seen_at || b.online_at) - new Date(a.last_seen_at || a.online_at);
     });
 
@@ -167,8 +182,8 @@ export default function Admin() {
       currentRealtime = rtList;
       const dbVisits = await fetchLiveActiveVisitors();
       const merged = mergeVisitors(rtList, dbVisits);
-      const uniqueTotal = Math.max(1, new Set(merged.map((m) => m.visitor_id)).size);
-      const uniqueLoggedIn = Math.max(1, new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+      const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
+      const uniqueLoggedIn = new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size;
       const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
 
       setAnalytics((prev) => ({
@@ -183,8 +198,8 @@ export default function Admin() {
     };
 
     const presenceTracker = setupRealtimePresence({
-      user: { id: "admin-session" },
-      username: username || "Admin",
+      user: user || { id: "admin-session" },
+      username: username || "admin",
       pagePath: "/admin",
       onPresenceChange: ({ activeVisitors }) => {
         syncVisitors(activeVisitors || []);
@@ -205,7 +220,7 @@ export default function Admin() {
         presenceTracker.unsubscribe();
       }
     };
-  }, [isAdmin, username, registeredUsers]);
+  }, [isAdmin, username, user, registeredUsers]);
 
   const handleManualRefresh = async () => {
     setError(null);
@@ -219,8 +234,8 @@ export default function Admin() {
     const dbVisits = await fetchLiveActiveVisitors();
     setAnalytics((prev) => {
       const merged = mergeVisitors(prev.activeVisitors, dbVisits);
-      const uniqueTotal = Math.max(1, new Set(merged.map((m) => m.visitor_id)).size);
-      const uniqueLoggedIn = Math.max(1, new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+      const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
+      const uniqueLoggedIn = new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size;
       const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
       return {
         ...prev,

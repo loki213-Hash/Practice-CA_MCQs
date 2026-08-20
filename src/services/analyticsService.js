@@ -130,6 +130,22 @@ export function resolveUserIdentity({ user = null, username = null } = {}) {
   }
 
   const activeUser = user || cachedUser;
+  
+  const isAdminUser = Boolean(
+    (user && (user.email === "admin.caquiz@gmail.com" || user.user_metadata?.username?.toLowerCase() === "admin")) ||
+    (username && username.toLowerCase() === "admin") ||
+    (cachedUser && (cachedUser.email === "admin.caquiz@gmail.com" || cachedUser.username?.toLowerCase() === "admin"))
+  );
+
+  if (isAdminUser) {
+    return {
+      isAuth: true,
+      userId: user?.id || cachedUser?.id || "admin-session",
+      username: "admin",
+      isAdmin: true,
+    };
+  }
+
   const isAuth = Boolean(activeUser && (activeUser.id || (activeUser.username && activeUser.username !== "Guest" && activeUser.username !== "Student")));
   
   let resolvedName = "Guest";
@@ -151,6 +167,7 @@ export function resolveUserIdentity({ user = null, username = null } = {}) {
     isAuth,
     userId: activeUser?.id || (isAuth ? `u_${resolvedName.toLowerCase()}` : null),
     username: resolvedName,
+    isAdmin: false,
   };
 }
 
@@ -675,17 +692,25 @@ export async function fetchLiveActiveVisitors() {
       .order("last_seen_at", { ascending: false });
 
     if (!error && data) {
-      return data.map((row) => ({
-        key: row.visitor_id,
-        visitor_id: row.visitor_id,
-        user_id: row.user_id,
-        username: row.username || (row.is_authenticated ? "Student" : "Guest"),
-        is_logged_in: Boolean(row.is_authenticated),
-        page_path: row.current_path || "/",
-        device_type: row.device_type || "Desktop",
-        online_at: row.created_at || row.last_seen_at,
-        last_seen_at: row.last_seen_at,
-      }));
+      const visitorMap = new Map();
+      data.forEach((row) => {
+        if (row.visitor_id && !visitorMap.has(row.visitor_id)) {
+          const isAdm = row.username?.toLowerCase() === "admin" || row.user_id === "admin";
+          visitorMap.set(row.visitor_id, {
+            key: row.visitor_id,
+            visitor_id: row.visitor_id,
+            user_id: row.user_id,
+            username: isAdm ? "admin" : (row.username || (row.is_authenticated ? "Student" : "Guest")),
+            is_logged_in: Boolean(row.is_authenticated || isAdm),
+            page_path: row.current_path || "/",
+            device_type: row.device_type || "Desktop",
+            online_at: row.created_at || row.last_seen_at,
+            last_seen_at: row.last_seen_at,
+            is_admin: isAdm,
+          });
+        }
+      });
+      return Array.from(visitorMap.values());
     }
   } catch (err) {
     console.warn("Notice fetching active visits fallback:", err);
