@@ -288,11 +288,11 @@ export default function Quiz() {
     }
   }, [screen, current, answers, marked, visited, activeQuestions, selectedTopics, chapterId, chapter]);
 
-  // strict 3-hour timer ticking logic
+  // strict timer ticking logic with wall-clock sync across tab switches
   useEffect(() => {
     let interval = null;
-    if (screen === "quiz") {
-      interval = setInterval(() => {
+    const checkQuizTimer = () => {
+      if (screen === "quiz") {
         setRemainingSeconds((prev) => {
           if (prev === 1 && !hasConfirmedOvertime) {
             setShowTimeoutModal(true);
@@ -303,12 +303,29 @@ export default function Quiz() {
           }
           return prev - 1;
         });
-      }, 1000);
+      }
+    };
+
+    if (screen === "quiz") {
+      interval = setInterval(checkQuizTimer, 1000);
+      document.addEventListener("visibilitychange", checkQuizTimer);
+      window.addEventListener("focus", checkQuizTimer);
     }
     return () => {
       if (interval) clearInterval(interval);
+      document.removeEventListener("visibilitychange", checkQuizTimer);
+      window.removeEventListener("focus", checkQuizTimer);
     };
   }, [screen, hasConfirmedOvertime]);
+
+  const handleExtendQuizTime = (extraMinutes) => {
+    const extraSeconds = extraMinutes * 60;
+    const startKey = `ca_quiz_start_${chapterId}`;
+    sessionStorage.setItem(startKey, Date.now().toString());
+    setRemainingSeconds(extraSeconds);
+    setHasConfirmedOvertime(false);
+    setShowTimeoutModal(false);
+  };
 
   const formatRemainingTime = (sec) => {
     const isNegative = sec < 0;
@@ -1561,38 +1578,69 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* TIMEOUT OVERLAY POPUP */}
+      {/* TIMEOUT OVERLAY POPUP WITH EXTENSION */}
       {showTimeoutModal && (
         <div className="confirm-overlay open" style={{ zIndex: 10000 }}>
-          <div className="confirm-box" style={{ maxWidth: "450px" }}>
-            <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "var(--ink)", margin: "0 0 10px" }}>
-              ⏰ 3 Hours Completed!
+          <div className="confirm-box" style={{ maxWidth: "460px", textAlign: "center" }}>
+            <div style={{ fontSize: "36px", marginBottom: "6px" }}>⏰</div>
+            <h3 style={{ fontFamily: "var(--ff-serif)", fontSize: "22px", color: "#dc2626", margin: "0 0 10px" }}>
+              Time Limit Reached!
             </h3>
-            <p style={{ margin: "10px 0 20px", fontSize: "14px", color: "var(--ink-soft)", lineHeight: "1.5" }}>
-              You have completed the strict 3-hour limit. You can submit the exam now or continue testing (overtime will be logged and displayed in your results).
+            <p style={{ margin: "10px 0 18px", fontSize: "14px", color: "var(--ink-soft)", lineHeight: "1.5" }}>
+              The allocated practice time has elapsed. You can extend your timer, continue in overtime, or submit your test now.
             </p>
+
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px", marginBottom: "18px" }}>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F3D3E", marginBottom: "10px" }}>
+                ⏱ Add Extra Time &amp; Continue:
+              </div>
+              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => handleExtendQuizTime(15)}
+                  style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                >
+                  +15 Mins
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExtendQuizTime(30)}
+                  style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                >
+                  +30 Mins
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExtendQuizTime(45)}
+                  style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                >
+                  +45 Mins
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <button
                 type="button"
                 className="btn primary"
-                style={{ width: "100%", height: "46px" }}
+                style={{ width: "100%", height: "44px" }}
                 onClick={() => {
                   setShowTimeoutModal(false);
                   finishTest();
                 }}
               >
-                Submit Test
+                🚀 Submit Test Now
               </button>
               <button
                 type="button"
                 className="btn ghost"
-                style={{ width: "100%", height: "46px", background: "none", border: "1px solid var(--line)" }}
+                style={{ width: "100%", height: "42px", background: "none", border: "1px solid var(--line)" }}
                 onClick={() => {
                   setHasConfirmedOvertime(true);
                   setShowTimeoutModal(false);
                 }}
               >
-                Continue Test
+                ⏳ Continue in Overtime
               </button>
             </div>
           </div>

@@ -500,6 +500,7 @@ export default function TakeTest() {
   const [marked, setMarked] = useState({}); // { index: boolean }
   const [visited, setVisited] = useState({ 0: true }); // { index: boolean }
   const [timeLeft, setTimeLeft] = useState(7200); // 7200s = 2 hours
+  const [testEndTime, setTestEndTime] = useState(() => Date.now() + 7200 * 1000);
   const [timerRunning, setTimerRunning] = useState(false);
   const [showTimeUpModal, setShowTimeUpModal] = useState(false);
 
@@ -563,18 +564,24 @@ export default function TakeTest() {
           try {
             const savedSession = JSON.parse(savedSessionRaw);
             if (savedSession.screen === "test" && Array.isArray(savedSession.questions) && savedSession.questions.length > 0) {
-              const elapsedSec = Math.floor((Date.now() - (savedSession.savedAt || Date.now())) / 1000);
-              const newTimeLeft = Math.max(0, (savedSession.timeLeft || 7200) - elapsedSec);
+              const savedEndTime = savedSession.testEndTime || (Date.now() + (savedSession.timeLeft || 7200) * 1000);
+              const remaining = Math.max(0, Math.round((savedEndTime - Date.now()) / 1000));
 
               setQuestions(savedSession.questions);
               setCurrentIndex(savedSession.currentIndex || 0);
               setAnswers(savedSession.answers || {});
               setMarked(savedSession.marked || {});
               setVisited(savedSession.visited || { [savedSession.currentIndex || 0]: true });
-              setTimeLeft(newTimeLeft);
+              setTestEndTime(savedEndTime);
+              setTimeLeft(remaining);
               setQuestionTime(savedSession.questionTime || {});
               setScreen("test");
-              setTimerRunning(true);
+              if (remaining > 0) {
+                setTimerRunning(true);
+              } else {
+                setTimerRunning(false);
+                setShowTimeUpModal(true);
+              }
               setLoading(false);
               return;
             }
@@ -607,13 +614,14 @@ export default function TakeTest() {
         marked,
         visited,
         timeLeft,
+        testEndTime,
         questionTime,
         questions,
         savedAt: Date.now()
       };
       sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
     }
-  }, [screen, currentIndex, answers, marked, visited, timeLeft, questionTime, questions, sessionKey]);
+  }, [screen, currentIndex, answers, marked, visited, timeLeft, testEndTime, questionTime, questions, sessionKey]);
 
   // Mark current question as visited
   useEffect(() => {
@@ -622,23 +630,32 @@ export default function TakeTest() {
     }
   }, [currentIndex, screen]);
 
-  // Timer interval
+  // Timer interval with wall-clock time synchronization (never freezes when switching tabs)
   useEffect(() => {
     let interval = null;
+    const checkTimer = () => {
+      if (timerRunning) {
+        const remaining = Math.max(0, Math.round((testEndTime - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          setTimerRunning(false);
+          setShowTimeUpModal(true);
+        }
+      }
+    };
+
     if (timerRunning) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          const next = prev - 1;
-          if (next <= 0) {
-            setTimerRunning(false);
-            setShowTimeUpModal(true);
-          }
-          return next;
-        });
-      }, 1000);
+      checkTimer();
+      interval = setInterval(checkTimer, 1000);
+      document.addEventListener("visibilitychange", checkTimer);
+      window.addEventListener("focus", checkTimer);
     }
-    return () => clearInterval(interval);
-  }, [timerRunning]);
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener("visibilitychange", checkTimer);
+      window.removeEventListener("focus", checkTimer);
+    };
+  }, [timerRunning, testEndTime]);
 
   // Question time tracking interval
   useEffect(() => {
@@ -663,8 +680,20 @@ export default function TakeTest() {
   }, [currentIndex]);
 
   const handleStart = () => {
+    const end = Date.now() + 7200 * 1000;
+    setTestEndTime(end);
+    setTimeLeft(7200);
     setScreen("test");
     setTimerRunning(true);
+  };
+
+  const handleExtendTestTime = (extraMinutes) => {
+    const extraSeconds = extraMinutes * 60;
+    const newEndTime = Date.now() + extraSeconds * 1000;
+    setTestEndTime(newEndTime);
+    setTimeLeft(extraSeconds);
+    setTimerRunning(true);
+    setShowTimeUpModal(false);
   };
 
   const handleOptionSelect = (opt) => {
@@ -984,17 +1013,60 @@ export default function TakeTest() {
           </div>
         )}
 
-        {/* Time Up Modal */}
+        {/* Time Up Modal with Time Extension */}
         {showTimeUpModal && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
-            <div style={{ background: "#fff", padding: "32px", borderRadius: "12px", width: "420px", textAlign: "center", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}>
-              <h2 style={{ margin: "0 0 12px 0", color: "#dc2626" }}>⏰ Time Up!</h2>
-              <p style={{ marginBottom: "24px", color: "#475569", fontSize: "14px", lineHeight: "1.6" }}>
-                The 2-hour time limit has elapsed. Submit your test to generate your scorecard, or continue in overtime.
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
+            <div style={{ background: "#fff", padding: "32px", borderRadius: "14px", width: "460px", maxWidth: "90vw", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+              <div style={{ fontSize: "40px", marginBottom: "8px" }}>⏰</div>
+              <h2 style={{ margin: "0 0 10px 0", color: "#dc2626", fontSize: "22px", fontWeight: "800" }}>Time Limit Reached!</h2>
+              <p style={{ marginBottom: "20px", color: "#475569", fontSize: "14px", lineHeight: "1.6" }}>
+                The scheduled test time has elapsed. You can extend your test time or submit now to view your score.
               </p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                <button onClick={handleSubmitClick} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "10px 22px", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}>Submit Now</button>
-                <button onClick={() => { setShowTimeUpModal(false); setTimerRunning(true); }} style={{ background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "10px 20px", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}>Continue in Overtime</button>
+              
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "16px", marginBottom: "20px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F3D3E", marginBottom: "10px" }}>
+                  ⏱ Add Extra Time &amp; Continue:
+                </div>
+                <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendTestTime(15)}
+                    style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                  >
+                    +15 Mins
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendTestTime(30)}
+                    style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                  >
+                    +30 Mins
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendTestTime(45)}
+                    style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}
+                  >
+                    +45 Mins
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleSubmitClick}
+                  style={{ background: "#1E7145", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: "700", flex: 1 }}
+                >
+                  🚀 Submit Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowTimeUpModal(false); setTimerRunning(true); }}
+                  style={{ background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "10px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}
+                >
+                  ⏳ Continue in Overtime
+                </button>
               </div>
             </div>
           </div>
