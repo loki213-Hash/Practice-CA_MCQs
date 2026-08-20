@@ -537,7 +537,7 @@ export default function TakeTest() {
   const [showWarningToast, setShowWarningToast] = useState(false);
 
   // Results state
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Wrong");
 
   // Step 1: Load Course and Check for Active Persisted Test Session
   useEffect(() => {
@@ -1498,6 +1498,7 @@ export default function TakeTest() {
                 <Link to="/vault" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #B08628", background: "rgba(176,134,40,0.08)", borderRadius: "6px", color: "#B08628", fontSize: "13px", fontWeight: "700" }}>📚 Vault</Link>
                 <Link to={`/course/${courseSlug}`} style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", fontSize: "13px", fontWeight: "600" }}>Course</Link>
                 <button onClick={() => window.location.reload()} style={{ background: "#0F3D3E", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}>Restart</button>
+                <Link to="/" style={{ textDecoration: "none", padding: "8px 14px", border: "1px solid #dc2626", borderRadius: "6px", color: "#dc2626", fontSize: "13px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "5px" }}>✕ Close</Link>
               </div>
             </div>
           </div>
