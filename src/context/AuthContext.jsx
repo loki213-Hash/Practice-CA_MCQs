@@ -15,6 +15,13 @@ export function AuthProvider({ children }) {
       if (usr && usr.id) {
         const resolved = uname || usr.user_metadata?.username || (usr.email ? usr.email.split("@")[0].replace(".caquiz", "") : "Student");
         localStorage.setItem("ca_quiz_user_profile", JSON.stringify({ id: usr.id, username: resolved }));
+        // Generate fresh session ID & start time upon login so session open time resets to exact login moment
+        if (typeof sessionStorage !== "undefined") {
+          const freshStartTime = new Date().toISOString();
+          const freshSessionId = "s_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 8);
+          sessionStorage.setItem("ca_quiz_session_id", freshSessionId);
+          sessionStorage.setItem("ca_quiz_session_start_time", freshStartTime);
+        }
       } else {
         localStorage.removeItem("ca_quiz_user_profile");
       }

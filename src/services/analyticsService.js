@@ -201,6 +201,8 @@ export async function recordVisitAndHeartbeat({ user = null, username = null, pa
   const identity = resolveUserIdentity({ user, username });
   const now = new Date().toISOString();
 
+  const sessionStartTime = getOrCreateSessionStartTime();
+
   const record = {
     visitor_id: visitorId,
     user_id: identity.userId,
@@ -211,6 +213,7 @@ export async function recordVisitAndHeartbeat({ user = null, username = null, pa
     current_path: pagePath,
     device_type: deviceType,
     user_agent: userAgent.substring(0, 255),
+    created_at: sessionStartTime,
     last_seen_at: now,
   };
 
