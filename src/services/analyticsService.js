@@ -2,6 +2,7 @@ import { supabase } from "../supabase/supabase";
 
 const VISITOR_STORAGE_KEY = "ca_quiz_visitor_uuid";
 const SESSION_STORAGE_KEY = "ca_quiz_session_id";
+const SESSION_START_KEY = "ca_quiz_session_start_time";
 const LOCAL_ANALYTICS_KEY = "ca_quiz_local_analytics_log";
 const LOCAL_PEAKS_KEY = "ca_quiz_local_traffic_peaks";
 
@@ -22,7 +23,7 @@ export function getOrCreateVisitorId() {
 }
 
 /**
- * Get or initialize browser session ID
+ * Get or initialize persistent browser session ID
  */
 export function getOrCreateSessionId() {
   try {
@@ -34,6 +35,22 @@ export function getOrCreateSessionId() {
     return sid;
   } catch {
     return "s_anon_" + Math.random().toString(36).substring(2, 8);
+  }
+}
+
+/**
+ * Get or initialize session start timestamp (persists for entire active session, never resets on refresh)
+ */
+export function getOrCreateSessionStartTime() {
+  try {
+    let startTime = sessionStorage.getItem(SESSION_START_KEY);
+    if (!startTime) {
+      startTime = new Date().toISOString();
+      sessionStorage.setItem(SESSION_START_KEY, startTime);
+    }
+    return startTime;
+  } catch {
+    return new Date().toISOString();
   }
 }
 
@@ -419,6 +436,7 @@ function processPresenceState(channel) {
     const activeVisitors = [];
     const uniqueVisitorIds = new Set();
     const uniqueUserIds = new Set();
+    const sessionStartTime = getOrCreateSessionStartTime();
 
     Object.keys(state).forEach((key) => {
       const presences = state[key];
@@ -436,7 +454,8 @@ function processPresenceState(channel) {
           is_logged_in: Boolean(latest.is_logged_in),
           page_path: latest.page_path || "/",
           device_type: latest.device_type || "Desktop",
-          online_at: latest.online_at || new Date().toISOString(),
+          online_at: latest.online_at || sessionStartTime,
+          last_seen_at: latest.last_seen_at || new Date().toISOString(),
         });
       }
     });
@@ -515,6 +534,7 @@ function getOrCreatePresenceChannel(visitorId) {
  */
 export function setupRealtimePresence({ user = null, username = "Guest", pagePath = "/", onPresenceChange = null }) {
   const visitorId = getOrCreateVisitorId();
+  const sessionStartTime = getOrCreateSessionStartTime();
   const isAuthenticated = Boolean(user && user.id);
   const cleanUsername = isAuthenticated ? (username || user.email?.split("@")[0] || "Student") : "Guest";
   const deviceType = getDeviceType();
@@ -541,18 +561,26 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
     const isAuth = Boolean(updatedUser && updatedUser.id);
     const resolvedName = isAuth ? (updatedUsername || updatedUser.email?.split("@")[0] || "Student") : "Guest";
 
+    let cleanPath = updatedPath;
+    try {
+      cleanPath = decodeURI(updatedPath);
+    } catch {
+      cleanPath = updatedPath;
+    }
+
     const payload = {
       visitor_id: visitorId,
       user_id: updatedUser?.id || null,
       username: resolvedName,
       is_logged_in: isAuth,
-      page_path: updatedPath,
+      page_path: cleanPath,
       device_type: deviceType,
-      online_at: new Date().toISOString(),
+      online_at: sessionStartTime,
+      last_seen_at: new Date().toISOString(),
     };
 
     try {
-      if (channel.state === "joined") {
+      if (channel.state === "joined" || channel.status === "SUBSCRIBED") {
         await channel.track(payload);
       } else {
         // Retry tracking once channel has subscribed/joined
@@ -562,7 +590,7 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
           } catch (e) {
             // quiet catch
           }
-        }, 600);
+        }, 500);
       }
     } catch (e) {
       console.warn("Could not update presence track:", e);
@@ -587,4 +615,35 @@ export function setupRealtimePresence({ user = null, username = "Guest", pagePat
     updatePresence,
     unsubscribe,
   };
+}
+
+/**
+ * Direct DB active visitors fetch (fallback & instant cold-load helper)
+ */
+export async function fetchLiveActiveVisitors() {
+  const ninetySecondsAgo = new Date(Date.now() - 90 * 1000).toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("site_analytics_visits")
+      .select("visitor_id, user_id, username, is_authenticated, current_path, device_type, created_at, last_seen_at")
+      .gte("last_seen_at", ninetySecondsAgo)
+      .order("last_seen_at", { ascending: false });
+
+    if (!error && data) {
+      return data.map((row) => ({
+        key: row.visitor_id,
+        visitor_id: row.visitor_id,
+        user_id: row.user_id,
+        username: row.username || (row.is_authenticated ? "Student" : "Guest"),
+        is_logged_in: Boolean(row.is_authenticated),
+        page_path: row.current_path || "/",
+        device_type: row.device_type || "Desktop",
+        online_at: row.created_at || row.last_seen_at,
+        last_seen_at: row.last_seen_at,
+      }));
+    }
+  } catch (err) {
+    console.warn("Notice fetching active visits fallback:", err);
+  }
+  return [];
 }
