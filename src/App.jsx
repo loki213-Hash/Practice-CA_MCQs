@@ -36,10 +36,14 @@ const MistakeVault = lazyWithRetry(() => import("./pages/MistakeVault"));
 
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import GuestAuthPrompt from "./components/GuestAuthPrompt";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   return (
     <>
+      <Analytics />
+      <SpeedInsights />
       <AnalyticsTracker />
       <GuestAuthPrompt />
       <Suspense fallback={<div className="loader-container">Loading...</div>}>
