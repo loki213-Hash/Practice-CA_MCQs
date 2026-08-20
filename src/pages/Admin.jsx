@@ -32,8 +32,10 @@ export default function Admin() {
 
   // Real-Time Live Presence & 24h Analytics State
   const [analytics, setAnalytics] = useState({
-    liveTotalCount: 1,
-    liveLoggedInCount: 1,
+    liveTotalCount: 0,
+    liveLoggedInCount: 0,
+    liveAdminCount: 0,
+    liveStudentCount: 0,
     liveGuestCount: 0,
     activeVisitors: [],
     uniqueVisitors24h: 0,
@@ -45,7 +47,7 @@ export default function Admin() {
     desktopCount24h: 0,
     mobileCount24h: 0,
   });
-  const [liveRosterFilter, setLiveRosterFilter] = useState("all"); // 'all' | 'students' | 'guests'
+  const [liveRosterFilter, setLiveRosterFilter] = useState("all"); // 'all' | 'admins' | 'students' | 'guests'
 
   const [flaggedItems, setFlaggedItems] = useState([]);
   const [flagsLoading, setFlagsLoading] = useState(false);
@@ -153,7 +155,7 @@ export default function Admin() {
 
       const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
       const resolvedName = isSelf ? (username || "admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
-      const isAdminUser = Boolean(isSelf || resolvedName.toLowerCase() === "admin");
+      const isAdminUser = Boolean(v.is_admin || isSelf || resolvedName.toLowerCase() === "admin");
 
       return {
         ...v,
@@ -177,41 +179,51 @@ export default function Admin() {
     if (!isAdmin) return;
 
     let currentRealtime = [];
+    let hasRealtimeSnapshot = false;
 
-    const syncVisitors = async (rtList = currentRealtime) => {
+    const syncVisitors = async (rtList = currentRealtime, useDatabaseFallback = !hasRealtimeSnapshot) => {
       currentRealtime = rtList;
-      const dbVisits = await fetchLiveActiveVisitors();
+      // A heartbeat proves recent activity, not a current WebSocket connection.
+      // Use it only during cold load; once Presence has supplied a snapshot it
+      // is authoritative, including an intentionally empty snapshot.
+      const dbVisits = useDatabaseFallback ? await fetchLiveActiveVisitors() : [];
       const merged = mergeVisitors(rtList, dbVisits);
       const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
-      const uniqueLoggedIn = new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size;
-      const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
+      const liveAdmins = merged.filter((m) => m.is_admin).length;
+      const liveStudents = merged.filter((m) => m.is_logged_in && !m.is_admin).length;
+      const liveLoggedIn = liveAdmins + liveStudents;
+      const liveGuests = merged.filter((m) => !m.is_logged_in).length;
 
       setAnalytics((prev) => ({
         ...prev,
         liveTotalCount: uniqueTotal,
-        liveLoggedInCount: uniqueLoggedIn,
-        liveGuestCount: uniqueGuest,
+        liveLoggedInCount: liveLoggedIn,
+        liveAdminCount: liveAdmins,
+        liveStudentCount: liveStudents,
+        liveGuestCount: liveGuests,
         activeVisitors: merged,
-        peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, uniqueLoggedIn),
+        peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, liveLoggedIn),
         peakTotal24h: Math.max(prev.peakTotal24h, uniqueTotal),
       }));
     };
 
     const presenceTracker = setupRealtimePresence({
-      user: user || { id: "admin-session" },
+      user,
       username: username || "admin",
       pagePath: "/admin",
       onPresenceChange: ({ activeVisitors }) => {
-        syncVisitors(activeVisitors || []);
+        hasRealtimeSnapshot = true;
+        syncVisitors(activeVisitors || [], false);
       },
     });
 
     // Immediate initial sync
     syncVisitors([]);
 
-    // 10s background sync poll to guarantee mobile devices and non-WebSocket sessions are continuously live
+    // Keep the cold-load fallback fresh until Presence delivers its first state.
+    // After that, recent heartbeats must not be shown as fake live users.
     const livePoll = setInterval(() => {
-      syncVisitors(currentRealtime);
+      syncVisitors(currentRealtime, !hasRealtimeSnapshot);
     }, 10000);
 
     return () => {
@@ -231,17 +243,20 @@ export default function Admin() {
     loadRegisteredUsers();
     loadFeedbacks();
     loadFormSubmissions();
-    const dbVisits = await fetchLiveActiveVisitors();
     setAnalytics((prev) => {
-      const merged = mergeVisitors(prev.activeVisitors, dbVisits);
+      const merged = prev.activeVisitors;
       const uniqueTotal = new Set(merged.map((m) => m.visitor_id)).size;
-      const uniqueLoggedIn = new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size;
-      const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
+      const liveAdmins = merged.filter((m) => m.is_admin).length;
+      const liveStudents = merged.filter((m) => m.is_logged_in && !m.is_admin).length;
+      const liveLoggedIn = liveAdmins + liveStudents;
+      const liveGuests = merged.filter((m) => !m.is_logged_in).length;
       return {
         ...prev,
         liveTotalCount: uniqueTotal,
-        liveLoggedInCount: uniqueLoggedIn,
-        liveGuestCount: uniqueGuest,
+        liveLoggedInCount: liveLoggedIn,
+        liveAdminCount: liveAdmins,
+        liveStudentCount: liveStudents,
+        liveGuestCount: liveGuests,
         activeVisitors: merged,
       };
     });
@@ -346,11 +361,14 @@ export default function Admin() {
       setIsAnalyticsTableMissing(Boolean(analyticsData.isTableMissing));
       setAnalytics((prev) => ({
         ...prev,
-        uniqueVisitors24h: Math.max(analyticsData.uniqueVisitors24h, prev.liveTotalCount),
-        distinctLoggedIn24h: Math.max(analyticsData.distinctLoggedIn24h, prev.liveLoggedInCount),
-        allTimeUniqueVisitors: Math.max(analyticsData.allTimeUniqueVisitors, analyticsData.uniqueVisitors24h, prev.liveTotalCount),
-        peakLoggedIn24h: Math.max(analyticsData.peakLoggedIn24h, prev.liveLoggedInCount),
-        peakTotal24h: Math.max(analyticsData.peakTotal24h, prev.liveTotalCount),
+        // Historical cards use their own persisted definitions. Merging a
+        // connection count into a distinct-account/device total created values
+        // that were mathematically plausible but not actually measured.
+        uniqueVisitors24h: analyticsData.uniqueVisitors24h,
+        distinctLoggedIn24h: analyticsData.distinctLoggedIn24h,
+        allTimeUniqueVisitors: analyticsData.allTimeUniqueVisitors,
+        peakLoggedIn24h: analyticsData.peakLoggedIn24h,
+        peakTotal24h: analyticsData.peakTotal24h,
         totalSessions24h: analyticsData.totalSessions24h,
         desktopCount24h: analyticsData.desktopCount24h,
         mobileCount24h: analyticsData.mobileCount24h,
@@ -1226,7 +1244,7 @@ export default function Admin() {
                     value={analytics.liveTotalCount}
                     label="Live Users Online (Now)"
                     trend="● Live"
-                    subtext={`${analytics.liveLoggedInCount} Logged-in · ${analytics.liveGuestCount} Guest visitors`}
+                    subtext={`${analytics.liveAdminCount} Admin · ${analytics.liveStudentCount} Student · ${analytics.liveGuestCount} Guest connections`}
                     chartType="equalizer"
                   />
 
@@ -1248,9 +1266,9 @@ export default function Admin() {
                     icon="🌐"
                     badgeText="With / Without Login"
                     value={analytics.uniqueVisitors24h}
-                    label="24h Unique Site Visitors"
+                    label="24h Unique Tracked Visitors"
                     trend="24h Total"
-                    subtext="Unique devices visited in 24h"
+                    subtext="Unique browser devices in rolling 24h"
                     chartType="line"
                   />
 
@@ -1260,8 +1278,8 @@ export default function Admin() {
                     icon="🎓"
                     badgeText="Verified Logins"
                     value={analytics.distinctLoggedIn24h}
-                    label="24h Distinct Student Logins"
-                    subtext={`${kpis.totalUsersCount > 0 ? Math.round((analytics.distinctLoggedIn24h / Math.max(1, kpis.totalUsersCount)) * 100) : 0}% of student accounts active`}
+                    label="24h Distinct Student Accounts"
+                    subtext={`${kpis.totalUsersCount > 0 ? Math.round((analytics.distinctLoggedIn24h / Math.max(1, kpis.totalUsersCount)) * 100) : 0}% of student accounts signed in`}
                     chartType="progress"
                     progressPct={kpis.totalUsersCount > 0 ? Math.min(100, Math.round((analytics.distinctLoggedIn24h / Math.max(1, kpis.totalUsersCount)) * 100)) : 100}
                   />
@@ -1325,10 +1343,10 @@ export default function Admin() {
                       </div>
                       <div>
                         <h4 style={{ fontSize: "16px", color: "#f8fafc", fontWeight: "700", margin: "0 0 2px" }}>
-                          Live Connected Visitors &amp; Students Monitor
+                          Live Connected Visitors, Students &amp; Admins
                         </h4>
                         <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-                          Instant real-time socket presence showing active users, visited pages, and device types.
+                          Real-time socket presence showing connected admins, students, guests, routes, and devices.
                         </p>
                       </div>
                     </div>
@@ -1344,10 +1362,17 @@ export default function Admin() {
                       </button>
                       <button
                         type="button"
+                        className={`presence-chip-btn ${liveRosterFilter === "admins" ? "active" : ""}`}
+                        onClick={() => setLiveRosterFilter("admins")}
+                      >
+                        ⚡ Admins ({analytics.liveAdminCount})
+                      </button>
+                      <button
+                        type="button"
                         className={`presence-chip-btn ${liveRosterFilter === "students" ? "active" : ""}`}
                         onClick={() => setLiveRosterFilter("students")}
                       >
-                        🎓 Students ({analytics.liveLoggedInCount})
+                        🎓 Students ({analytics.liveStudentCount})
                       </button>
                       <button
                         type="button"
@@ -1374,23 +1399,11 @@ export default function Admin() {
                       </thead>
                       <tbody>
                         {(() => {
-                          const displayList = analytics.activeVisitors.length > 0
-                            ? analytics.activeVisitors
-                            : [
-                                {
-                                  key: "admin-self",
-                                  visitor_id: "self",
-                                  user_id: "admin-id",
-                                  username: username || "Admin",
-                                  is_logged_in: true,
-                                  page_path: "/admin",
-                                  device_type: "Desktop",
-                                  online_at: new Date().toISOString(),
-                                },
-                              ];
+                          const displayList = analytics.activeVisitors;
 
                           const filteredList = displayList.filter((v) => {
-                            if (liveRosterFilter === "students") return v.is_logged_in;
+                            if (liveRosterFilter === "admins") return v.is_admin;
+                            if (liveRosterFilter === "students") return v.is_logged_in && !v.is_admin;
                             if (liveRosterFilter === "guests") return !v.is_logged_in;
                             return true;
                           });
@@ -1511,8 +1524,8 @@ export default function Admin() {
                   <div className="presence-summary-bar">
                     <div className="summary-metric-box">
                       <div>
-                        <div className="summary-metric-lbl">24h Total Site Sessions</div>
-                        <div className="summary-metric-val">{analytics.totalSessions24h || analytics.uniqueVisitors24h}</div>
+                        <div className="summary-metric-lbl">24h Tracked Sessions</div>
+                        <div className="summary-metric-val">{analytics.totalSessions24h}</div>
                       </div>
                       <span style={{ fontSize: "20px" }}>⚡</span>
                     </div>
@@ -1520,7 +1533,7 @@ export default function Admin() {
                     <div className="summary-metric-box">
                       <div style={{ width: "100%" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span className="summary-metric-lbl">24h Device Split</span>
+                          <span className="summary-metric-lbl">24h Unique Device Split</span>
                           <span style={{ fontSize: "11.5px", color: "#cbd5e1", fontWeight: 600 }}>
                             {analytics.desktopCount24h} Desktop · {analytics.mobileCount24h} Mobile
                           </span>

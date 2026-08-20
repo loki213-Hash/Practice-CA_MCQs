@@ -5,6 +5,22 @@ const SESSION_STORAGE_KEY = "ca_quiz_session_id";
 const SESSION_START_KEY = "ca_quiz_session_start_time";
 const LOCAL_ANALYTICS_KEY = "ca_quiz_local_analytics_log";
 const LOCAL_PEAKS_KEY = "ca_quiz_local_traffic_peaks";
+const HEARTBEAT_DEDUP_WINDOW_MS = 2_000;
+const ANALYTICS_PAGE_SIZE = 1_000;
+
+// React Strict Mode intentionally mounts effects twice in development. Keep a
+// short, module-level dedupe window so that one browser session is not recorded
+// twice before the database unique constraint can protect it.
+const recentHeartbeatRequests = new Map();
+
+function isUuid(value) {
+  return typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isAdminUsername(username) {
+  return typeof username === "string" && username.trim().toLowerCase() === "admin";
+}
 
 /**
  * Get or initialize persistent unique device/visitor UUID
@@ -130,23 +146,26 @@ export function resolveUserIdentity({ user = null, username = null } = {}) {
   }
 
   const activeUser = user || cachedUser;
-  
+  const userId = isUuid(activeUser?.id) ? activeUser.id : null;
   const isAdminUser = Boolean(
-    (user && (user.email === "admin.caquiz@gmail.com" || user.user_metadata?.username?.toLowerCase() === "admin")) ||
-    (username && username.toLowerCase() === "admin") ||
-    (cachedUser && (cachedUser.email === "admin.caquiz@gmail.com" || cachedUser.username?.toLowerCase() === "admin"))
+    (user && (user.email === "admin.caquiz@gmail.com" || isAdminUsername(user.user_metadata?.username))) ||
+    isAdminUsername(username) ||
+    (cachedUser && (cachedUser.email === "admin.caquiz@gmail.com" || isAdminUsername(cachedUser.username)))
   );
 
-  if (isAdminUser) {
+  // user_id is a UUID foreign key in Supabase. Never send synthetic values such
+  // as "admin-session" or username-derived IDs: Postgres rejects those writes,
+  // which made a real admin disappear from the heartbeat fallback.
+  if (isAdminUser && userId) {
     return {
       isAuth: true,
-      userId: user?.id || cachedUser?.id || "admin-session",
+      userId,
       username: "admin",
       isAdmin: true,
     };
   }
 
-  const isAuth = Boolean(activeUser && (activeUser.id || (activeUser.username && activeUser.username !== "Guest" && activeUser.username !== "Student")));
+  const isAuth = Boolean(userId);
   
   let resolvedName = "Guest";
   if (isAuth) {
@@ -165,7 +184,7 @@ export function resolveUserIdentity({ user = null, username = null } = {}) {
 
   return {
     isAuth,
-    userId: activeUser?.id || (isAuth ? `u_${resolvedName.toLowerCase()}` : null),
+    userId,
     username: resolvedName,
     isAdmin: false,
   };
@@ -188,83 +207,94 @@ export async function recordVisitAndHeartbeat({ user = null, username = null, pa
     username: identity.username,
     is_authenticated: identity.isAuth,
     session_id: sessionId,
+    entry_path: pagePath,
     current_path: pagePath,
     device_type: deviceType,
     user_agent: userAgent.substring(0, 255),
     last_seen_at: now,
   };
 
-  // 1. Update local cache
-  try {
-    const local = getLocalAnalytics();
-    const existingIndex = local.findIndex((r) => r.visitor_id === visitorId && r.session_id === sessionId);
-    if (existingIndex >= 0) {
-      local[existingIndex] = {
-        ...local[existingIndex],
-        ...record,
-      };
-    } else {
-      local.push({
-        ...record,
-        entry_path: pagePath,
-        created_at: now,
-      });
-    }
-    saveLocalAnalytics(local);
-  } catch (err) {
-    console.warn("Local analytics heartbeat error:", err);
+  const dedupeKey = `${visitorId}:${sessionId}`;
+  const fingerprint = `${identity.userId || "guest"}:${identity.username}:${identity.isAuth}:${identity.isAdmin}:${pagePath}`;
+  const previous = recentHeartbeatRequests.get(dedupeKey);
+  if (previous && previous.fingerprint === fingerprint && Date.now() - previous.at < HEARTBEAT_DEDUP_WINDOW_MS) {
+    return previous.promise;
   }
 
-  // 2. Write to Supabase table
-  try {
-    const { data: existing, error: selectErr } = await supabase
-      .from("site_analytics_visits")
-      .select("id")
-      .eq("visitor_id", visitorId)
-      .eq("session_id", sessionId)
-      .maybeSingle();
+  const writePromise = (async () => {
+    // 1. Update local cache
+    try {
+      const local = getLocalAnalytics();
+      const existingIndex = local.findIndex((r) => r.visitor_id === visitorId && r.session_id === sessionId);
+      if (existingIndex >= 0) {
+        local[existingIndex] = {
+          ...local[existingIndex],
+          ...record,
+        };
+      } else {
+        local.push({
+          ...record,
+          created_at: now,
+        });
+      }
+      saveLocalAnalytics(local);
+    } catch (err) {
+      console.warn("Local analytics heartbeat error:", err);
+    }
 
-    if (selectErr) {
+    // 2. One atomic upsert per browser session. The SQL migration adds the
+    // required unique index. The fallback keeps deployments safe until the
+    // migration is applied to an older project.
+    const visitRow = record;
+
+    try {
+      const { error: upsertError } = await supabase
+        .from("site_analytics_visits")
+        .upsert(visitRow, { onConflict: "visitor_id,session_id" });
+
+      if (!upsertError) {
+        return { success: true, missingTable: false };
+      }
+
+      const { data: existing, error: selectErr } = await supabase
+        .from("site_analytics_visits")
+        .select("id")
+        .eq("visitor_id", visitorId)
+        .eq("session_id", sessionId)
+        .order("last_seen_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (selectErr) {
+        console.warn("Analytics heartbeat could not be stored:", upsertError.message || upsertError);
+        return { success: false, missingTable: true };
+      }
+
+      if (existing?.id) {
+        const { error: updateErr } = await supabase
+          .from("site_analytics_visits")
+          .update(record)
+          .eq("id", existing.id);
+        return { success: !updateErr, missingTable: Boolean(updateErr) };
+      }
+
+      const { error: insertErr } = await supabase
+        .from("site_analytics_visits")
+        .insert({ ...visitRow, created_at: now });
+      return { success: !insertErr, missingTable: Boolean(insertErr) };
+    } catch (err) {
+      console.warn("Analytics heartbeat error:", err);
       return { success: false, missingTable: true };
     }
+  })();
 
-    if (existing && existing.id) {
-      // Update last_seen_at & path & auth info
-      await supabase
-        .from("site_analytics_visits")
-        .update({
-          user_id: identity.userId,
-          username: identity.username,
-          is_authenticated: identity.isAuth,
-          current_path: pagePath,
-          device_type: deviceType,
-          last_seen_at: now,
-        })
-        .eq("id", existing.id);
-    } else {
-      // Insert new session visit record
-      await supabase
-        .from("site_analytics_visits")
-        .insert([
-          {
-            visitor_id: visitorId,
-            user_id: identity.userId,
-            username: identity.username,
-            is_authenticated: identity.isAuth,
-            session_id: sessionId,
-            entry_path: pagePath,
-            current_path: pagePath,
-            device_type: deviceType,
-            user_agent: userAgent.substring(0, 255),
-            created_at: now,
-            last_seen_at: now,
-          },
-        ]);
-    }
-    return { success: true, missingTable: false };
-  } catch {
-    return { success: false, missingTable: true };
-  }
+  recentHeartbeatRequests.set(dedupeKey, {
+    fingerprint,
+    at: Date.now(),
+    promise: writePromise,
+  });
+
+  return writePromise;
 }
 
 /**
@@ -322,64 +352,108 @@ export async function recordPeakSnapshot(peakType, currentCount) {
 /**
  * Aggregate comprehensive 24-hour and all-time traffic statistics
  */
+async function fetchAnalyticsVisitRows({ since = null, columns }) {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    let query = supabase
+      .from("site_analytics_visits")
+      .select(columns)
+      .order("last_seen_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + ANALYTICS_PAGE_SIZE - 1);
+
+    if (since) query = query.gte("last_seen_at", since);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    rows.push(...(data || []));
+    if (!data || data.length < ANALYTICS_PAGE_SIZE) return rows;
+    offset += ANALYTICS_PAGE_SIZE;
+  }
+}
+
+function countVisitMetrics(rows) {
+  const latestVisitByVisitor = new Map();
+  const uniqueSessionIds = new Set();
+  const authenticatedStudentIds = new Set();
+
+  for (const row of rows) {
+    if (row.session_id) {
+      uniqueSessionIds.add(row.session_id);
+    } else if (row.id) {
+      // Legacy rows created before session IDs were introduced still represent
+      // one session each and must not disappear from the count.
+      uniqueSessionIds.add(`legacy-${row.id}`);
+    }
+
+    if (row.visitor_id && !latestVisitByVisitor.has(row.visitor_id)) {
+      latestVisitByVisitor.set(row.visitor_id, row);
+    }
+
+    if (row.is_authenticated && row.user_id && !isAdminUsername(row.username)) {
+      authenticatedStudentIds.add(row.user_id);
+    }
+  }
+
+  let desktopCount24h = 0;
+  let mobileCount24h = 0;
+  let guestVisits24h = 0;
+  latestVisitByVisitor.forEach((row) => {
+    if (row.device_type === "Mobile" || row.device_type === "Tablet") {
+      mobileCount24h++;
+    } else {
+      desktopCount24h++;
+    }
+    if (!row.is_authenticated) guestVisits24h++;
+  });
+
+  return {
+    uniqueVisitors: latestVisitByVisitor.size,
+    distinctStudents: authenticatedStudentIds.size,
+    totalSessions: uniqueSessionIds.size,
+    guestVisits: guestVisits24h,
+    desktopCount: desktopCount24h,
+    mobileCount: mobileCount24h,
+  };
+}
+
 export async function fetchAnalyticsMetrics() {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   let isTableMissing = false;
 
-  let uniqueVisitors24h = 0;
-  let distinctLoggedIn24h = 0;
-  let allTimeUniqueVisitors = 0;
+  let uniqueVisitors24h;
+  let distinctLoggedIn24h;
+  let allTimeUniqueVisitors;
   let peakLoggedIn24h = 0;
   let peakTotal24h = 0;
-  let totalSessions24h = 0;
-  let guestVisits24h = 0;
-  let desktopCount24h = 0;
-  let mobileCount24h = 0;
+  let totalSessions24h;
+  let guestVisits24h;
+  let desktopCount24h;
+  let mobileCount24h;
 
   try {
-    // 1. Query site_analytics_visits for the past 24 hours
-    const { data: recentVisits, error: visitErr } = await supabase
-      .from("site_analytics_visits")
-      .select("visitor_id, user_id, is_authenticated, device_type, last_seen_at")
-      .gte("last_seen_at", twentyFourHoursAgo);
+    // Fetch all pages, rather than Supabase's first 1,000 rows only. That
+    // keeps all-time unique visitors and busy 24h windows exact.
+    const recentVisits = await fetchAnalyticsVisitRows({
+      since: twentyFourHoursAgo,
+      columns: "id, visitor_id, user_id, username, is_authenticated, session_id, device_type, last_seen_at",
+    });
+    const recentMetrics = countVisitMetrics(recentVisits);
+    uniqueVisitors24h = recentMetrics.uniqueVisitors;
+    distinctLoggedIn24h = recentMetrics.distinctStudents;
+    totalSessions24h = recentMetrics.totalSessions;
+    guestVisits24h = recentMetrics.guestVisits;
+    desktopCount24h = recentMetrics.desktopCount;
+    mobileCount24h = recentMetrics.mobileCount;
 
-    if (visitErr) {
-      isTableMissing = true;
-      throw visitErr;
-    }
-
-    if (recentVisits) {
-      totalSessions24h = recentVisits.length;
-      const uniqueVIds24h = new Set();
-      const uniqueUIds24h = new Set();
-
-      recentVisits.forEach((r) => {
-        if (r.visitor_id) uniqueVIds24h.add(r.visitor_id);
-        if (r.is_authenticated && r.user_id) uniqueUIds24h.add(r.user_id);
-        if (r.device_type === "Mobile" || r.device_type === "Tablet") {
-          mobileCount24h++;
-        } else {
-          desktopCount24h++;
-        }
-        if (!r.is_authenticated) {
-          guestVisits24h++;
-        }
-      });
-
-      uniqueVisitors24h = uniqueVIds24h.size;
-      distinctLoggedIn24h = uniqueUIds24h.size;
-    }
-
-    // 2. Query all-time unique visitors
-    const { data: allVisits } = await supabase
-      .from("site_analytics_visits")
-      .select("visitor_id");
-
-    if (allVisits) {
-      const allVIds = new Set(allVisits.map((v) => v.visitor_id).filter(Boolean));
-      allTimeUniqueVisitors = allVIds.size;
-    }
+    const allVisits = await fetchAnalyticsVisitRows({
+      columns: "id, visitor_id, last_seen_at",
+    });
+    allTimeUniqueVisitors = new Set(allVisits.map((visit) => visit.visitor_id).filter(Boolean)).size;
 
     // 3. Query 24h Peak Logged In Users from site_traffic_peaks
     const { data: loggedPeakData } = await supabase
@@ -407,6 +481,7 @@ export async function fetchAnalyticsMetrics() {
       peakTotal24h = totalPeakData[0].peak_count;
     }
   } catch (err) {
+    isTableMissing = true;
     console.warn("Supabase analytics query fallback to local cache:", err?.message || err);
     // Fallback: Read local storage analytics cache
     const local = getLocalAnalytics();
@@ -414,31 +489,18 @@ export async function fetchAnalyticsMetrics() {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
 
     const recentLocal = local.filter((r) => new Date(r.last_seen_at).getTime() >= cutoff);
-    const uniqueVIds24h = new Set(recentLocal.map((r) => r.visitor_id).filter(Boolean));
-    const uniqueUIds24h = new Set(recentLocal.filter((r) => r.is_authenticated && r.user_id).map((r) => r.user_id));
+    const localMetrics = countVisitMetrics(recentLocal);
     const allVIds = new Set(local.map((r) => r.visitor_id).filter(Boolean));
 
-    uniqueVisitors24h = uniqueVIds24h.size;
-    distinctLoggedIn24h = uniqueUIds24h.size;
+    uniqueVisitors24h = localMetrics.uniqueVisitors;
+    distinctLoggedIn24h = localMetrics.distinctStudents;
     allTimeUniqueVisitors = Math.max(allVIds.size, uniqueVisitors24h);
-    totalSessions24h = recentLocal.length;
-    peakLoggedIn24h = localPeaks.loggedIn24h || Math.max(distinctLoggedIn24h, 1);
-    peakTotal24h = localPeaks.total24h || Math.max(uniqueVisitors24h, 1);
-  }
-
-  // Cross-reference with user_progress attempts in past 24h to ensure no active logged in students are missed
-  try {
-    const { data: recentProgress } = await supabase
-      .from("user_progress")
-      .select("user_id")
-      .gte("completed_at", twentyFourHoursAgo);
-
-    if (recentProgress && recentProgress.length > 0) {
-      const studentIdsFromProgress = new Set(recentProgress.map((p) => p.user_id).filter(Boolean));
-      distinctLoggedIn24h = Math.max(distinctLoggedIn24h, studentIdsFromProgress.size);
-    }
-  } catch {
-    // Ignore progress table check if network error
+    totalSessions24h = localMetrics.totalSessions;
+    guestVisits24h = localMetrics.guestVisits;
+    desktopCount24h = localMetrics.desktopCount;
+    mobileCount24h = localMetrics.mobileCount;
+    peakLoggedIn24h = localPeaks.loggedIn24h || (distinctLoggedIn24h > 0 ? 1 : 0);
+    peakTotal24h = localPeaks.total24h || (uniqueVisitors24h > 0 ? 1 : 0);
   }
 
   // Guarantee logical consistency (e.g. peak logged in is at least 1 if active, etc.)
@@ -467,6 +529,8 @@ const presenceListeners = new Set();
 let latestPresenceData = {
   liveTotalCount: 0,
   liveLoggedInCount: 0,
+  liveAdminCount: 0,
+  liveStudentCount: 0,
   liveGuestCount: 0,
   activeVisitors: [],
 };
@@ -487,22 +551,19 @@ function processPresenceState(channel) {
   try {
     const state = channel.presenceState();
     const activeVisitors = [];
-    const uniqueVisitorIds = new Set();
-    const uniqueUserIds = new Set();
     const sessionStartTime = getOrCreateSessionStartTime();
 
     Object.keys(state).forEach((key) => {
       const presences = state[key];
       if (Array.isArray(presences) && presences.length > 0) {
-        // If multiple tabs are open on the same device, prefer any tab that is authenticated
-        const chosen = presences.find((p) => p.is_logged_in) || presences[presences.length - 1];
+        // One presence key represents one browser/device. Prefer the most
+        // informative tab state so an initial guest heartbeat cannot hide a
+        // later authenticated admin or student update from the live roster.
+        const chosen = presences.find((p) => p.is_admin) ||
+          presences.find((p) => p.is_logged_in) ||
+          presences[presences.length - 1];
         const isAuth = Boolean(chosen.is_logged_in);
         const visitorId = chosen.visitor_id || key;
-        
-        uniqueVisitorIds.add(visitorId);
-        if (isAuth) {
-          uniqueUserIds.add(chosen.user_id || chosen.username || visitorId);
-        }
 
         activeVisitors.push({
           key,
@@ -510,6 +571,7 @@ function processPresenceState(channel) {
           user_id: chosen.user_id || null,
           username: chosen.username || (isAuth ? "Student" : "Guest"),
           is_logged_in: isAuth,
+          is_admin: Boolean(chosen.is_admin),
           page_path: chosen.page_path || "/",
           device_type: chosen.device_type || "Desktop",
           online_at: chosen.online_at || sessionStartTime,
@@ -518,9 +580,11 @@ function processPresenceState(channel) {
       }
     });
 
-    const liveTotalCount = uniqueVisitorIds.size;
-    const liveLoggedInCount = uniqueUserIds.size;
-    const liveGuestCount = Math.max(0, liveTotalCount - liveLoggedInCount);
+    const liveTotalCount = activeVisitors.length;
+    const liveAdminCount = activeVisitors.filter((visitor) => visitor.is_admin).length;
+    const liveStudentCount = activeVisitors.filter((visitor) => visitor.is_logged_in && !visitor.is_admin).length;
+    const liveLoggedInCount = liveAdminCount + liveStudentCount;
+    const liveGuestCount = activeVisitors.filter((visitor) => !visitor.is_logged_in).length;
 
     // Record peaks if live count exceeds previous peak
     recordPeakSnapshot("logged_in_concurrent", liveLoggedInCount);
@@ -529,6 +593,8 @@ function processPresenceState(channel) {
     const payload = {
       liveTotalCount,
       liveLoggedInCount,
+      liveAdminCount,
+      liveStudentCount,
       liveGuestCount,
       activeVisitors,
     };
@@ -619,7 +685,7 @@ export function setupRealtimePresence({ user = null, username = null, pagePath =
     const targetPath = customProps.pagePath !== undefined ? customProps.pagePath : pagePath;
     const identity = resolveUserIdentity({ user: targetUser, username: targetUsername });
 
-    let cleanPath = targetPath;
+    let cleanPath;
     try {
       cleanPath = decodeURI(targetPath);
     } catch {
@@ -631,6 +697,7 @@ export function setupRealtimePresence({ user = null, username = null, pagePath =
       user_id: identity.userId,
       username: identity.username,
       is_logged_in: identity.isAuth,
+      is_admin: identity.isAdmin,
       page_path: cleanPath,
       device_type: deviceType,
       online_at: sessionStartTime,

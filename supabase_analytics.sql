@@ -27,6 +27,34 @@ CREATE INDEX IF NOT EXISTS idx_site_visits_user_id ON public.site_analytics_visi
 CREATE INDEX IF NOT EXISTS idx_site_visits_is_auth ON public.site_analytics_visits(is_authenticated);
 CREATE INDEX IF NOT EXISTS idx_site_visits_created_at ON public.site_analytics_visits(created_at DESC);
 
+-- Each browser tab/session must have one row only. Earlier tracker versions
+-- used a read-then-insert sequence, so React Strict Mode and slow networks
+-- could insert the same session several times and inflate session/device totals.
+-- Preserve the newest heartbeat before adding the uniqueness guarantee.
+DELETE FROM public.site_analytics_visits AS older
+USING public.site_analytics_visits AS newer
+WHERE older.visitor_id = newer.visitor_id
+  AND older.session_id = newer.session_id
+  AND older.session_id IS NOT NULL
+  AND (
+    older.last_seen_at < newer.last_seen_at
+    OR (older.last_seen_at = newer.last_seen_at AND older.id < newer.id)
+  );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'site_analytics_visits_visitor_session_key'
+      AND conrelid = 'public.site_analytics_visits'::regclass
+  ) THEN
+    ALTER TABLE public.site_analytics_visits
+      ADD CONSTRAINT site_analytics_visits_visitor_session_key
+      UNIQUE (visitor_id, session_id);
+  END IF;
+END $$;
+
 -- 2. Create table for recording 24-hour and historical concurrent peak records
 CREATE TABLE IF NOT EXISTS public.site_traffic_peaks (
   id BIGSERIAL PRIMARY KEY,
