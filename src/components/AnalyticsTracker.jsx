@@ -48,7 +48,7 @@ export default function AnalyticsTracker() {
     });
     presenceRef.current = presenceObj;
 
-    // Periodic Heartbeat every 25 seconds using latest ref values
+    // Periodic Heartbeat every 15 seconds using latest ref values
     const heartbeatInterval = setInterval(() => {
       const u = currentUserRef.current;
       const un = currentUsernameRef.current;
@@ -65,10 +65,10 @@ export default function AnalyticsTracker() {
           pagePath: p,
         });
       }
-    }, 25000);
+    }, 15000);
 
-    // Tab visibility change handler
-    const handleVisibilityChange = () => {
+    // Tab visibility and window focus change handler
+    const handleVisibilityOrFocus = () => {
       if (document.visibilityState === "visible") {
         const u = currentUserRef.current;
         const un = currentUsernameRef.current;
@@ -107,13 +107,15 @@ export default function AnalyticsTracker() {
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
     window.addEventListener("ca_quiz_auth_changed", handleAuthOrProgressUpdate);
     window.addEventListener("ca_quiz_progress_updated", handleAuthOrProgressUpdate);
 
     return () => {
       clearInterval(heartbeatInterval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
       window.removeEventListener("ca_quiz_auth_changed", handleAuthOrProgressUpdate);
       window.removeEventListener("ca_quiz_progress_updated", handleAuthOrProgressUpdate);
       if (presenceRef.current?.unsubscribe) {

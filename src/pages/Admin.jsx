@@ -100,87 +100,114 @@ export default function Admin() {
     }
   };
 
-  // Real-Time Live Presence Monitor
-  // ARCHITECTURE: Supabase Realtime Presence is the single source of truth.
-  // DB (site_analytics_visits) is only used as cold-load on initial mount before
-  // the WebSocket syncs — so the table doesn't show "phantom" users.
+  // Helper: Merge Realtime presence with DB active visitors for zero-lag 100% reliable tracking
+  const mergeVisitors = (realtimeList = [], dbList = []) => {
+    const map = new Map();
+    const now = Date.now();
+    const ACTIVE_CUTOFF_MS = 40 * 1000; // 40 seconds
+
+    // 1. Add DB active visits (if seen in last 40 seconds)
+    for (const v of dbList) {
+      if (v.visitor_id) {
+        const seenTime = new Date(v.last_seen_at || v.online_at).getTime();
+        if (now - seenTime <= ACTIVE_CUTOFF_MS) {
+          map.set(v.visitor_id, v);
+        }
+      }
+    }
+
+    // 2. Realtime WebSocket presence overlays DB (takes priority for active route & live connection)
+    for (const v of realtimeList) {
+      if (v.visitor_id) {
+        const existing = map.get(v.visitor_id);
+        map.set(v.visitor_id, {
+          ...existing,
+          ...v,
+          online_at: existing?.online_at || v.online_at,
+          last_seen_at: v.last_seen_at || existing?.last_seen_at || new Date().toISOString(),
+        });
+      }
+    }
+
+    // 3. Enrich every visitor with registered student profile & admin status
+    const merged = Array.from(map.values()).map((v) => {
+      const isSelf = v.username === username || (username && v.username?.toLowerCase() === username?.toLowerCase()) || (v.user_id === "admin-session" && v.page_path === "/admin");
+      const regMatch = registeredUsers.find(
+        (ru) => (v.user_id && ru.id === v.user_id) ||
+                (v.username && v.username !== "Guest" && v.username !== "Student" && ru.username?.toLowerCase() === v.username?.toLowerCase())
+      );
+      const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
+      const resolvedName = isSelf ? (username || "Admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
+      const isAdminUser = isSelf || resolvedName.toLowerCase() === "admin";
+
+      return {
+        ...v,
+        is_logged_in: isAuth,
+        username: resolvedName,
+        is_admin: isAdminUser,
+      };
+    });
+
+    merged.sort((a, b) => {
+      if (a.is_admin && !b.is_admin) return 1;
+      if (!a.is_admin && b.is_admin) return -1;
+      return new Date(b.last_seen_at || b.online_at) - new Date(a.last_seen_at || a.online_at);
+    });
+
+    return merged;
+  };
+
+  // Real-Time Live Presence Monitor (Supabase WebSocket Presence + 10s DB Fallback Poll)
   useEffect(() => {
     if (!isAdmin) return;
 
-    let hasReceivedRealtimeSync = false;
+    let currentRealtime = [];
 
-    const enrichVisitors = (list = []) => {
-      return list.map((v) => {
-        const isSelf = v.username === username || (username && v.username?.toLowerCase() === username?.toLowerCase()) || (v.user_id === "admin-session" && v.page_path === "/admin");
-        const regMatch = registeredUsers.find(
-          (ru) => (v.user_id && ru.id === v.user_id) ||
-                  (v.username && v.username !== "Guest" && v.username !== "Student" && ru.username?.toLowerCase() === v.username?.toLowerCase())
-        );
-        const isAuth = Boolean(v.is_logged_in || regMatch || isSelf);
-        const resolvedName = isSelf ? (username || "Admin") : (regMatch?.username || (v.username && v.username !== "Guest" ? v.username : (isAuth ? "Student" : "Guest Visitor")));
-        const isAdminUser = isSelf || resolvedName.toLowerCase() === "admin";
+    const syncVisitors = async (rtList = currentRealtime) => {
+      currentRealtime = rtList;
+      const dbVisits = await fetchLiveActiveVisitors();
+      const merged = mergeVisitors(rtList, dbVisits);
+      const uniqueTotal = Math.max(1, new Set(merged.map((m) => m.visitor_id)).size);
+      const uniqueLoggedIn = Math.max(1, new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+      const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
 
-        return {
-          ...v,
-          is_logged_in: isAuth,
-          username: resolvedName,
-          is_admin: isAdminUser,
-        };
-      });
+      setAnalytics((prev) => ({
+        ...prev,
+        liveTotalCount: uniqueTotal,
+        liveLoggedInCount: uniqueLoggedIn,
+        liveGuestCount: uniqueGuest,
+        activeVisitors: merged,
+        peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, uniqueLoggedIn),
+        peakTotal24h: Math.max(prev.peakTotal24h, uniqueTotal),
+      }));
     };
 
     const presenceTracker = setupRealtimePresence({
       user: { id: "admin-session" },
       username: username || "Admin",
       pagePath: "/admin",
-      onPresenceChange: ({ liveTotalCount, liveLoggedInCount, liveGuestCount, activeVisitors }) => {
-        hasReceivedRealtimeSync = true;
-        const enriched = enrichVisitors(activeVisitors || []);
-        const uniqueTotal = Math.max(1, new Set(enriched.map((m) => m.visitor_id)).size);
-        const uniqueLoggedIn = Math.max(1, new Set(enriched.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
-        const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
-
-        setAnalytics((prev) => ({
-          ...prev,
-          liveTotalCount: uniqueTotal,
-          liveLoggedInCount: uniqueLoggedIn,
-          liveGuestCount: uniqueGuest,
-          activeVisitors: enriched,
-          peakLoggedIn24h: Math.max(prev.peakLoggedIn24h, uniqueLoggedIn),
-          peakTotal24h: Math.max(prev.peakTotal24h, uniqueTotal),
-        }));
+      onPresenceChange: ({ activeVisitors }) => {
+        syncVisitors(activeVisitors || []);
       },
     });
 
-    // Cold-load: use DB for the first ~2s only before realtime channel syncs
-    const coldLoadTimer = setTimeout(async () => {
-      if (!hasReceivedRealtimeSync) {
-        const dbVisits = await fetchLiveActiveVisitors();
-        if (dbVisits.length > 0) {
-          const enriched = enrichVisitors(dbVisits);
-          const uniqueTotal = Math.max(1, new Set(enriched.map((m) => m.visitor_id)).size);
-          const uniqueLoggedIn = Math.max(1, new Set(enriched.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
-          const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
-          setAnalytics((prev) => ({
-            ...prev,
-            liveTotalCount: uniqueTotal,
-            liveLoggedInCount: uniqueLoggedIn,
-            liveGuestCount: uniqueGuest,
-            activeVisitors: enriched,
-          }));
-        }
-      }
-    }, 2000);
+    // Immediate initial sync
+    syncVisitors([]);
+
+    // 10s background sync poll to guarantee mobile devices and non-WebSocket sessions are continuously live
+    const livePoll = setInterval(() => {
+      syncVisitors(currentRealtime);
+    }, 10000);
 
     return () => {
-      clearTimeout(coldLoadTimer);
+      clearInterval(livePoll);
       if (presenceTracker?.unsubscribe) {
         presenceTracker.unsubscribe();
       }
     };
   }, [isAdmin, username, registeredUsers]);
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setError(null);
     setSuccess(null);
     loadChapters();
@@ -189,7 +216,21 @@ export default function Admin() {
     loadRegisteredUsers();
     loadFeedbacks();
     loadFormSubmissions();
-    setSuccess("Database statistics refreshed! Live presence auto-syncs via Realtime.");
+    const dbVisits = await fetchLiveActiveVisitors();
+    setAnalytics((prev) => {
+      const merged = mergeVisitors(prev.activeVisitors, dbVisits);
+      const uniqueTotal = Math.max(1, new Set(merged.map((m) => m.visitor_id)).size);
+      const uniqueLoggedIn = Math.max(1, new Set(merged.filter((m) => m.is_logged_in).map((m) => m.visitor_id)).size);
+      const uniqueGuest = Math.max(0, uniqueTotal - uniqueLoggedIn);
+      return {
+        ...prev,
+        liveTotalCount: uniqueTotal,
+        liveLoggedInCount: uniqueLoggedIn,
+        liveGuestCount: uniqueGuest,
+        activeVisitors: merged,
+      };
+    });
+    setSuccess("Database statistics & Live presence refreshed successfully!");
   };
 
   const loadChapters = async () => {

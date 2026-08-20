@@ -622,24 +622,23 @@ export function setupRealtimePresence({ user = null, username = null, pagePath =
 
     currentTrackedPayload = payload;
 
-    try {
-      if (channel.state === "joined" || channel.status === "SUBSCRIBED") {
-        await channel.track(payload);
-      } else {
-        // Retry tracking once channel has subscribed/joined
-        setTimeout(async () => {
-          try {
-            if (currentTrackedPayload) {
-              await channel.track(currentTrackedPayload);
-            }
-          } catch {
-            // quiet catch
-          }
-        }, 500);
+    const attemptTrack = async (retries = 8) => {
+      try {
+        if (channel.state === "joined" || channel.status === "SUBSCRIBED") {
+          await channel.track(payload);
+        } else if (retries > 0) {
+          setTimeout(() => attemptTrack(retries - 1), 400);
+        }
+      } catch (e) {
+        if (retries > 0) {
+          setTimeout(() => attemptTrack(retries - 1), 400);
+        } else {
+          console.warn("Could not update presence track:", e);
+        }
       }
-    } catch (e) {
-      console.warn("Could not update presence track:", e);
-    }
+    };
+
+    attemptTrack();
   };
 
   // Track state immediately
