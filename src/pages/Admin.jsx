@@ -18,6 +18,7 @@ export default function Admin() {
   // Schema state alerts
   const [isFlagsTableMissing, setIsFlagsTableMissing] = useState(false);
   const [isAnalyticsTableMissing, setIsAnalyticsTableMissing] = useState(false);
+  const [isDailyMetricsTableMissing, setIsDailyMetricsTableMissing] = useState(false);
 
   // Chapters and courses list from database
   const [dbChapters, setDbChapters] = useState([]);
@@ -91,11 +92,19 @@ export default function Admin() {
   const loadDailyMetrics = async () => {
     setDailyLogsLoading(true);
     try {
+      const { error: checkErr } = await supabase.from("daily_user_metrics").select("id").limit(1);
+      if (checkErr) {
+        setIsDailyMetricsTableMissing(true);
+      } else {
+        setIsDailyMetricsTableMissing(false);
+      }
+
       await recordOrSyncDailyUserMetrics();
       const logs = await fetchDailyUserMetricsLog();
       setDailyLogs(logs || []);
     } catch (err) {
       console.warn("Failed to load daily user metrics:", err);
+      setIsDailyMetricsTableMissing(true);
     } finally {
       setDailyLogsLoading(false);
     }
@@ -1227,6 +1236,21 @@ export default function Admin() {
                 alert("Run this SQL in your Supabase console:\n\nCREATE TABLE IF NOT EXISTS public.site_analytics_visits (\n  id BIGSERIAL PRIMARY KEY,\n  visitor_id TEXT NOT NULL,\n  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,\n  username TEXT DEFAULT 'Guest',\n  is_authenticated BOOLEAN DEFAULT FALSE,\n  session_id TEXT,\n  entry_path TEXT DEFAULT '/',\n  current_path TEXT DEFAULT '/',\n  device_type TEXT DEFAULT 'Desktop',\n  user_agent TEXT,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  last_seen_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS public.site_traffic_peaks (\n  id BIGSERIAL PRIMARY KEY,\n  recorded_at TIMESTAMPTZ DEFAULT NOW(),\n  peak_type TEXT NOT NULL,\n  peak_count INTEGER NOT NULL,\n  date_key DATE DEFAULT CURRENT_DATE\n);\n\nALTER TABLE public.site_analytics_visits ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.site_traffic_peaks ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Allow public insert on site_analytics_visits\" ON public.site_analytics_visits FOR INSERT WITH CHECK (true);\nCREATE POLICY \"Allow public update on site_analytics_visits\" ON public.site_analytics_visits FOR UPDATE USING (true);\nCREATE POLICY \"Allow public select on site_analytics_visits\" ON public.site_analytics_visits FOR SELECT USING (true);\nCREATE POLICY \"Allow public all on site_traffic_peaks\" ON public.site_traffic_peaks FOR ALL USING (true) WITH CHECK (true);");
               }}
               style={{ background: "none", border: "none", textDecoration: "underline", color: "#38bdf8", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
+            >
+              Get SQL Snippet
+            </button>
+          </div>
+        )}
+
+        {/* Daily User Metrics Table Setup Warning banner */}
+        {isDailyMetricsTableMissing && (
+          <div className="admin-alert success" style={{ background: "rgba(168, 85, 247, 0.15)", border: "1px solid rgba(168, 85, 247, 0.35)", color: "#e9d5ff", fontSize: "12.5px", padding: "12px 18px", marginBottom: "18px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>⚡ <strong>Daily Metrics Table Sync</strong>: To store persistent daily user metric logs in Supabase, execute <code>supabase_daily_metrics.sql</code> in your Supabase SQL editor. Client metrics computation is active!</span>
+            <button
+              onClick={() => {
+                alert("Run this SQL in your Supabase console:\n\nCREATE TABLE IF NOT EXISTS public.daily_user_metrics (\n  id BIGSERIAL PRIMARY KEY,\n  log_date DATE UNIQUE NOT NULL DEFAULT CURRENT_DATE,\n  day_number INTEGER DEFAULT 1,\n  new_users_registered INTEGER DEFAULT 0,\n  new_users_list JSONB DEFAULT '[]'::jsonb,\n  total_visitors INTEGER DEFAULT 0,\n  cumulative_visitors INTEGER DEFAULT 0,\n  logged_in_users INTEGER DEFAULT 0,\n  total_sessions INTEGER DEFAULT 0,\n  avg_time_spent_seconds INTEGER DEFAULT 0,\n  user_time_spent_log JSONB DEFAULT '[]'::jsonb,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nALTER TABLE public.daily_user_metrics ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Allow public insert on daily_user_metrics\" ON public.daily_user_metrics FOR INSERT WITH CHECK (true);\nCREATE POLICY \"Allow public update on daily_user_metrics\" ON public.daily_user_metrics FOR UPDATE USING (true) WITH CHECK (true);\nCREATE POLICY \"Allow public select on daily_user_metrics\" ON public.daily_user_metrics FOR SELECT USING (true);");
+              }}
+              style={{ background: "none", border: "none", textDecoration: "underline", color: "#c084fc", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
             >
               Get SQL Snippet
             </button>
