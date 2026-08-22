@@ -11,6 +11,7 @@ import { supabase } from "../supabase/supabase";
 
 import { getTopicsForChapter } from "../services/topicService";
 import AuthModal from "../components/AuthModal";
+import useQuizShortcuts from "../hooks/useQuizShortcuts";
 
 function QuestionBody({ q, className = "qtext" }) {
   const { question, question_intro, table_data, question_outro, has_table, is_priority } = q;
@@ -554,6 +555,41 @@ export default function Quiz() {
     executeTestCompletion();
   };
 
+  const handleToggleBookmarkCurrent = async () => {
+    const q = activeQuestions[current];
+    if (!q || bookmarkTogglingId === q.id) return;
+    setBookmarkTogglingId(q.id);
+    try {
+      const nowBookmarked = await toggleBookmark(q, chapterId);
+      setBookmarkedIds(prev => {
+        const next = new Set(prev);
+        if (nowBookmarked) next.add(String(q.id));
+        else next.delete(String(q.id));
+        return next;
+      });
+    } catch (e) {
+      console.warn("Bookmark toggle notice:", e);
+    } finally {
+      setBookmarkTogglingId(null);
+    }
+  };
+
+  useQuizShortcuts({
+    enabled: screen === "quiz" && !showConfirm && !showAuthModal && !showFeedbackModal && !showTimeoutModal,
+    onNext: goNext,
+    onPrev: goPrev,
+    onSelectOption: (idx) => {
+      const letters = ["A", "B", "C", "D"];
+      if (letters[idx] && answers[current] === null) {
+        selectOption(letters[idx]);
+      }
+    },
+    onMarkAndNext: markAndNext,
+    onClearResponse: clearResponse,
+    onSubmit: () => setShowConfirm(true),
+    onBookmark: handleToggleBookmarkCurrent,
+  });
+
   const executeTestCompletion = () => {
     sessionStorage.removeItem(`ca_quiz_session_${chapterId}`);
     sessionStorage.removeItem(`ca_quiz_start_${chapterId}`);
@@ -1009,30 +1045,15 @@ export default function Quiz() {
                     <button
                       type="button"
                       className={`bookmark-toggle-btn ${bookmarkedIds.has(String(q.id)) ? "is-bookmarked" : ""}`}
-                      title={bookmarkedIds.has(String(q.id)) ? "Remove bookmark" : "Bookmark this question"}
+                      title={bookmarkedIds.has(String(q.id)) ? "Remove bookmark (Shortcut: B)" : "Bookmark this question (Shortcut: B)"}
                       disabled={bookmarkTogglingId === q.id}
-                      onClick={async () => {
-                        setBookmarkTogglingId(q.id);
-                        try {
-                          const nowBookmarked = await toggleBookmark(q, chapterId);
-                          setBookmarkedIds(prev => {
-                            const next = new Set(prev);
-                            if (nowBookmarked) next.add(String(q.id));
-                            else next.delete(String(q.id));
-                            return next;
-                          });
-                        } catch (e) {
-                          console.warn("Bookmark toggle notice:", e);
-                        } finally {
-                          setBookmarkTogglingId(null);
-                        }
-                      }}
+                      onClick={handleToggleBookmarkCurrent}
                     >
                       <span className="bookmark-icon">
                         {bookmarkedIds.has(String(q.id)) ? "⭐" : "☆"}
                       </span>
                       <span className="bookmark-text">
-                        {bookmarkedIds.has(String(q.id)) ? "Bookmarked" : "Bookmark"}
+                        {bookmarkedIds.has(String(q.id)) ? "Bookmarked" : "Bookmark"} <span style={{ fontSize: "11px", opacity: 0.7, fontWeight: 500 }}>[B]</span>
                       </span>
                     </button>
                   </div>
@@ -1089,6 +1110,11 @@ export default function Quiz() {
                       >
                         <span className="bubble">{letter}</span>
                         <span className="otext">{text}</span>
+                        {!isAnswered && (
+                          <span style={{ fontSize: "11px", opacity: 0.5, marginLeft: "auto", fontWeight: 600, padding: "2px 6px", background: "rgba(0,0,0,0.04)", borderRadius: "4px" }}>
+                            [{["1", "2", "3", "4"][["A", "B", "C", "D"].indexOf(letter)]}]
+                          </span>
+                        )}
                         {tagHtml}
                       </button>
                     );
@@ -1145,19 +1171,20 @@ export default function Quiz() {
                       onClick={goPrev} 
                       disabled={current === 0} 
                       style={{ opacity: current === 0 ? 0.45 : 1, cursor: current === 0 ? "not-allowed" : "pointer" }}
+                      title="Shortcut: Left Arrow or P"
                     >
-                      ← Previous
+                      ← Previous <span style={{ fontSize: "11px", opacity: 0.7, fontWeight: 500 }}>[← / P]</span>
                     </button>
-                    <button type="button" className="btn mark" onClick={markAndNext}>
-                      Mark for Review &amp; Next
+                    <button type="button" className="btn mark" onClick={markAndNext} title="Shortcut: M">
+                      Mark for Review &amp; Next <span style={{ fontSize: "11px", opacity: 0.8, fontWeight: 500 }}>[M]</span>
                     </button>
                   </div>
                   <div className="nav-right">
-                    <button type="button" className="btn ghost" onClick={clearResponse}>
-                      Clear Response
+                    <button type="button" className="btn ghost" onClick={clearResponse} title="Shortcut: C">
+                      Clear Response <span style={{ fontSize: "11px", opacity: 0.7, fontWeight: 500 }}>[C]</span>
                     </button>
-                    <button type="button" className="btn primary" onClick={goNext}>
-                      {current === TOTAL - 1 ? "Finish & Submit" : "Next Question \u2192"}
+                    <button type="button" className="btn primary" onClick={goNext} title="Shortcut: Right Arrow / N or Ctrl+Enter on last question">
+                      {current === TOTAL - 1 ? "Finish & Submit [Ctrl+Enter]" : <>Next Question &rarr; <span style={{ fontSize: "11px", opacity: 0.85, fontWeight: 500 }}>[&rarr; / N]</span></>}
                     </button>
                   </div>
                 </div>

@@ -10,6 +10,7 @@ import AuthModal from "../components/AuthModal";
 import { toggleBookmark, getBookmarkedIdsSync } from "../services/bookmarkService";
 
 import CaseTableRenderer from "../components/CaseTableRenderer";
+import useQuizShortcuts from "../hooks/useQuizShortcuts";
 
 // Helper: format seconds to HH:MM:SS
 function formatTime(sec) {
@@ -748,6 +749,22 @@ export default function TakeTest() {
     executeSubmit();
   };
 
+  useQuizShortcuts({
+    enabled: screen === "test" && !showTimeUpModal && !showFullCaseModal && !showAuthModal && !showFeedbackModal && !showExitModal,
+    onNext: handleNext,
+    onPrev: handlePrev,
+    onSelectOption: (idx) => {
+      const keys = ["a", "b", "c", "d"];
+      if (keys[idx]) {
+        handleOptionSelect(keys[idx]);
+      }
+    },
+    onMarkAndNext: handleMarkAndNext,
+    onClearResponse: handleClearResponse,
+    onSubmit: handleSubmitClick,
+    onBookmark: () => currentQ && handleToggleBookmark(currentQ),
+  });
+
   const executeSubmit = async () => {
     setTimerRunning(false);
     setShowTimeUpModal(false);
@@ -1112,7 +1129,7 @@ export default function TakeTest() {
                   <button
                     type="button"
                     className={`bookmark-toggle-btn ${bookmarkedIds.has(String(currentQ?.id)) ? "is-bookmarked" : ""}`}
-                    title={bookmarkedIds.has(String(currentQ?.id)) ? "Remove bookmark" : "Bookmark this question"}
+                    title={bookmarkedIds.has(String(currentQ?.id)) ? "Remove bookmark (Shortcut: B)" : "Bookmark this question (Shortcut: B)"}
                     disabled={bookmarkTogglingId === currentQ?.id}
                     onClick={() => handleToggleBookmark(currentQ)}
                   >
@@ -1120,7 +1137,7 @@ export default function TakeTest() {
                       {bookmarkedIds.has(String(currentQ?.id)) ? "⭐" : "☆"}
                     </span>
                     <span className="bookmark-text">
-                      {bookmarkedIds.has(String(currentQ?.id)) ? "Bookmarked" : "Bookmark"}
+                      {bookmarkedIds.has(String(currentQ?.id)) ? "Bookmarked" : "Bookmark"} <span style={{ fontSize: "11px", opacity: 0.7, fontWeight: 500 }}>[B]</span>
                     </span>
                   </button>
                 </div>
@@ -1180,6 +1197,9 @@ export default function TakeTest() {
                       <span style={{ color: "#1e293b", fontSize: "15px", lineHeight: "1.6", flex: 1, wordBreak: "break-word" }}>
                         {optText}
                       </span>
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600, padding: "2px 6px", background: "#f1f5f9", borderRadius: "4px" }}>
+                        [{["1", "2", "3", "4"][["a", "b", "c", "d"].indexOf(optKey)]}]
+                      </span>
                     </div>
                   );
                 })}
@@ -1200,6 +1220,7 @@ export default function TakeTest() {
                   <button
                     type="button"
                     onClick={handleClearResponse}
+                    title="Shortcut: C"
                     style={{
                       padding: "9px 18px",
                       background: "#ffffff",
@@ -1212,11 +1233,12 @@ export default function TakeTest() {
                       transition: "all 0.15s ease"
                     }}
                   >
-                    Clear
+                    Clear <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>[C]</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleMarkAndNext}
+                    title="Shortcut: M"
                     style={{
                       padding: "9px 18px",
                       background: "#ffffff",
@@ -1229,7 +1251,7 @@ export default function TakeTest() {
                       transition: "all 0.15s ease"
                     }}
                   >
-                    Mark &amp; Next
+                    Mark &amp; Next <span style={{ fontSize: "11px", opacity: 0.85, fontWeight: 500 }}>[M]</span>
                   </button>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -1237,6 +1259,7 @@ export default function TakeTest() {
                     type="button"
                     onClick={handlePrev}
                     disabled={currentIndex === 0}
+                    title="Shortcut: Left Arrow or P"
                     style={{
                       padding: "9px 20px",
                       background: currentIndex === 0 ? "#f1f5f9" : "#f8fafc",
@@ -1249,12 +1272,13 @@ export default function TakeTest() {
                       transition: "all 0.15s ease"
                     }}
                   >
-                    ← Previous
+                    ← Previous <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>[← / P]</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleNext}
                     disabled={currentIndex === questions.length - 1}
+                    title="Shortcut: Right Arrow or N"
                     style={{
                       padding: "9px 24px",
                       background: currentIndex === questions.length - 1 ? "#94a3b8" : "#0F3D3E",
@@ -1267,7 +1291,7 @@ export default function TakeTest() {
                       transition: "all 0.15s ease"
                     }}
                   >
-                    Next Question →
+                    Next Question → <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>[→ / N]</span>
                   </button>
                 </div>
               </div>
@@ -1369,6 +1393,7 @@ export default function TakeTest() {
               <button
                 type="button"
                 onClick={handleSubmitClick}
+                title="Shortcut: Ctrl+Enter"
                 style={{
                   width: "100%",
                   background: "#c59b6d",
@@ -1388,7 +1413,7 @@ export default function TakeTest() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#b88a59")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "#c59b6d")}
               >
-                Submit Test
+                Submit Test <span style={{ fontSize: "12px", opacity: 0.8, marginLeft: "6px", fontWeight: 600 }}>[Ctrl+Enter]</span>
               </button>
             </div>
 
