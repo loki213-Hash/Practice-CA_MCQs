@@ -1796,8 +1796,8 @@ export default function Admin() {
               <div className="admin-panel">
                 <div className="panel-head" style={{ marginBottom: "22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                   <div>
-                    <h3 style={{ fontSize: "20px", color: "#f8fafc", fontWeight: "700", margin: "0 0 4px" }}>📅 Daily User Metrics &amp; Historical Analytics</h3>
-                    <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Recorded daily metrics of new registrations, total &amp; cumulative visitors, logged-in users, and time spent per user.</p>
+                    <h3 style={{ fontSize: "22px", color: "#ffffff", fontWeight: "800", margin: "0 0 4px" }}>📅 Daily User Metrics &amp; Historical Analytics</h3>
+                    <p style={{ fontSize: "13.5px", color: "#cbd5e1", margin: 0 }}>Recorded daily metrics of new registrations, total &amp; cumulative visitors, logged-in users, and time spent per user.</p>
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <button
@@ -1805,7 +1805,7 @@ export default function Admin() {
                       onClick={loadDailyMetrics}
                       className="btn-admin"
                       disabled={dailyLogsLoading}
-                      style={{ padding: "8px 16px", fontSize: "12.5px", background: "rgba(56, 189, 248, 0.15)", border: "1px solid rgba(56, 189, 248, 0.3)", color: "#38bdf8", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                      style={{ padding: "10px 18px", fontSize: "13px", background: "rgba(56, 189, 248, 0.2)", border: "1.5px solid #38bdf8", color: "#38bdf8", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
                     >
                       {dailyLogsLoading ? "Syncing..." : "🔄 Sync Today's Log"}
                     </button>
@@ -1814,7 +1814,7 @@ export default function Admin() {
                       onClick={exportDailyMetricsCsv}
                       className="btn-admin"
                       disabled={dailyLogs.length === 0}
-                      style={{ padding: "8px 16px", fontSize: "12.5px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#34d399", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                      style={{ padding: "10px 18px", fontSize: "13px", background: "rgba(16, 185, 129, 0.2)", border: "1.5px solid #34d399", color: "#34d399", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
                     >
                       📥 Export Daily CSV
                     </button>
@@ -1826,66 +1826,66 @@ export default function Admin() {
                   const todayLog = dailyLogs[0];
                   return (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Current Date</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", marginTop: "4px" }}>Day #{todayLog.day_number}</div>
-                        <span style={{ fontSize: "11.5px", color: "#38bdf8" }}>{todayLog.log_date}</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(56, 189, 248, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Date</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#38bdf8", marginTop: "6px" }}>{todayLog.log_date}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>Log Date</span>
                       </div>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>New Registered Users</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#a855f7", marginTop: "4px" }}>+{todayLog.new_users_registered || 0}</div>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>New user signups</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(168, 85, 247, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#d8b4fe", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>New Registered Users</span>
+                        <div style={{ fontSize: "22px", fontWeight: "800", color: "#c084fc", marginTop: "6px" }}>+{todayLog.new_users_registered || 0}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>New user signups</span>
                       </div>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Daily Visitors</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#38bdf8", marginTop: "4px" }}>{todayLog.total_visitors || 0}</div>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Unique visitors today</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(56, 189, 248, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#bae6fd", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Daily Visitors</span>
+                        <div style={{ fontSize: "22px", fontWeight: "800", color: "#38bdf8", marginTop: "6px" }}>{todayLog.total_visitors || 0}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>Unique visitors today</span>
                       </div>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Cumulative Visitors</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#34d399", marginTop: "4px" }}>{todayLog.cumulative_visitors || 0}</div>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>All-time total</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(52, 211, 153, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#a7f3d0", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Cumulative Visitors</span>
+                        <div style={{ fontSize: "22px", fontWeight: "800", color: "#34d399", marginTop: "6px" }}>{todayLog.cumulative_visitors || 0}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>All-time total</span>
                       </div>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Logged-in Active Users</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#fbbf24", marginTop: "4px" }}>{todayLog.logged_in_users || 0}</div>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Distinct student logins</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(251, 191, 36, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#fde68a", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Logged-in Active Users</span>
+                        <div style={{ fontSize: "22px", fontWeight: "800", color: "#fbbf24", marginTop: "6px" }}>{todayLog.logged_in_users || 0}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>Distinct student logins</span>
                       </div>
-                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Avg Time Spent</span>
-                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#f43f5e", marginTop: "4px" }}>{formatDurationSeconds(todayLog.avg_time_spent_seconds || 0)}</div>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Per active session</span>
+                      <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1.5px solid rgba(244, 63, 94, 0.4)", borderRadius: "14px", padding: "18px" }}>
+                        <span style={{ fontSize: "11.5px", color: "#fecdd3", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Avg Time Spent</span>
+                        <div style={{ fontSize: "22px", fontWeight: "800", color: "#f43f5e", marginTop: "6px" }}>{formatDurationSeconds(todayLog.avg_time_spent_seconds || 0)}</div>
+                        <span style={{ fontSize: "12px", color: "#e2e8f0", fontWeight: "600" }}>Per active session</span>
                       </div>
                     </div>
                   );
                 })()}
 
                 {/* Daily Metrics Logs History Table */}
-                <div style={{ background: "rgba(15, 23, 42, 0.65)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "14px", padding: "20px", overflowX: "auto" }}>
-                  <h4 style={{ fontSize: "15px", color: "#f8fafc", fontWeight: "700", margin: "0 0 14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ background: "rgba(15, 23, 42, 0.85)", border: "1.5px solid rgba(255, 255, 255, 0.15)", borderRadius: "16px", padding: "22px", overflowX: "auto" }}>
+                  <h4 style={{ fontSize: "17px", color: "#ffffff", fontWeight: "800", margin: "0 0 16px", display: "flex", alignItems: "center", gap: "10px" }}>
                     <span>📜 Daily Metrics Logs Table</span>
-                    <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: "500" }}>({dailyLogs.length} days recorded)</span>
+                    <span style={{ fontSize: "13px", color: "#38bdf8", fontWeight: "700", background: "rgba(56,189,248,0.15)", padding: "2px 10px", borderRadius: "12px" }}>({dailyLogs.length} dates recorded)</span>
                   </h4>
 
                   {dailyLogsLoading ? (
-                    <div style={{ padding: "40px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
+                    <div style={{ padding: "40px 0", textAlign: "center", color: "#cbd5e1", fontSize: "15px", fontWeight: "600" }}>
                       Loading daily user metrics...
                     </div>
                   ) : dailyLogs.length === 0 ? (
-                    <div style={{ padding: "40px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
+                    <div style={{ padding: "40px 0", textAlign: "center", color: "#cbd5e1", fontSize: "15px", fontWeight: "600" }}>
                       No daily metric logs available yet.
                     </div>
                   ) : (
-                    <table className="icai-case-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <table className="icai-case-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
-                        <tr style={{ background: "rgba(30, 41, 59, 0.8)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                          <th style={{ padding: "10px 14px", textAlign: "left", color: "#cbd5e1", fontWeight: "600" }}>Date &amp; Day #</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>New Users Registered</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Daily Visitors</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Cumulative Visitors</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Logged-In Users</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Avg Active Time</th>
-                          <th style={{ padding: "10px 14px", textAlign: "right", color: "#cbd5e1", fontWeight: "600" }}>Per-User Details</th>
+                        <tr style={{ background: "rgba(30, 41, 59, 0.95)", borderBottom: "2px solid rgba(56, 189, 248, 0.4)" }}>
+                          <th style={{ padding: "12px 16px", textAlign: "left", color: "#38bdf8", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>DATE</th>
+                          <th style={{ padding: "12px 16px", textAlign: "center", color: "#c084fc", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>NEW USERS REGISTERED</th>
+                          <th style={{ padding: "12px 16px", textAlign: "center", color: "#38bdf8", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>DAILY VISITORS</th>
+                          <th style={{ padding: "12px 16px", textAlign: "center", color: "#34d399", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>CUMULATIVE VISITORS</th>
+                          <th style={{ padding: "12px 16px", textAlign: "center", color: "#fbbf24", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>LOGGED-IN USERS</th>
+                          <th style={{ padding: "12px 16px", textAlign: "center", color: "#f43f5e", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>AVG ACTIVE TIME</th>
+                          <th style={{ padding: "12px 16px", textAlign: "right", color: "#ffffff", fontWeight: "800", fontSize: "13.5px", letterSpacing: "0.5px" }}>PER-USER DETAILS</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1895,40 +1895,56 @@ export default function Admin() {
 
                           return (
                             <React.Fragment key={log.log_date}>
-                              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: isExpanded ? "rgba(56, 189, 248, 0.06)" : "transparent" }}>
-                                <td style={{ padding: "12px 14px", color: "#f8fafc", fontWeight: "600" }}>
-                                  <div>{log.log_date}</div>
-                                  <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: "700" }}>Day #{log.day_number}</span>
+                              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: isExpanded ? "rgba(56, 189, 248, 0.1)" : "transparent", transition: "all 0.15s ease" }}>
+                                <td style={{ padding: "14px 16px", color: "#ffffff", fontWeight: "800", fontSize: "15px" }}>
+                                  <div style={{ color: "#38bdf8", fontWeight: "800", fontSize: "15px" }}>{log.log_date}</div>
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                                  <span style={{ background: (log.new_users_registered || 0) > 0 ? "rgba(168, 85, 247, 0.2)" : "rgba(255,255,255,0.05)", color: (log.new_users_registered || 0) > 0 ? "#c084fc" : "#94a3b8", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "700" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                                  <span style={{ background: (log.new_users_registered || 0) > 0 ? "rgba(168, 85, 247, 0.3)" : "rgba(255,255,255,0.08)", border: (log.new_users_registered || 0) > 0 ? "1px solid #c084fc" : "1px solid rgba(255,255,255,0.15)", color: (log.new_users_registered || 0) > 0 ? "#e9d5ff" : "#e2e8f0", padding: "5px 12px", borderRadius: "14px", fontSize: "13px", fontWeight: "800" }}>
                                     +{log.new_users_registered || 0}
                                   </span>
                                   {log.new_users_list && log.new_users_list.length > 0 && (
-                                    <div style={{ fontSize: "10.5px", color: "#94a3b8", marginTop: "3px" }}>
+                                    <div style={{ fontSize: "11px", color: "#d8b4fe", marginTop: "4px", fontWeight: "600" }}>
                                       {log.new_users_list.slice(0, 2).join(", ")}{log.new_users_list.length > 2 ? "..." : ""}
                                     </div>
                                   )}
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#38bdf8", fontWeight: "700" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "center", color: "#38bdf8", fontWeight: "800", fontSize: "15px" }}>
                                   {log.total_visitors || 0}
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#34d399", fontWeight: "700" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "center", color: "#34d399", fontWeight: "800", fontSize: "15px" }}>
                                   {log.cumulative_visitors || 0}
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#fbbf24", fontWeight: "700" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "center", color: "#fbbf24", fontWeight: "800", fontSize: "15px" }}>
                                   {log.logged_in_users || 0}
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#f43f5e", fontWeight: "600" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "center", color: "#f43f5e", fontWeight: "700", fontSize: "14px" }}>
                                   {formatDurationSeconds(log.avg_time_spent_seconds || 0)}
                                 </td>
-                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                <td style={{ padding: "14px 16px", textAlign: "right" }}>
                                   <button
                                     type="button"
                                     onClick={() => setExpandedUserLogDate(isExpanded ? null : log.log_date)}
-                                    style={{ padding: "5px 12px", fontSize: "11.5px", background: isExpanded ? "#38bdf8" : "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", color: isExpanded ? "#0f172a" : "#f8fafc", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+                                    style={{
+                                      padding: "8px 16px",
+                                      fontSize: "13px",
+                                      fontWeight: "700",
+                                      background: isExpanded
+                                        ? "linear-gradient(135deg, #0284c7, #0369a1)"
+                                        : "linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.28))",
+                                      border: isExpanded ? "1px solid #38bdf8" : "1px solid rgba(56, 189, 248, 0.5)",
+                                      color: "#ffffff",
+                                      borderRadius: "8px",
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                      boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                                      transition: "all 0.15s ease"
+                                    }}
                                   >
-                                    {isExpanded ? "Hide Details" : `👁️ View Users (${userLog.length})`}
+                                    <span style={{ fontSize: "19px", lineHeight: "1" }}>👁️</span>
+                                    <span>{isExpanded ? "Hide Details" : `View Users (${userLog.length})`}</span>
                                   </button>
                                 </td>
                               </tr>
@@ -1936,24 +1952,24 @@ export default function Admin() {
                               {/* Expanded Row: Time Spent per User Breakdown */}
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={7} style={{ padding: "14px 18px", background: "rgba(15, 23, 42, 0.95)", borderBottom: "1px solid rgba(56, 189, 248, 0.3)" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                                      <h5 style={{ margin: 0, color: "#38bdf8", fontSize: "13px", fontWeight: "700" }}>
-                                        ⏱️ Active Time Spent by Users on {log.log_date} (Day #{log.day_number})
+                                  <td colSpan={7} style={{ padding: "18px 22px", background: "rgba(15, 23, 42, 0.96)", borderBottom: "2px solid #38bdf8" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                                      <h5 style={{ margin: 0, color: "#38bdf8", fontSize: "14.5px", fontWeight: "800", display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <span>⏱️ Active Time Spent by Users on {log.log_date}</span>
                                       </h5>
-                                      <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>{userLog.length} unique user session(s) recorded</span>
+                                      <span style={{ fontSize: "12.5px", color: "#e2e8f0", fontWeight: "600" }}>{userLog.length} unique user session(s) recorded</span>
                                     </div>
                                     {userLog.length === 0 ? (
-                                      <div style={{ color: "#94a3b8", fontSize: "12px" }}>No individual user session logs recorded for this day.</div>
+                                      <div style={{ color: "#cbd5e1", fontSize: "13px" }}>No individual user session logs recorded for this date.</div>
                                     ) : (
-                                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
+                                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px" }}>
                                         {userLog.map((u, uIdx) => (
-                                          <div key={uIdx} style={{ background: "rgba(30, 41, 59, 0.8)", border: "1px solid rgba(255,255,255,0.08)", padding: "10px 14px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                          <div key={uIdx} style={{ background: "rgba(30, 41, 59, 0.9)", border: "1px solid rgba(255,255,255,0.15)", padding: "12px 16px", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <div>
-                                              <div style={{ color: "#f8fafc", fontWeight: "600", fontSize: "12.5px" }}>{u.username}</div>
-                                              <span style={{ fontSize: "10.5px", color: "#94a3b8" }}>{u.visits || 1} visit session(s)</span>
+                                              <div style={{ color: "#ffffff", fontWeight: "700", fontSize: "13.5px" }}>{u.username}</div>
+                                              <span style={{ fontSize: "11px", color: "#cbd5e1" }}>{u.visits || 1} visit session(s)</span>
                                             </div>
-                                            <div style={{ color: "#34d399", fontWeight: "700", fontSize: "13px" }}>
+                                            <div style={{ color: "#34d399", fontWeight: "800", fontSize: "14px" }}>
                                               {u.time_formatted || formatDurationSeconds(u.seconds)}
                                             </div>
                                           </div>
