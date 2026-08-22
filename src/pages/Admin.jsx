@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification, broadcastNotification, deleteNotification } from "../services/notificationService";
-import { fetchAnalyticsMetrics, setupRealtimePresence, fetchLiveActiveVisitors } from "../services/analyticsService";
+import { fetchAnalyticsMetrics, setupRealtimePresence, fetchLiveActiveVisitors, fetchDailyUserMetricsLog, recordOrSyncDailyUserMetrics, formatDurationSeconds } from "../services/analyticsService";
 import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
 import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
@@ -82,6 +82,63 @@ export default function Admin() {
   const [broadcastTarget, setBroadcastTarget] = useState("all");
   const [broadcastSending, setBroadcastSending] = useState(false);
   const [sentBroadcasts, setSentBroadcasts] = useState([]);
+
+  // Daily User Metrics Logs State
+  const [dailyLogs, setDailyLogs] = useState([]);
+  const [dailyLogsLoading, setDailyLogsLoading] = useState(false);
+  const [expandedUserLogDate, setExpandedUserLogDate] = useState(null);
+
+  const loadDailyMetrics = async () => {
+    setDailyLogsLoading(true);
+    try {
+      await recordOrSyncDailyUserMetrics();
+      const logs = await fetchDailyUserMetricsLog();
+      setDailyLogs(logs || []);
+    } catch (err) {
+      console.warn("Failed to load daily user metrics:", err);
+    } finally {
+      setDailyLogsLoading(false);
+    }
+  };
+
+  const exportDailyMetricsCsv = () => {
+    if (!dailyLogs || dailyLogs.length === 0) return;
+    const headers = [
+      "Date",
+      "Day Number",
+      "New Users Registered",
+      "Registered Users List",
+      "Daily Visitors",
+      "Cumulative Visitors",
+      "Logged In Users",
+      "Total Sessions",
+      "Avg Time Spent (Seconds)",
+      "Avg Time Spent (Formatted)"
+    ];
+
+    const rows = dailyLogs.map((l) => [
+      l.log_date,
+      `Day ${l.day_number}`,
+      l.new_users_registered || 0,
+      `"${(l.new_users_list || []).join("; ")}"`,
+      l.total_visitors || 0,
+      l.cumulative_visitors || 0,
+      l.logged_in_users || 0,
+      l.total_sessions || 0,
+      l.avg_time_spent_seconds || 0,
+      formatDurationSeconds(l.avg_time_spent_seconds || 0)
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `daily_user_metrics_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const isAdmin = Boolean(
     user && (
@@ -681,6 +738,7 @@ export default function Admin() {
     loadRegisteredUsers();
     loadFeedbacks();
     loadFormSubmissions();
+    loadDailyMetrics();
 
     // Poll platform database statistics every 5 minutes (300,000ms) to avoid rate limits
     const pollInterval = setInterval(() => {
@@ -689,6 +747,7 @@ export default function Admin() {
       loadRegisteredUsers();
       loadFeedbacks();
       loadFormSubmissions();
+      loadDailyMetrics();
     }, 300000);
 
     return () => clearInterval(pollInterval);
@@ -701,6 +760,9 @@ export default function Admin() {
     }
     if (activeTab === "broadcast") {
       loadSentBroadcasts();
+    }
+    if (activeTab === "dailylogs") {
+      loadDailyMetrics();
     }
   }, [activeTab]);
 
@@ -1186,6 +1248,13 @@ export default function Admin() {
                   onClick={() => { setActiveTab("dashboard"); setSuccess(null); setError(null); }}
                 >
                   <span>📊 Overview Dashboard</span>
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "dailylogs" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("dailylogs"); setSuccess(null); setError(null); loadDailyMetrics(); }}
+                >
+                  <span>📅 Daily User Logs</span>
                 </button>
                 <button
                   type="button"
@@ -1693,6 +1762,188 @@ export default function Admin() {
                         </div>
                       );
                     })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: DAILY USER METRICS LOGS */}
+            {activeTab === "dailylogs" && (
+              <div className="admin-panel">
+                <div className="panel-head" style={{ marginBottom: "22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "20px", color: "#f8fafc", fontWeight: "700", margin: "0 0 4px" }}>📅 Daily User Metrics &amp; Historical Analytics</h3>
+                    <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>Recorded daily metrics of new registrations, total &amp; cumulative visitors, logged-in users, and time spent per user.</p>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      onClick={loadDailyMetrics}
+                      className="btn-admin"
+                      disabled={dailyLogsLoading}
+                      style={{ padding: "8px 16px", fontSize: "12.5px", background: "rgba(56, 189, 248, 0.15)", border: "1px solid rgba(56, 189, 248, 0.3)", color: "#38bdf8", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                    >
+                      {dailyLogsLoading ? "Syncing..." : "🔄 Sync Today's Log"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exportDailyMetricsCsv}
+                      className="btn-admin"
+                      disabled={dailyLogs.length === 0}
+                      style={{ padding: "8px 16px", fontSize: "12.5px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#34d399", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                    >
+                      📥 Export Daily CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Overview Summary Cards for Latest Recorded Day */}
+                {dailyLogs.length > 0 && (() => {
+                  const todayLog = dailyLogs[0];
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: "24px" }}>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Current Date</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", marginTop: "4px" }}>Day #{todayLog.day_number}</div>
+                        <span style={{ fontSize: "11.5px", color: "#38bdf8" }}>{todayLog.log_date}</span>
+                      </div>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>New Registered Users</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#a855f7", marginTop: "4px" }}>+{todayLog.new_users_registered || 0}</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>New user signups</span>
+                      </div>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Daily Visitors</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#38bdf8", marginTop: "4px" }}>{todayLog.total_visitors || 0}</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Unique visitors today</span>
+                      </div>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Cumulative Visitors</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#34d399", marginTop: "4px" }}>{todayLog.cumulative_visitors || 0}</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>All-time total</span>
+                      </div>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Logged-in Active Users</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#fbbf24", marginTop: "4px" }}>{todayLog.logged_in_users || 0}</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Distinct student logins</span>
+                      </div>
+                      <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "12px", padding: "16px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Avg Time Spent</span>
+                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#f43f5e", marginTop: "4px" }}>{formatDurationSeconds(todayLog.avg_time_spent_seconds || 0)}</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Per active session</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Daily Metrics Logs History Table */}
+                <div style={{ background: "rgba(15, 23, 42, 0.65)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "14px", padding: "20px", overflowX: "auto" }}>
+                  <h4 style={{ fontSize: "15px", color: "#f8fafc", fontWeight: "700", margin: "0 0 14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>📜 Daily Metrics Logs Table</span>
+                    <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: "500" }}>({dailyLogs.length} days recorded)</span>
+                  </h4>
+
+                  {dailyLogsLoading ? (
+                    <div style={{ padding: "40px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
+                      Loading daily user metrics...
+                    </div>
+                  ) : dailyLogs.length === 0 ? (
+                    <div style={{ padding: "40px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
+                      No daily metric logs available yet.
+                    </div>
+                  ) : (
+                    <table className="icai-case-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ background: "rgba(30, 41, 59, 0.8)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                          <th style={{ padding: "10px 14px", textAlign: "left", color: "#cbd5e1", fontWeight: "600" }}>Date &amp; Day #</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>New Users Registered</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Daily Visitors</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Cumulative Visitors</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Logged-In Users</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", color: "#cbd5e1", fontWeight: "600" }}>Avg Active Time</th>
+                          <th style={{ padding: "10px 14px", textAlign: "right", color: "#cbd5e1", fontWeight: "600" }}>Per-User Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dailyLogs.map((log) => {
+                          const isExpanded = expandedUserLogDate === log.log_date;
+                          const userLog = log.user_time_spent_log || [];
+
+                          return (
+                            <React.Fragment key={log.log_date}>
+                              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: isExpanded ? "rgba(56, 189, 248, 0.06)" : "transparent" }}>
+                                <td style={{ padding: "12px 14px", color: "#f8fafc", fontWeight: "600" }}>
+                                  <div>{log.log_date}</div>
+                                  <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: "700" }}>Day #{log.day_number}</span>
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                                  <span style={{ background: (log.new_users_registered || 0) > 0 ? "rgba(168, 85, 247, 0.2)" : "rgba(255,255,255,0.05)", color: (log.new_users_registered || 0) > 0 ? "#c084fc" : "#94a3b8", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "700" }}>
+                                    +{log.new_users_registered || 0}
+                                  </span>
+                                  {log.new_users_list && log.new_users_list.length > 0 && (
+                                    <div style={{ fontSize: "10.5px", color: "#94a3b8", marginTop: "3px" }}>
+                                      {log.new_users_list.slice(0, 2).join(", ")}{log.new_users_list.length > 2 ? "..." : ""}
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#38bdf8", fontWeight: "700" }}>
+                                  {log.total_visitors || 0}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#34d399", fontWeight: "700" }}>
+                                  {log.cumulative_visitors || 0}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#fbbf24", fontWeight: "700" }}>
+                                  {log.logged_in_users || 0}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "center", color: "#f43f5e", fontWeight: "600" }}>
+                                  {formatDurationSeconds(log.avg_time_spent_seconds || 0)}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedUserLogDate(isExpanded ? null : log.log_date)}
+                                    style={{ padding: "5px 12px", fontSize: "11.5px", background: isExpanded ? "#38bdf8" : "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", color: isExpanded ? "#0f172a" : "#f8fafc", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+                                  >
+                                    {isExpanded ? "Hide Details" : `👁️ View Users (${userLog.length})`}
+                                  </button>
+                                </td>
+                              </tr>
+
+                              {/* Expanded Row: Time Spent per User Breakdown */}
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={7} style={{ padding: "14px 18px", background: "rgba(15, 23, 42, 0.95)", borderBottom: "1px solid rgba(56, 189, 248, 0.3)" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                                      <h5 style={{ margin: 0, color: "#38bdf8", fontSize: "13px", fontWeight: "700" }}>
+                                        ⏱️ Active Time Spent by Users on {log.log_date} (Day #{log.day_number})
+                                      </h5>
+                                      <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>{userLog.length} unique user session(s) recorded</span>
+                                    </div>
+                                    {userLog.length === 0 ? (
+                                      <div style={{ color: "#94a3b8", fontSize: "12px" }}>No individual user session logs recorded for this day.</div>
+                                    ) : (
+                                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
+                                        {userLog.map((u, uIdx) => (
+                                          <div key={uIdx} style={{ background: "rgba(30, 41, 59, 0.8)", border: "1px solid rgba(255,255,255,0.08)", padding: "10px 14px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div>
+                                              <div style={{ color: "#f8fafc", fontWeight: "600", fontSize: "12.5px" }}>{u.username}</div>
+                                              <span style={{ fontSize: "10.5px", color: "#94a3b8" }}>{u.visits || 1} visit session(s)</span>
+                                            </div>
+                                            <div style={{ color: "#34d399", fontWeight: "700", fontSize: "13px" }}>
+                                              {u.time_formatted || formatDurationSeconds(u.seconds)}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               </div>

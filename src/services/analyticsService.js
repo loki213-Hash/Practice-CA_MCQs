@@ -798,3 +798,226 @@ export async function fetchLiveActiveVisitors() {
   }
   return [];
 }
+
+/**
+ * Format duration in seconds to human-readable string (e.g. 1h 12m or 5m 30s)
+ */
+export function formatDurationSeconds(totalSec) {
+  if (!totalSec || totalSec <= 0) return "0s";
+  const hours = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  if (mins > 0) {
+    return `${mins}m ${secs}s`;
+  }
+  return `${secs}s`;
+}
+
+const LOCAL_DAILY_METRICS_KEY = "ca_quiz_daily_metrics_cache";
+
+/**
+ * Dynamically computes daily metrics logs from site visits and registered users
+ */
+export async function computeDailyUserMetrics() {
+  try {
+    // 1. Fetch visits & registered users
+    const [visitsRes, regUsersRes] = await Promise.all([
+      supabase
+        .from("site_analytics_visits")
+        .select("visitor_id, user_id, username, is_authenticated, created_at, last_seen_at")
+        .order("created_at", { ascending: true })
+        .catch(() => ({ data: [] })),
+      supabase
+        .from("registered_users")
+        .select("id, username, created_at")
+        .order("created_at", { ascending: true })
+        .catch(() => ({ data: [] })),
+    ]);
+
+    const dbVisits = visitsRes.data || [];
+    const dbRegUsers = regUsersRes.data || [];
+    const localVisits = getLocalAnalytics();
+
+    // Merge DB & Local visits
+    const allVisitsMap = new Map();
+    [...localVisits, ...dbVisits].forEach((v) => {
+      const key = `${v.visitor_id}_${v.session_id || v.created_at}`;
+      if (!allVisitsMap.has(key)) {
+        allVisitsMap.set(key, v);
+      }
+    });
+    const combinedVisits = Array.from(allVisitsMap.values());
+
+    if (combinedVisits.length === 0 && dbRegUsers.length === 0) {
+      // Fallback today entry if platform just launched
+      const todayStr = new Date().toISOString().split("T")[0];
+      return [{
+        log_date: todayStr,
+        day_number: 1,
+        new_users_registered: dbRegUsers.length,
+        new_users_list: dbRegUsers.map((u) => u.username || "Student"),
+        total_visitors: 1,
+        cumulative_visitors: 1,
+        logged_in_users: dbRegUsers.length > 0 ? 1 : 0,
+        total_sessions: 1,
+        avg_time_spent_seconds: 60,
+        user_time_spent_log: [{ username: "Active Visitor", seconds: 60, time_formatted: "1m 0s", visits: 1 }],
+      }];
+    }
+
+    // Collect all dates
+    const dateSet = new Set();
+    combinedVisits.forEach((v) => {
+      const d = (v.created_at || v.last_seen_at || new Date().toISOString()).split("T")[0];
+      if (d) dateSet.add(d);
+    });
+    dbRegUsers.forEach((u) => {
+      const d = (u.created_at || new Date().toISOString()).split("T")[0];
+      if (d) dateSet.add(d);
+    });
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    dateSet.add(todayStr);
+
+    const sortedDates = Array.from(dateSet).sort();
+    const cumulativeVisitorSet = new Set();
+
+    const dailyLogs = sortedDates.map((dateStr, idx) => {
+      const dayNumber = idx + 1;
+
+      // New users registered on this date
+      const newUsersOnDate = dbRegUsers.filter((u) => {
+        const uDate = (u.created_at || "").split("T")[0];
+        return uDate === dateStr;
+      });
+      const newUsersCount = newUsersOnDate.length;
+      const newUsersNames = newUsersOnDate.map((u) => u.username || "Student");
+
+      // Visits on this date
+      const visitsOnDate = combinedVisits.filter((v) => {
+        const vDate = (v.created_at || v.last_seen_at || "").split("T")[0];
+        return vDate === dateStr;
+      });
+
+      const dayVisitorSet = new Set();
+      const loggedInUserSet = new Set();
+      const userDurationMap = new Map(); // username -> { seconds, visits }
+
+      visitsOnDate.forEach((v) => {
+        if (v.visitor_id) {
+          dayVisitorSet.add(v.visitor_id);
+          cumulativeVisitorSet.add(v.visitor_id);
+        }
+
+        const isAuth = Boolean(v.is_authenticated || (v.username && v.username !== "Guest" && !v.username.startsWith("Guest #")));
+        const userKey = v.username && v.username !== "Guest" ? v.username : (v.user_id ? `User ${v.user_id.substring(0, 6)}` : `Visitor (${(v.visitor_id || "anon").substring(0, 8)})`);
+
+        if (isAuth) {
+          loggedInUserSet.add(userKey);
+        }
+
+        // Calculate active time spent in this session
+        const start = new Date(v.created_at || v.last_seen_at || Date.now()).getTime();
+        const lastSeen = new Date(v.last_seen_at || v.created_at || Date.now()).getTime();
+        const durationSec = Math.max(15, Math.min(14400, Math.round((lastSeen - start) / 1000)));
+
+        const existing = userDurationMap.get(userKey) || { seconds: 0, visits: 0 };
+        userDurationMap.set(userKey, {
+          seconds: existing.seconds + durationSec,
+          visits: existing.visits + 1,
+        });
+      });
+
+      const userTimeSpentList = Array.from(userDurationMap.entries()).map(([name, data]) => ({
+        username: name,
+        seconds: data.seconds,
+        time_formatted: formatDurationSeconds(data.seconds),
+        visits: data.visits,
+      })).sort((a, b) => b.seconds - a.seconds);
+
+      const totalTimeSec = userTimeSpentList.reduce((acc, curr) => acc + curr.seconds, 0);
+      const avgTimeSec = userTimeSpentList.length > 0 ? Math.round(totalTimeSec / userTimeSpentList.length) : 0;
+
+      return {
+        log_date: dateStr,
+        day_number: dayNumber,
+        new_users_registered: newUsersCount,
+        new_users_list: newUsersNames,
+        total_visitors: dayVisitorSet.size,
+        cumulative_visitors: cumulativeVisitorSet.size,
+        logged_in_users: loggedInUserSet.size,
+        total_sessions: visitsOnDate.length,
+        avg_time_spent_seconds: avgTimeSec,
+        user_time_spent_log: userTimeSpentList,
+      };
+    });
+
+    return dailyLogs.reverse(); // Newest first
+  } catch (err) {
+    console.warn("Failed to compute daily metrics:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch daily metrics logs from database with fallback computation
+ */
+export async function fetchDailyUserMetricsLog() {
+  try {
+    const { data, error } = await supabase
+      .from("daily_user_metrics")
+      .select("*")
+      .order("log_date", { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+  } catch (err) {
+    console.warn("Notice reading daily_user_metrics table:", err?.message || err);
+  }
+
+  // Fallback: Compute dynamically
+  const computed = await computeDailyUserMetrics();
+  try {
+    localStorage.setItem(LOCAL_DAILY_METRICS_KEY, JSON.stringify(computed));
+  } catch {
+    // ignore
+  }
+  return computed;
+}
+
+/**
+ * Sync / Upsert today's computed daily metrics into database
+ */
+export async function recordOrSyncDailyUserMetrics() {
+  try {
+    const computedLogs = await computeDailyUserMetrics();
+    if (!computedLogs || computedLogs.length === 0) return;
+
+    const todayEntry = computedLogs.find((l) => l.log_date === new Date().toISOString().split("T")[0]) || computedLogs[0];
+    if (!todayEntry) return;
+
+    const payload = {
+      log_date: todayEntry.log_date,
+      day_number: todayEntry.day_number,
+      new_users_registered: todayEntry.new_users_registered,
+      new_users_list: todayEntry.new_users_list,
+      total_visitors: todayEntry.total_visitors,
+      cumulative_visitors: todayEntry.cumulative_visitors,
+      logged_in_users: todayEntry.logged_in_users,
+      total_sessions: todayEntry.total_sessions,
+      avg_time_spent_seconds: todayEntry.avg_time_spent_seconds,
+      user_time_spent_log: todayEntry.user_time_spent_log,
+      updated_at: new Date().toISOString(),
+    };
+
+    await supabase.from("daily_user_metrics").upsert(payload, { onConflict: "log_date" });
+  } catch (err) {
+    console.warn("Notice syncing daily metrics to database:", err?.message || err);
+  }
+}
+
