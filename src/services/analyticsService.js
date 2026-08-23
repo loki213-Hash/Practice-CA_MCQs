@@ -914,7 +914,25 @@ export async function computeDailyUserMetrics(daysLimit = 30) {
     });
 
     const sortedDates = Array.from(dateSet).sort();
-    const cumulativeVisitorSet = new Set();
+
+    // Helper to calculate exact cumulative unique visitors up to dateStr
+    const getCumulativeVisitorsForDate = (targetDateStr) => {
+      const cumSet = new Set();
+      combinedVisits.forEach((v) => {
+        const vDate = safeGetDateStr(v.created_at || v.last_seen_at);
+        if (vDate <= targetDateStr) {
+          if (v.visitor_id) cumSet.add(v.visitor_id);
+          else if (v.user_id) cumSet.add(`u_${v.user_id}`);
+        }
+      });
+      dbRegUsers.forEach((u) => {
+        const uDate = safeGetDateStr(u.created_at);
+        if (uDate <= targetDateStr) {
+          cumSet.add(`reg_${u.id || u.username}`);
+        }
+      });
+      return Math.max(cumSet.size, 1);
+    };
 
     const dailyLogs = sortedDates.map((dateStr, idx) => {
       const dayNumber = idx + 1;
@@ -940,7 +958,6 @@ export async function computeDailyUserMetrics(daysLimit = 30) {
       visitsOnDate.forEach((v) => {
         if (v.visitor_id) {
           dayVisitorSet.add(v.visitor_id);
-          cumulativeVisitorSet.add(v.visitor_id);
         }
 
         const isAuth = Boolean(v.is_authenticated || (v.username && v.username !== "Guest" && !v.username.startsWith("Guest #")));
@@ -973,6 +990,7 @@ export async function computeDailyUserMetrics(daysLimit = 30) {
 
       const totalTimeSec = userTimeSpentList.reduce((acc, curr) => acc + (curr.seconds || 0), 0);
       const avgTimeSec = userTimeSpentList.length > 0 ? Math.round(totalTimeSec / userTimeSpentList.length) : 0;
+      const exactCumulativeVisitors = getCumulativeVisitorsForDate(dateStr);
 
       return {
         log_date: dateStr,
@@ -980,7 +998,7 @@ export async function computeDailyUserMetrics(daysLimit = 30) {
         new_users_registered: newUsersCount,
         new_users_list: newUsersNames,
         total_visitors: dayVisitorSet.size,
-        cumulative_visitors: cumulativeVisitorSet.size,
+        cumulative_visitors: exactCumulativeVisitors,
         logged_in_users: loggedInUserSet.size,
         total_sessions: visitsOnDate.length,
         avg_time_spent_seconds: isNaN(avgTimeSec) ? 0 : avgTimeSec,
