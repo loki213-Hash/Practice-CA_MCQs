@@ -67,6 +67,9 @@ export function AuthProvider({ children }) {
     if (!cleanFavPlace) {
       throw new Error("Recovery Word 1 (Favourite Place) is mandatory to register.");
     }
+    if (/\s/.test(cleanFavPlace)) {
+      throw new Error("Recovery Word 1 (Favourite Place) cannot contain spaces.");
+    }
     if (!cleanFirstnameYob) {
       throw new Error("Recovery Word 2 (Firstname_Year of Birth) is mandatory to register.");
     }

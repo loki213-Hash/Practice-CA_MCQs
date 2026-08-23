@@ -163,6 +163,10 @@ export default function Login() {
         setError("Please enter your Favourite Place (Recovery Word 1).");
         return;
       }
+      if (/\s/.test(favouritePlace.trim())) {
+        setError("Recovery Word 1 (Favourite Place) cannot contain spaces.");
+        return;
+      }
       if (!firstnameYob.trim()) {
         setError("Please enter your Firstname_Year of Birth (Recovery Word 2).");
         return;
@@ -559,9 +563,9 @@ export default function Login() {
                 <div className="input-box" style={{ margin: "0 0 12px 0" }}>
                   <input
                     type="text"
-                    placeholder="e.g. New Delhi"
+                    placeholder="e.g. NewDelhi"
                     value={favouritePlace}
-                    onChange={(e) => setFavouritePlace(e.target.value)}
+                    onChange={(e) => setFavouritePlace(e.target.value.replace(/\s+/g, ""))}
                     disabled={loading}
                     required
                   />
