@@ -849,7 +849,7 @@ function safeGetTimestamp(val) {
 /**
  * Dynamically computes daily metrics logs from site visits and registered users
  */
-export async function computeDailyUserMetrics() {
+export async function computeDailyUserMetrics(daysLimit = 30) {
   try {
     // 1. Fetch visits & registered users safely
     let dbVisits = [];
@@ -892,26 +892,18 @@ export async function computeDailyUserMetrics() {
     });
     const combinedVisits = Array.from(allVisitsMap.values());
 
-    const todayStr = safeGetDateStr(new Date());
+    const dateSet = new Set();
+    const now = new Date();
 
-    if (combinedVisits.length === 0 && dbRegUsers.length === 0) {
-      // Fallback today entry if platform just launched or no DB data yet
-      return [{
-        log_date: todayStr,
-        day_number: 1,
-        new_users_registered: 0,
-        new_users_list: [],
-        total_visitors: 1,
-        cumulative_visitors: 1,
-        logged_in_users: 1,
-        total_sessions: 1,
-        avg_time_spent_seconds: 60,
-        user_time_spent_log: [{ username: "Active Admin", seconds: 60, time_formatted: "1m 0s", visits: 1 }],
-      }];
+    // Generate rolling last N days (default 30 days)
+    const limit = typeof daysLimit === "number" && daysLimit > 0 ? daysLimit : 30;
+    for (let i = limit - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      dateSet.add(safeGetDateStr(d));
     }
 
-    // Collect all unique dates
-    const dateSet = new Set();
+    // Also include any dates from visits and registered users
     combinedVisits.forEach((v) => {
       const d = safeGetDateStr(v.created_at || v.last_seen_at);
       if (d) dateSet.add(d);
@@ -920,8 +912,6 @@ export async function computeDailyUserMetrics() {
       const d = safeGetDateStr(u.created_at);
       if (d) dateSet.add(d);
     });
-
-    dateSet.add(todayStr);
 
     const sortedDates = Array.from(dateSet).sort();
     const cumulativeVisitorSet = new Set();
@@ -974,13 +964,6 @@ export async function computeDailyUserMetrics() {
         });
       });
 
-      // If no visits recorded directly for today yet, ensure fallback visitor entry
-      if (visitsOnDate.length === 0 && dateStr === todayStr) {
-        dayVisitorSet.add("v_active");
-        cumulativeVisitorSet.add("v_active");
-        userDurationMap.set("Active Admin", { seconds: 60, visits: 1 });
-      }
-
       const userTimeSpentList = Array.from(userDurationMap.entries()).map(([name, data]) => ({
         username: name,
         seconds: data.seconds || 0,
@@ -996,11 +979,11 @@ export async function computeDailyUserMetrics() {
         day_number: dayNumber,
         new_users_registered: newUsersCount,
         new_users_list: newUsersNames,
-        total_visitors: Math.max(dayVisitorSet.size, 1),
-        cumulative_visitors: Math.max(cumulativeVisitorSet.size, 1),
+        total_visitors: dayVisitorSet.size,
+        cumulative_visitors: cumulativeVisitorSet.size,
         logged_in_users: loggedInUserSet.size,
-        total_sessions: Math.max(visitsOnDate.length, 1),
-        avg_time_spent_seconds: isNaN(avgTimeSec) ? 60 : avgTimeSec,
+        total_sessions: visitsOnDate.length,
+        avg_time_spent_seconds: isNaN(avgTimeSec) ? 0 : avgTimeSec,
         user_time_spent_log: userTimeSpentList,
       };
     });
@@ -1008,27 +991,14 @@ export async function computeDailyUserMetrics() {
     return dailyLogs.reverse(); // Newest first
   } catch (err) {
     console.warn("Failed to compute daily metrics:", err);
-    // Return fallback entry so table is never 0 days
-    const todayStr = safeGetDateStr(new Date());
-    return [{
-      log_date: todayStr,
-      day_number: 1,
-      new_users_registered: 0,
-      new_users_list: [],
-      total_visitors: 1,
-      cumulative_visitors: 1,
-      logged_in_users: 1,
-      total_sessions: 1,
-      avg_time_spent_seconds: 60,
-      user_time_spent_log: [{ username: "Active Admin", seconds: 60, time_formatted: "1m 0s", visits: 1 }],
-    }];
+    return [];
   }
 }
 
 /**
  * Fetch daily metrics logs from database with fallback computation
  */
-export async function fetchDailyUserMetricsLog() {
+export async function fetchDailyUserMetricsLog(daysLimit = 30) {
   try {
     const { data, error } = await supabase
       .from("daily_user_metrics")
@@ -1036,48 +1006,43 @@ export async function fetchDailyUserMetricsLog() {
       .order("log_date", { ascending: false });
 
     if (!error && data && data.length > 0) {
+      if (daysLimit && typeof daysLimit === "number") {
+        return data.slice(0, daysLimit);
+      }
       return data;
     }
   } catch (err) {
     console.warn("Notice reading daily_user_metrics table:", err?.message || err);
   }
 
-  // Fallback: Compute dynamically
-  const computed = await computeDailyUserMetrics();
-  try {
-    localStorage.setItem(LOCAL_DAILY_METRICS_KEY, JSON.stringify(computed));
-  } catch {
-    // ignore
-  }
+  // Fallback: Compute dynamically for requested range
+  const computed = await computeDailyUserMetrics(daysLimit);
   return computed;
 }
 
 /**
- * Sync / Upsert today's computed daily metrics into database
+ * Sync / Upsert computed daily metrics into database batch
  */
-export async function recordOrSyncDailyUserMetrics() {
+export async function recordOrSyncDailyUserMetrics(daysLimit = 30) {
   try {
-    const computedLogs = await computeDailyUserMetrics();
+    const computedLogs = await computeDailyUserMetrics(daysLimit);
     if (!computedLogs || computedLogs.length === 0) return;
 
-    const todayEntry = computedLogs.find((l) => l.log_date === new Date().toISOString().split("T")[0]) || computedLogs[0];
-    if (!todayEntry) return;
-
-    const payload = {
-      log_date: todayEntry.log_date,
-      day_number: todayEntry.day_number,
-      new_users_registered: todayEntry.new_users_registered,
-      new_users_list: todayEntry.new_users_list,
-      total_visitors: todayEntry.total_visitors,
-      cumulative_visitors: todayEntry.cumulative_visitors,
-      logged_in_users: todayEntry.logged_in_users,
-      total_sessions: todayEntry.total_sessions,
-      avg_time_spent_seconds: todayEntry.avg_time_spent_seconds,
-      user_time_spent_log: todayEntry.user_time_spent_log,
+    const payloadBatch = computedLogs.map((entry) => ({
+      log_date: entry.log_date,
+      day_number: entry.day_number,
+      new_users_registered: entry.new_users_registered,
+      new_users_list: entry.new_users_list,
+      total_visitors: entry.total_visitors,
+      cumulative_visitors: entry.cumulative_visitors,
+      logged_in_users: entry.logged_in_users,
+      total_sessions: entry.total_sessions,
+      avg_time_spent_seconds: entry.avg_time_spent_seconds,
+      user_time_spent_log: entry.user_time_spent_log,
       updated_at: new Date().toISOString(),
-    };
+    }));
 
-    await supabase.from("daily_user_metrics").upsert(payload, { onConflict: "log_date" });
+    await supabase.from("daily_user_metrics").upsert(payloadBatch, { onConflict: "log_date" });
   } catch (err) {
     console.warn("Notice syncing daily metrics to database:", err?.message || err);
   }

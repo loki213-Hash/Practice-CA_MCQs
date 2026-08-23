@@ -88,9 +88,11 @@ export default function Admin() {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [dailyLogsLoading, setDailyLogsLoading] = useState(false);
   const [expandedUserLogDate, setExpandedUserLogDate] = useState(null);
+  const [metricsDaysFilter, setMetricsDaysFilter] = useState(30);
 
-  const loadDailyMetrics = async () => {
+  const loadDailyMetrics = async (overrideDays) => {
     setDailyLogsLoading(true);
+    const targetDays = typeof overrideDays === "number" ? overrideDays : (typeof metricsDaysFilter === "number" ? metricsDaysFilter : 30);
     try {
       const { error: checkErr } = await supabase.from("daily_user_metrics").select("id").limit(1);
       if (checkErr) {
@@ -99,8 +101,8 @@ export default function Admin() {
         setIsDailyMetricsTableMissing(false);
       }
 
-      await recordOrSyncDailyUserMetrics();
-      const logs = await fetchDailyUserMetricsLog();
+      await recordOrSyncDailyUserMetrics(targetDays);
+      const logs = await fetchDailyUserMetricsLog(targetDays);
       setDailyLogs(logs || []);
     } catch (err) {
       console.warn("Failed to load daily user metrics:", err);
@@ -1817,15 +1819,39 @@ export default function Admin() {
                     <h3 style={{ fontSize: "22px", color: "#ffffff", fontWeight: "800", margin: "0 0 4px" }}>📅 Daily User Metrics &amp; Historical Analytics</h3>
                     <p style={{ fontSize: "13.5px", color: "#cbd5e1", margin: 0 }}>Recorded daily metrics of new registrations, total &amp; cumulative visitors, logged-in users, and time spent per user.</p>
                   </div>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <select
+                      value={metricsDaysFilter}
+                      onChange={(e) => {
+                        const val = e.target.value === "all" ? 365 : parseInt(e.target.value, 10);
+                        setMetricsDaysFilter(val);
+                        loadDailyMetrics(val);
+                      }}
+                      style={{
+                        padding: "10px 14px",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        background: "rgba(30, 41, 59, 0.95)",
+                        border: "1.5px solid rgba(56, 189, 248, 0.5)",
+                        color: "#ffffff",
+                        borderRadius: "8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <option value={30} style={{ background: "#0f172a", color: "#fff" }}>📅 Last 30 Days (Default)</option>
+                      <option value={7} style={{ background: "#0f172a", color: "#fff" }}>📅 Last 7 Days</option>
+                      <option value={90} style={{ background: "#0f172a", color: "#fff" }}>📅 Last 90 Days</option>
+                      <option value={365} style={{ background: "#0f172a", color: "#fff" }}>📅 All Available History</option>
+                    </select>
+
                     <button
                       type="button"
-                      onClick={loadDailyMetrics}
+                      onClick={() => loadDailyMetrics(metricsDaysFilter)}
                       className="btn-admin"
                       disabled={dailyLogsLoading}
                       style={{ padding: "10px 18px", fontSize: "13px", background: "rgba(56, 189, 248, 0.2)", border: "1.5px solid #38bdf8", color: "#38bdf8", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
                     >
-                      {dailyLogsLoading ? "Syncing..." : "🔄 Sync Today's Log"}
+                      {dailyLogsLoading ? "Syncing..." : "🔄 Sync & Refresh"}
                     </button>
                     <button
                       type="button"
@@ -1834,7 +1860,7 @@ export default function Admin() {
                       disabled={dailyLogs.length === 0}
                       style={{ padding: "10px 18px", fontSize: "13px", background: "rgba(16, 185, 129, 0.2)", border: "1.5px solid #34d399", color: "#34d399", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
                     >
-                      📥 Export Daily CSV
+                      📥 Export ({dailyLogs.length} Days) CSV
                     </button>
                   </div>
                 </div>
