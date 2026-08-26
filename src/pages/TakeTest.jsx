@@ -846,6 +846,16 @@ export default function TakeTest() {
 
   // Screen 1: Instructions
   if (screen === "instructions") {
+    const isAdvItt = Boolean(course) && (
+      (course.course_slug || "").toLowerCase().includes("advitt") ||
+      (course.course_slug || "").toLowerCase().includes("itt") ||
+      (course.course_name || "").toLowerCase().includes("advitt") ||
+      (course.course_name || "").toLowerCase().includes("adv. it") ||
+      (course.course_name || "").toLowerCase().includes("advanced it") ||
+      (courseSlug || "").toLowerCase().includes("advitt") ||
+      (courseSlug || "").toLowerCase().includes("itt")
+    );
+
     return (
       <div className="take-test-wrapper" style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "50px", paddingBottom: "50px" }}>
         <div style={{ background: "#fff", padding: "36px 40px", borderRadius: "14px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", maxWidth: "640px", width: "100%", border: "1px solid #e2e8f0" }}>
@@ -863,7 +873,11 @@ export default function TakeTest() {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📝 {questions.length} Questions</span>
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>⏱ 2 Hours (120 Mins)</span>
-            <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📋 ICAI Style Case Scenarios</span>
+            {isAdvItt ? (
+              <span style={{ background: "#e0f2fe", color: "#0369a1", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "700" }}>🎯 Pure MCQ Exam (No Case Scenarios)</span>
+            ) : (
+              <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>📋 ICAI Style Case Scenarios</span>
+            )}
             <span style={{ background: "#f1f5f9", color: "#334155", padding: "4px 10px", borderRadius: "14px", fontSize: "12px", fontWeight: "600" }}>🔒 No Instant Hints</span>
           </div>
 
@@ -872,7 +886,11 @@ export default function TakeTest() {
               Exam Rules &amp; Structure
             </h4>
             <ul style={{ lineHeight: "1.7", color: "#334155", margin: 0, paddingLeft: "18px", fontSize: "13.5px" }}>
-              <li><strong>Case Scenarios:</strong> Integrated ICAI style case scenarios with related sub-questions presented consecutively.</li>
+              {isAdvItt ? (
+                <li><strong>MCQ Structure:</strong> 100 Objective Multiple Choice Questions combining Module-1 (Forensics, RPA, ERP) and Module-2 (Power BI, Python, KNIME). No case scenarios assigned.</li>
+              ) : (
+                <li><strong>Case Scenarios:</strong> Integrated ICAI style case scenarios with related sub-questions presented consecutively.</li>
+              )}
               <li><strong>No Instant Answers:</strong> Feedback and solutions will be revealed on the comprehensive scorecard upon submission.</li>
               <li><strong>Flexibility:</strong> You can navigate between questions, change selections, or clear responses anytime before submitting.</li>
               <li><strong>Results Access:</strong> Login is required to view your detailed scorecard and persist weak questions to your Mistake Vault.</li>
