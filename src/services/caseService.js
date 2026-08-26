@@ -3,6 +3,36 @@ import { cleanCorruptedText } from "../utils/helpers";
 
 export async function getCasesForCourse(courseId, setType = null) {
   try {
+    // Adv IT / Advitt has no case scenarios — return [] immediately
+    if (courseId) {
+      const sId = String(courseId).toLowerCase();
+      if (sId.includes("advitt") || sId.includes("itt")) return [];
+      try {
+        const { data: cData } = await supabase
+          .from("courses")
+          .select("course_slug, course_name")
+          .eq("id", courseId)
+          .maybeSingle();
+
+        if (cData) {
+          const slug = (cData.course_slug || "").toLowerCase();
+          const name = (cData.course_name || "").toLowerCase();
+          if (
+            slug.includes("advitt") ||
+            slug.includes("itt") ||
+            name.includes("advitt") ||
+            name.includes("adv. it") ||
+            name.includes("advanced it") ||
+            (name.includes("adv") && name.includes("itt"))
+          ) {
+            return [];
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     const decodedSet =
       setType && setType !== "chapters" && setType.toLowerCase() !== "all"
         ? decodeURIComponent(setType).trim()

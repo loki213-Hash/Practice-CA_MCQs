@@ -165,6 +165,40 @@ function normalizeQuestion(q) {
 export async function buildTakeTestQuestions(courseId, setType = null) {
   if (!courseId) throw new Error("courseId is required.");
 
+  // Check if course is Adv IT / Advitt
+  let isAdvItt = false;
+  if (courseId) {
+    const sId = String(courseId).toLowerCase();
+    if (sId.includes("advitt") || sId.includes("itt")) {
+      isAdvItt = true;
+    } else {
+      try {
+        const { data: cData } = await supabase
+          .from("courses")
+          .select("id, course_slug, course_name")
+          .eq("id", courseId)
+          .maybeSingle();
+
+        if (cData) {
+          const slug = (cData.course_slug || "").toLowerCase();
+          const name = (cData.course_name || "").toLowerCase();
+          if (
+            slug.includes("advitt") ||
+            slug.includes("itt") ||
+            name.includes("advitt") ||
+            name.includes("adv. it") ||
+            name.includes("advanced it") ||
+            (name.includes("adv") && name.includes("itt"))
+          ) {
+            isAdvItt = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Course resolution notice:", e);
+      }
+    }
+  }
+
   const isSetA =
     !setType ||
     setType.toLowerCase() === "all" ||
@@ -173,7 +207,49 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
   let chapterIds = [];
 
   // Step 1: Resolve chapters
-  if (isSetA) {
+  if (isAdvItt) {
+    // ── Adv IT (Advitt): Full Exam combines Module-1 and Module-2 chapters ──
+    const isFullExam =
+      !setType ||
+      setType.toLowerCase() === "all" ||
+      setType.toLowerCase() === "chapters" ||
+      setType.toLowerCase() === "full" ||
+      setType.toUpperCase().includes("FULL EXAM");
+
+    if (isFullExam) {
+      // Query ALL available chapters for Adv IT across both Module 1 and Module 2
+      const { data: allAdvChaps } = await supabase
+        .from("chapters")
+        .select("id, chapter_name, course_id, subject_id, set_type")
+        .eq("course_id", courseId)
+        .eq("available", true);
+
+      if (allAdvChaps && allAdvChaps.length > 0) {
+        chapterIds = allAdvChaps.map((c) => String(c.id));
+      }
+    } else {
+      // Specific Module exam for Adv IT (Module-1 or Module-2)
+      const decodedSet = decodeURIComponent(setType).trim();
+      const { data: modChaps } = await supabase
+        .from("chapters")
+        .select("id")
+        .eq("course_id", courseId)
+        .ilike("set_type", `%${decodedSet}%`)
+        .eq("available", true);
+
+      if (modChaps && modChaps.length > 0) {
+        chapterIds = modChaps.map((c) => String(c.id));
+      } else {
+        // Fallback to all chapters if set_type is not specified on chapters
+        const { data: fallbackChaps } = await supabase
+          .from("chapters")
+          .select("id")
+          .eq("course_id", courseId)
+          .eq("available", true);
+        if (fallbackChaps) chapterIds = fallbackChaps.map((c) => String(c.id));
+      }
+    }
+  } else if (isSetA) {
     // ── SET A: Strictly preserve original behavior ──
     let chapQuery = supabase
       .from("chapters")
@@ -271,67 +347,64 @@ export async function buildTakeTestQuestions(courseId, setType = null) {
     }
   }
 
-  // Step 3: Fetch & group Case Scenario questions
+  // Step 3: Fetch & group Case Scenario questions (SKIP completely for Adv IT / Advitt)
   let caseGroups = [];
-  try {
-    const casesData = await getCasesForCourse(courseId, setType);
-    if (casesData && casesData.length > 0) {
-      casesData.forEach((cs) => {
-        if (!Array.isArray(cs.questions) || cs.questions.length === 0) return;
+  if (!isAdvItt) {
+    try {
+      const casesData = await getCasesForCourse(courseId, setType);
+      if (casesData && casesData.length > 0) {
+        casesData.forEach((cs) => {
+          if (!Array.isArray(cs.questions) || cs.questions.length === 0) return;
 
-        const groupQs = cs.questions.map((cq, qIdx) => ({
-          id: `case_${cs.id}_${cq.id || qIdx}`,
-          raw_id: cq.raw_id || cq.id,
-          case_question_id: cq.raw_id || cq.id,
-          case_id: String(cs.id),
-          type: "case",
-          question: cq.text || "",
-          option_a: cq.options?.find((o) => o.letter === "A")?.text || "",
-          option_b: cq.options?.find((o) => o.letter === "B")?.text || "",
-          option_c: cq.options?.find((o) => o.letter === "C")?.text || "",
-          option_d: cq.options?.find((o) => o.letter === "D")?.text || "",
-          correct_option: (cq.correctLetter || "A").toUpperCase(),
-          explanation: cq.explanation || "",
-          topic: cs.title || cs.tag || "Case Scenario",
-          is_priority: false,
-          chapter_id: null,
-          case_scenario: {
-            id: String(cs.id),
-            title: cs.title || cs.tag || "Case Scenario",
-            tag: cs.tag || "",
-            paragraphs: cs.paragraphs || [],
-            case_table: cs.case_table || null,
-            outro_paragraphs: cs.outro_paragraphs || [],
-          },
-        }));
+          const groupQs = cs.questions.map((cq, qIdx) => ({
+            id: `case_${cs.id}_${cq.id || qIdx}`,
+            raw_id: cq.raw_id || cq.id,
+            case_question_id: cq.raw_id || cq.id,
+            case_id: String(cs.id),
+            type: "case",
+            question: cq.text || "",
+            option_a: cq.options?.find((o) => o.letter === "A")?.text || "",
+            option_b: cq.options?.find((o) => o.letter === "B")?.text || "",
+            option_c: cq.options?.find((o) => o.letter === "C")?.text || "",
+            option_d: cq.options?.find((o) => o.letter === "D")?.text || "",
+            correct_option: (cq.correctLetter || "A").toUpperCase(),
+            explanation: cq.explanation || "",
+            topic: cs.title || cs.tag || "Case Scenario",
+            is_priority: false,
+            chapter_id: null,
+            case_scenario: {
+              id: String(cs.id),
+              title: cs.title || cs.tag || "Case Scenario",
+              tag: cs.tag || "",
+              paragraphs: cs.paragraphs || [],
+              case_table: cs.case_table || null,
+              outro_paragraphs: cs.outro_paragraphs || [],
+            },
+          }));
 
-        caseGroups.push(groupQs);
-      });
+          caseGroups.push(groupQs);
+        });
+      }
+    } catch (e) {
+      console.warn("Case scenario fetch notice:", e);
     }
-  } catch (e) {
-    console.warn("Case scenario fetch notice:", e);
   }
 
   // Step 4: Handle Test Assembly
-  // Scenario 1: No regular questions are added yet (e.g. SET B with only Case Scenarios)
-  if (allQuestions.length === 0) {
-    if (caseGroups.length === 0) {
-      if (isSetA) {
-        throw new Error("No questions available for this course.");
-      }
-      return [];
+  // For Adv IT (or any course without case scenarios): Assembly contains ONLY MCQ questions
+  if (isAdvItt || caseGroups.length === 0) {
+    if (allQuestions.length === 0) {
+      throw new Error("No questions available for this course.");
     }
+    const sampledPool = sampleStratifiedNonCaseQuestions(allQuestions, TOTAL_QUESTIONS);
+    const resultQs = sampledPool.length >= TOTAL_QUESTIONS
+      ? sampledPool.slice(0, TOTAL_QUESTIONS)
+      : (sampledPool.length > 0 ? sampledPool : shuffle(allQuestions).slice(0, TOTAL_QUESTIONS));
 
-    // Include ALL questions from ALL available case scenarios (preserving consecutive group ordering)
-    const allCaseQuestions = [];
-    caseGroups.forEach((cg) => {
-      allCaseQuestions.push(...cg);
-    });
-
-    return allCaseQuestions.slice(0, TOTAL_QUESTIONS).map(normalizeQuestion);
+    return resultQs.map(normalizeQuestion);
   }
 
-  // Scenario 2: Regular questions ARE available (SET A, or SET B when regular MCQs are present)
+  // Scenario 2: Regular questions & Case Scenarios ARE available (SPOM)
   // Step 4b: Pick up to 6 case groups (one for each anchor position: Q1, Q21, Q41, Q61, Q81, Q92)
   const shuffledCaseGroups = shuffle(caseGroups);
   const selectedCasesForSegments = shuffledCaseGroups.slice(0, SEGMENT_CAPACITIES.length);
