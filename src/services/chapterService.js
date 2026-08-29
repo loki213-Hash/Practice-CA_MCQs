@@ -124,11 +124,8 @@ export async function getChapterById(chapterId) {
  * Keyed by chapter ID, chapter_slug, or normalized chapter_name.
  */
 export const DEFAULT_CHAPTER_PPTS = {
-  // Chapter ID 10: SEBI Act, 1992
-  "10": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
-  "sebi-act-1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
-  "sebi act, 1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
-  "sebi act": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
+  // Add hardcoded PPT links here if desired:
+  // "10": "https://docs.google.com/presentation/d/...",
 };
 
 /**
