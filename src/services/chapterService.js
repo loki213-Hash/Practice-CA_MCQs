@@ -124,8 +124,11 @@ export async function getChapterById(chapterId) {
  * Keyed by chapter ID, chapter_slug, or normalized chapter_name.
  */
 export const DEFAULT_CHAPTER_PPTS = {
-  // Add hardcoded PPT links here if desired:
-  // "10": "https://docs.google.com/presentation/d/...",
+  // Chapter ID 10: SEBI Act, 1992
+  "10": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03D9zxQ/edit?usp=sharing",
+  "sebi-act-1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03D9zxQ/edit?usp=sharing",
+  "sebi act, 1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03D9zxQ/edit?usp=sharing",
+  "sebi act": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03D9zxQ/edit?usp=sharing"
 };
 
 /**
