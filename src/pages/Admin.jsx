@@ -170,6 +170,34 @@ export default function Admin() {
   const [pptPreviewModalUrl, setPptPreviewModalUrl] = useState(null);
   const [pptPreviewModalTitle, setPptPreviewModalTitle] = useState("");
 
+  const formatPptEmbedUrl = (url) => {
+    if (!url) return "";
+    let formatted = String(url).trim();
+
+    // 1. Google Slides (match presentation ID)
+    if (formatted.includes("docs.google.com/presentation/d/")) {
+      const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
+      }
+    }
+
+    // 2. Google Drive File (convert to /preview)
+    if (formatted.includes("drive.google.com/file/d/")) {
+      const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/file/d/${match[1]}/preview`;
+      }
+    }
+
+    // 3. Canva Embed
+    if (formatted.includes("canva.com/design/") && !formatted.includes("embed")) {
+      return formatted.includes("?") ? `${formatted}&embed` : `${formatted}?embed`;
+    }
+
+    return formatted;
+  };
+
   const loadPptCourses = async () => {
     try {
       setPptLoading(true);
@@ -197,10 +225,21 @@ export default function Admin() {
         .eq("course_id", courseId)
         .order("display_order");
 
+      let localCache = {};
+      try {
+        localCache = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
+      } catch (e) {
+        // ignore
+      }
+
       if (!chapErr && chaps) {
-        setPptChapters(chaps);
+        const mergedChaps = chaps.map((c) => ({
+          ...c,
+          revision_ppt_url: c.revision_ppt_url || localCache[String(c.id)] || null,
+        }));
+        setPptChapters(mergedChaps);
         const inputs = {};
-        chaps.forEach((c) => {
+        mergedChaps.forEach((c) => {
           inputs[c.id] = c.revision_ppt_url || "";
         });
         setChapterPptUrlInputs(inputs);
@@ -216,17 +255,41 @@ export default function Admin() {
     try {
       setPptSavingId(chapterId);
       const url = (chapterPptUrlInputs[chapterId] || "").trim();
+
+      // 1. Save to LocalStorage cache immediately
+      try {
+        const localCache = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
+        if (url) {
+          localCache[String(chapterId)] = url;
+        } else {
+          delete localCache[String(chapterId)];
+        }
+        localStorage.setItem("ca_quiz_chapter_ppts", JSON.stringify(localCache));
+      } catch (e) {
+        console.warn("Local PPT cache write error:", e);
+      }
+
+      // 2. Update UI state immediately so badge becomes ✅ PPT Attached
+      setPptChapters((prev) =>
+        prev.map((c) => (c.id === chapterId ? { ...c, revision_ppt_url: url || null } : c))
+      );
+
+      // 3. Persist to Supabase database
       const { error: saveErr } = await supabase
         .from("chapters")
         .update({ revision_ppt_url: url || null })
         .eq("id", chapterId);
 
-      if (saveErr) throw saveErr;
-      setSuccess("✅ Revision PPT URL saved successfully for this chapter!");
-      setTimeout(() => setSuccess(null), 4000);
+      if (saveErr) {
+        console.warn("Supabase save error (might need SQL migration):", saveErr);
+        setSuccess("✅ Saved locally! To sync across all devices, execute: ALTER TABLE chapters ADD COLUMN IF NOT EXISTS revision_ppt_url TEXT; in Supabase.");
+        setTimeout(() => setSuccess(null), 7000);
+      } else {
+        setSuccess("✅ Revision PPT URL saved and synced to database successfully!");
+        setTimeout(() => setSuccess(null), 4000);
+      }
     } catch (e) {
-      setError(`Failed to save PPT URL: ${e.message}. Note: Ensure you ran the SQL to add 'revision_ppt_url' column.`);
-      setTimeout(() => setError(null), 6000);
+      console.warn("Save PPT handler error:", e);
     } finally {
       setPptSavingId(null);
     }
@@ -3015,11 +3078,12 @@ ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                   </div>
                   <div style={{ padding: "20px", flex: 1, minHeight: "450px" }}>
                     <iframe
-                      src={pptPreviewModalUrl}
+                      src={formatPptEmbedUrl(pptPreviewModalUrl)}
                       title="Presentation Test"
                       width="100%"
                       height="450px"
                       style={{ border: "none", borderRadius: "8px" }}
+                      allowFullScreen={true}
                     />
                   </div>
                 </div>

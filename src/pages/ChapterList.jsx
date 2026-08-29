@@ -43,24 +43,25 @@ function formatEmbedUrl(url) {
   if (!url) return "";
   let formatted = String(url).trim();
 
-  // 1. Google Slides (convert /edit or /pub to /embed)
+  // 1. Google Slides (match presentation ID)
   if (formatted.includes("docs.google.com/presentation/d/")) {
-    if (!formatted.includes("/embed")) {
-      formatted = formatted.replace(/\/edit(\?.*)?$/, "/embed").replace(/\/pub(\?.*)?$/, "/embed");
-      if (!formatted.includes("/embed")) {
-        formatted = formatted.replace(/\/$/, "") + "/embed";
-      }
+    const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
     }
   }
 
-  // 2. Google Drive File (convert /view to /preview)
+  // 2. Google Drive File (convert to /preview)
   if (formatted.includes("drive.google.com/file/d/")) {
-    if (!formatted.includes("/preview")) {
-      formatted = formatted.replace(/\/view(\?.*)?$/, "/preview");
-      if (!formatted.includes("/preview")) {
-        formatted = formatted.replace(/\/$/, "") + "/preview";
-      }
+    const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/file/d/${match[1]}/preview`;
     }
+  }
+
+  // 3. Canva Embed
+  if (formatted.includes("canva.com/design/") && !formatted.includes("embed")) {
+    return formatted.includes("?") ? `${formatted}&embed` : `${formatted}?embed`;
   }
 
   return formatted;
@@ -98,8 +99,36 @@ function ChapterList() {
   const [revisionChapter, setRevisionChapter] = useState(null);
   const [revisionSlide, setRevisionSlide] = useState(1);
 
-  const handleOpenRevision = (chap) => {
-    setRevisionChapter(chap);
+  const handleOpenRevision = async (chap) => {
+    let pptUrl = chap?.revision_ppt_url || null;
+
+    // 1. Check database for latest revision_ppt_url if not present in memory
+    if (!pptUrl && chap?.id) {
+      try {
+        const { data: cData } = await supabase
+          .from("chapters")
+          .select("revision_ppt_url")
+          .eq("id", chap.id)
+          .maybeSingle();
+        if (cData?.revision_ppt_url) {
+          pptUrl = cData.revision_ppt_url;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 2. Check LocalStorage fallback cache
+    if (!pptUrl && chap?.id) {
+      try {
+        const localCache = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
+        pptUrl = localCache[String(chap.id)] || null;
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    setRevisionChapter({ ...chap, revision_ppt_url: pptUrl });
     setRevisionSlide(1);
   };
 
@@ -1208,116 +1237,48 @@ function ChapterList() {
               </div>
 
               {/* Modal Body: Slide Content Viewer */}
-              <div style={{ flex: 1, padding: "28px", overflowY: "auto", background: "#f8fafc" }}>
-                {revisionChapter.revision_ppt_url || revisionChapter.revision_pdf_url ? (
-                  <div style={{ width: "100%", height: "480px", borderRadius: "10px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
+              <div style={{ flex: 1, padding: "24px", overflowY: "auto", background: "#f8fafc" }}>
+                {revisionChapter.revision_ppt_url ? (
+                  <div style={{ width: "100%", height: "520px", borderRadius: "12px", overflow: "hidden", border: "1px solid #cbd5e1", background: "#000", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}>
                     <iframe
-                      src={formatEmbedUrl(revisionChapter.revision_ppt_url || revisionChapter.revision_pdf_url)}
+                      src={formatEmbedUrl(revisionChapter.revision_ppt_url)}
                       title="Revision Presentation"
                       width="100%"
                       height="100%"
                       style={{ border: "none" }}
+                      allowFullScreen={true}
                     />
                   </div>
                 ) : (
-                  /* Built-in Interactive Slide Deck Generator */
+                  /* Coming Soon Placeholder for Chapters without PPT yet */
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "2px solid #0F3D3E",
+                      border: "2px dashed #0F3D3E",
                       borderRadius: "14px",
-                      padding: "32px 36px",
-                      minHeight: "300px",
+                      padding: "48px 32px",
+                      textAlign: "center",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "space-between",
-                      boxShadow: "0 4px 16px rgba(15,61,62,0.08)"
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 4px 16px rgba(15,61,62,0.06)",
+                      minHeight: "320px"
                     }}
                   >
-                    {revisionSlide === 1 && (
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                          <span style={{ background: "#dcfce7", color: "#14532d", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", textTransform: "uppercase" }}>
-                            Slide 1: Core Overview
-                          </span>
-                          <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Key Concept Highlights</span>
-                        </div>
-                        <h2 style={{ fontSize: "22px", color: "#0F3D3E", margin: "0 0 12px", fontWeight: "800" }}>
-                          🎯 Primary Statutory Objectives &amp; Scope
-                        </h2>
-                        <p style={{ fontSize: "14.5px", color: "#334155", lineHeight: "1.7", margin: "0 0 16px" }}>
-                          This chapter evaluates statutory frameworks, regulatory compliance mandates, and high-weightage ICAI exam provisions under <strong>{(revisionChapter.chapter_name || revisionChapter.title || "").trim()}</strong>.
-                        </p>
-                        <div style={{ background: "#f0fdf4", borderLeft: "4px solid #16a34a", padding: "12px 16px", borderRadius: "6px" }}>
-                          <strong style={{ color: "#15803d", fontSize: "13.5px" }}>💡 High-Yield Exam Tip:</strong>
-                          <span style={{ color: "#166534", fontSize: "13.5px", display: "block", marginTop: "2px" }}>
-                            Focus on section applicability limits, statutory thresholds, reporting deadlines, and penalty benchmarks.
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {revisionSlide === 2 && (
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                          <span style={{ background: "#dbeafe", color: "#1e40af", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", textTransform: "uppercase" }}>
-                            Slide 2: Important Timelines &amp; Limits
-                          </span>
-                          <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Regulatory Thresholds</span>
-                        </div>
-                        <h2 style={{ fontSize: "22px", color: "#1e3a8a", margin: "0 0 12px", fontWeight: "800" }}>
-                          ⏱ Key Statutory Deadlines &amp; Monetary Limits
-                        </h2>
-                        <ul style={{ lineHeight: "1.8", color: "#334155", fontSize: "14px", paddingLeft: "20px", margin: 0 }}>
-                          <li><strong>Filing Window:</strong> Mandatory disclosure within statutory timeframes from event occurrence.</li>
-                          <li><strong>Board / Committee Approvals:</strong> Special resolution or board consent required for exceeding monetary thresholds.</li>
-                          <li><strong>Non-Compliance Penalty:</strong> Fine and cumulative daily default fees per ICAI test guidelines.</li>
-                        </ul>
-                      </div>
-                    )}
-
-                    {revisionSlide === 3 && (
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                          <span style={{ background: "#fef3c7", color: "#92400e", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", textTransform: "uppercase" }}>
-                            Slide 3: Common Pitfalls &amp; Traps
-                          </span>
-                          <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Avoid Distractors</span>
-                        </div>
-                        <h2 style={{ fontSize: "22px", color: "#92400e", margin: "0 0 12px", fontWeight: "800" }}>
-                          ⚠️ Frequent ICAI MCQ Traps to Watch Out For
-                        </h2>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "12px 16px", borderRadius: "8px" }}>
-                            <strong style={{ color: "#b45309" }}>1. Calendar Days vs Business Working Days:</strong>
-                            <p style={{ margin: "2px 0 0", color: "#78350f", fontSize: "13.5px" }}>Pay close attention to wording in MCQ choices regarding timeframes.</p>
-                          </div>
-                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "12px 16px", borderRadius: "8px" }}>
-                            <strong style={{ color: "#b45309" }}>2. Entity Category Exemptions:</strong>
-                            <p style={{ margin: "2px 0 0", color: "#78350f", fontSize: "13.5px" }}>Verify if the entity is a private company, government company, or listed entity before selecting answers.</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {revisionSlide === 4 && (
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                          <span style={{ background: "#f3e8ff", color: "#6b21a8", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", textTransform: "uppercase" }}>
-                            Slide 4: Final Checklist
-                          </span>
-                          <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Ready for MCQs</span>
-                        </div>
-                        <h2 style={{ fontSize: "22px", color: "#581c87", margin: "0 0 12px", fontWeight: "800" }}>
-                          🏁 Pre-Test Readiness Checklist
-                        </h2>
-                        <ul style={{ lineHeight: "1.8", color: "#334155", fontSize: "14px", paddingLeft: "20px", margin: "0 0 16px" }}>
-                          <li>✅ Reviewed section applicability &amp; key definitions</li>
-                          <li>✅ Verified statutory monetary thresholds and deadlines</li>
-                          <li>✅ Ready to attempt timed MCQs with instant explanations</li>
-                        </ul>
-                      </div>
-                    )}
+                    <div style={{ fontSize: "44px", marginBottom: "12px" }}>⏳</div>
+                    <span style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", padding: "4px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "14px" }}>
+                      Coming Soon
+                    </span>
+                    <h3 style={{ fontSize: "22px", color: "#0F3D3E", margin: "0 0 10px", fontWeight: "800" }}>
+                      Concept Revision Slides Coming Soon!
+                    </h3>
+                    <p style={{ fontSize: "14.5px", color: "#475569", lineHeight: "1.6", maxWidth: "520px", margin: "0 0 24px" }}>
+                      The Last-Day Concept Revision PPT for <strong>{(revisionChapter.chapter_name || revisionChapter.title || "").trim()}</strong> is currently being prepared and will be available soon.
+                    </p>
+                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 20px", borderRadius: "8px", color: "#166534", fontSize: "13.5px", fontWeight: "600" }}>
+                      💡 You can proceed directly to practice the MCQs for this chapter!
+                    </div>
                   </div>
                 )}
               </div>
@@ -1335,74 +1296,42 @@ function ChapterList() {
                   flexWrap: "wrap"
                 }}
               >
-                {/* Slide Nav Buttons */}
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                  <button
-                    type="button"
-                    disabled={revisionSlide === 1}
-                    onClick={() => setRevisionSlide((s) => Math.max(1, s - 1))}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      background: revisionSlide === 1 ? "#f1f5f9" : "#ffffff",
-                      color: revisionSlide === 1 ? "#94a3b8" : "#334155",
-                      fontWeight: "700",
-                      fontSize: "13px",
-                      cursor: revisionSlide === 1 ? "default" : "pointer"
-                    }}
-                  >
-                    ← Prev Slide
-                  </button>
-                  <span style={{ fontSize: "13px", fontWeight: "700", color: "#0F3D3E", padding: "0 6px" }}>
-                    Slide {revisionSlide} of 4
-                  </span>
-                  <button
-                    type="button"
-                    disabled={revisionSlide === 4}
-                    onClick={() => setRevisionSlide((s) => Math.min(4, s + 1))}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      background: revisionSlide === 4 ? "#f1f5f9" : "#ffffff",
-                      color: revisionSlide === 4 ? "#94a3b8" : "#334155",
-                      fontWeight: "700",
-                      fontSize: "13px",
-                      cursor: revisionSlide === 4 ? "default" : "pointer"
-                    }}
-                  >
-                    Next Slide →
-                  </button>
-                </div>
-
-                {/* Direct Action Shortcut: Ready! Start Test → */}
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  {revisionChapter.revision_ppt_url && (
+                <div>
+                  {revisionChapter.revision_ppt_url ? (
                     <a
                       href={revisionChapter.revision_ppt_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
-                        padding: "10px 16px",
+                        padding: "9px 16px",
                         fontSize: "13px",
                         fontWeight: "700",
                         color: "#0F3D3E",
                         background: "#e6f4f1",
                         border: "1px solid #0F3D3E",
                         borderRadius: "8px",
-                        textDecoration: "none"
+                        textDecoration: "none",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px"
                       }}
                     >
-                      📥 Download PPT
+                      🔗 Open Presentation in New Tab
                     </a>
+                  ) : (
+                    <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>
+                      Practice MCQs are fully available below
+                    </span>
                   )}
+                </div>
 
+                {/* Direct Action Shortcut: Ready! Start Test → */}
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                   <Link
                     to={`/quiz/${revisionChapter.id}`}
                     onClick={handleCloseRevision}
                     style={{
-                      padding: "10px 20px",
+                      padding: "10px 22px",
                       fontSize: "14px",
                       fontWeight: "800",
                       color: "#ffffff",
@@ -1413,7 +1342,7 @@ function ChapterList() {
                       boxShadow: "0 3px 10px rgba(15, 61, 62, 0.25)"
                     }}
                   >
-                    🚀 Ready! Start Test →
+                    🚀 Ready! Start Practice Test →
                   </Link>
                 </div>
               </div>
