@@ -5,6 +5,7 @@ import { supabase } from "../supabase/supabase";
 import { sendAppreciationNotification, broadcastNotification, deleteNotification } from "../services/notificationService";
 import { fetchAnalyticsMetrics, setupRealtimePresence, fetchLiveActiveVisitors, fetchDailyUserMetricsLog, recordOrSyncDailyUserMetrics, formatDurationSeconds } from "../services/analyticsService";
 import { generate7CharRecoveryCode } from "../utils/recoveryCodeGenerator";
+import { getResolvedChapterPptUrl, formatEmbedUrl } from "../services/chapterService";
 import SpaceBackground from "../components/SpaceBackground";
 import CosmicSpotlightCard from "../components/CosmicSpotlightCard";
 
@@ -170,34 +171,6 @@ export default function Admin() {
   const [pptPreviewModalUrl, setPptPreviewModalUrl] = useState(null);
   const [pptPreviewModalTitle, setPptPreviewModalTitle] = useState("");
 
-  const formatPptEmbedUrl = (url) => {
-    if (!url) return "";
-    let formatted = String(url).trim();
-
-    // 1. Google Slides (match presentation ID)
-    if (formatted.includes("docs.google.com/presentation/d/")) {
-      const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
-      }
-    }
-
-    // 2. Google Drive File (convert to /preview)
-    if (formatted.includes("drive.google.com/file/d/")) {
-      const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://drive.google.com/file/d/${match[1]}/preview`;
-      }
-    }
-
-    // 3. Canva Embed
-    if (formatted.includes("canva.com/design/") && !formatted.includes("embed")) {
-      return formatted.includes("?") ? `${formatted}&embed` : `${formatted}?embed`;
-    }
-
-    return formatted;
-  };
-
   const loadPptCourses = async () => {
     try {
       setPptLoading(true);
@@ -225,17 +198,10 @@ export default function Admin() {
         .eq("course_id", courseId)
         .order("display_order");
 
-      let localCache = {};
-      try {
-        localCache = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
-      } catch (e) {
-        // ignore
-      }
-
       if (!chapErr && chaps) {
         const mergedChaps = chaps.map((c) => ({
           ...c,
-          revision_ppt_url: c.revision_ppt_url || localCache[String(c.id)] || null,
+          revision_ppt_url: getResolvedChapterPptUrl(c) || null,
         }));
         setPptChapters(mergedChaps);
         const inputs = {};
@@ -3078,7 +3044,7 @@ ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                   </div>
                   <div style={{ padding: "20px", flex: 1, minHeight: "450px" }}>
                     <iframe
-                      src={formatPptEmbedUrl(pptPreviewModalUrl)}
+                      src={formatEmbedUrl(pptPreviewModalUrl)}
                       title="Presentation Test"
                       width="100%"
                       height="450px"

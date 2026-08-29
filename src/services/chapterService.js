@@ -118,3 +118,90 @@ export async function getChapterById(chapterId) {
 
   return chapter;
 }
+
+/**
+ * Centralized Chapter Revision Slide Decks & Presentation Registry
+ * Keyed by chapter ID, chapter_slug, or normalized chapter_name.
+ */
+export const DEFAULT_CHAPTER_PPTS = {
+  // Chapter ID 10: SEBI Act, 1992
+  "10": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
+  "sebi-act-1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
+  "sebi act, 1992": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
+  "sebi act": "https://docs.google.com/presentation/d/18C59XrzlfkmM_ik1v-G9om_aOfUqkmCGEbbJ03Zf-c/edit",
+};
+
+/**
+ * Normalizes any Google Slides, Canva, Drive, or PDF URL to an embeddable format.
+ */
+export function formatEmbedUrl(url) {
+  if (!url) return "";
+  let formatted = String(url).trim();
+
+  // 1. Google Slides: extract presentation ID and generate clean embed URL
+  if (formatted.includes("docs.google.com/presentation/d/")) {
+    const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
+    }
+  }
+
+  // 2. Google Drive File: extract file ID and convert to preview
+  if (formatted.includes("drive.google.com/file/d/")) {
+    const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/file/d/${match[1]}/preview`;
+    }
+  }
+
+  // 3. Canva Embed
+  if (formatted.includes("canva.com/design/") && !formatted.includes("embed")) {
+    return formatted.includes("?") ? `${formatted}&embed` : `${formatted}?embed`;
+  }
+
+  return formatted;
+}
+
+/**
+ * Resolves the presentation URL for a chapter
+ */
+export function getResolvedChapterPptUrl(chapter) {
+  if (!chapter) return "";
+
+  // 1. Direct database field
+  if (chapter.revision_ppt_url && String(chapter.revision_ppt_url).trim()) {
+    return String(chapter.revision_ppt_url).trim();
+  }
+  if (chapter.revision_pdf_url && String(chapter.revision_pdf_url).trim()) {
+    return String(chapter.revision_pdf_url).trim();
+  }
+
+  // 2. Local storage override (from Admin changes)
+  try {
+    const local = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
+    if (chapter.id && local[String(chapter.id)] && String(local[String(chapter.id)]).trim()) {
+      return String(local[String(chapter.id)]).trim();
+    }
+  } catch {
+    // ignore
+  }
+
+  // 3. By Chapter ID in DEFAULT_CHAPTER_PPTS
+  if (chapter.id && DEFAULT_CHAPTER_PPTS[String(chapter.id)]) {
+    return DEFAULT_CHAPTER_PPTS[String(chapter.id)];
+  }
+
+  // 4. By normalized Chapter Name
+  const nameKey = (chapter.chapter_name || chapter.title || "").toLowerCase().trim();
+  if (nameKey && DEFAULT_CHAPTER_PPTS[nameKey]) {
+    return DEFAULT_CHAPTER_PPTS[nameKey];
+  }
+
+  // 5. By Chapter Slug
+  const slugKey = (chapter.chapter_slug || "").toLowerCase().trim();
+  if (slugKey && DEFAULT_CHAPTER_PPTS[slugKey]) {
+    return DEFAULT_CHAPTER_PPTS[slugKey];
+  }
+
+  return "";
+}

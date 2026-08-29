@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getCourseBySlug } from "../services/courseService";
 import { getSubjects } from "../services/subjectService";
-import { getChapters } from "../services/chapterService";
+import { getChapters, getResolvedChapterPptUrl, formatEmbedUrl } from "../services/chapterService";
 import { getTopicCountsForChapters } from "../services/topicService";
 import { getCasesForCourse } from "../services/caseService";
 import { saveQuizAttempt } from "../services/progressService";
@@ -39,34 +39,6 @@ function getParagraphsArray(paragraphs) {
   return [];
 }
 
-function formatEmbedUrl(url) {
-  if (!url) return "";
-  let formatted = String(url).trim();
-
-  // 1. Google Slides (match presentation ID)
-  if (formatted.includes("docs.google.com/presentation/d/")) {
-    const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
-    }
-  }
-
-  // 2. Google Drive File (convert to /preview)
-  if (formatted.includes("drive.google.com/file/d/")) {
-    const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-
-  // 3. Canva Embed
-  if (formatted.includes("canva.com/design/") && !formatted.includes("embed")) {
-    return formatted.includes("?") ? `${formatted}&embed` : `${formatted}?embed`;
-  }
-
-  return formatted;
-}
-
 function ChapterList() {
   const { courseSlug, setType } = useParams();
   const { user, login, register } = useAuth();
@@ -99,36 +71,9 @@ function ChapterList() {
   const [revisionChapter, setRevisionChapter] = useState(null);
   const [revisionSlide, setRevisionSlide] = useState(1);
 
-  const handleOpenRevision = async (chap) => {
-    let pptUrl = chap?.revision_ppt_url || null;
-
-    // 1. Check database for latest revision_ppt_url if not present in memory
-    if (!pptUrl && chap?.id) {
-      try {
-        const { data: cData } = await supabase
-          .from("chapters")
-          .select("revision_ppt_url")
-          .eq("id", chap.id)
-          .maybeSingle();
-        if (cData?.revision_ppt_url) {
-          pptUrl = cData.revision_ppt_url;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // 2. Check LocalStorage fallback cache
-    if (!pptUrl && chap?.id) {
-      try {
-        const localCache = JSON.parse(localStorage.getItem("ca_quiz_chapter_ppts") || "{}");
-        pptUrl = localCache[String(chap.id)] || null;
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    setRevisionChapter({ ...chap, revision_ppt_url: pptUrl });
+  const handleOpenRevision = (chap) => {
+    const resolvedUrl = getResolvedChapterPptUrl(chap);
+    setRevisionChapter({ ...chap, revision_ppt_url: resolvedUrl });
     setRevisionSlide(1);
   };
 
