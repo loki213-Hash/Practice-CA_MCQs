@@ -39,6 +39,33 @@ function getParagraphsArray(paragraphs) {
   return [];
 }
 
+function formatEmbedUrl(url) {
+  if (!url) return "";
+  let formatted = String(url).trim();
+
+  // 1. Google Slides (convert /edit or /pub to /embed)
+  if (formatted.includes("docs.google.com/presentation/d/")) {
+    if (!formatted.includes("/embed")) {
+      formatted = formatted.replace(/\/edit(\?.*)?$/, "/embed").replace(/\/pub(\?.*)?$/, "/embed");
+      if (!formatted.includes("/embed")) {
+        formatted = formatted.replace(/\/$/, "") + "/embed";
+      }
+    }
+  }
+
+  // 2. Google Drive File (convert /view to /preview)
+  if (formatted.includes("drive.google.com/file/d/")) {
+    if (!formatted.includes("/preview")) {
+      formatted = formatted.replace(/\/view(\?.*)?$/, "/preview");
+      if (!formatted.includes("/preview")) {
+        formatted = formatted.replace(/\/$/, "") + "/preview";
+      }
+    }
+  }
+
+  return formatted;
+}
+
 function ChapterList() {
   const { courseSlug, setType } = useParams();
   const { user, login, register } = useAuth();
@@ -1185,7 +1212,7 @@ function ChapterList() {
                 {revisionChapter.revision_ppt_url || revisionChapter.revision_pdf_url ? (
                   <div style={{ width: "100%", height: "480px", borderRadius: "10px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
                     <iframe
-                      src={revisionChapter.revision_ppt_url || revisionChapter.revision_pdf_url}
+                      src={formatEmbedUrl(revisionChapter.revision_ppt_url || revisionChapter.revision_pdf_url)}
                       title="Revision Presentation"
                       width="100%"
                       height="100%"

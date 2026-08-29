@@ -160,6 +160,78 @@ export default function Admin() {
     ) && user.email === "admin.caquiz@gmail.com"
   );
 
+  // Revision PPTs Manager State
+  const [pptCourses, setPptCourses] = useState([]);
+  const [selectedPptCourseId, setSelectedPptCourseId] = useState(null);
+  const [pptChapters, setPptChapters] = useState([]);
+  const [pptLoading, setPptLoading] = useState(false);
+  const [pptSavingId, setPptSavingId] = useState(null);
+  const [chapterPptUrlInputs, setChapterPptUrlInputs] = useState({});
+  const [pptPreviewModalUrl, setPptPreviewModalUrl] = useState(null);
+  const [pptPreviewModalTitle, setPptPreviewModalTitle] = useState("");
+
+  const loadPptCourses = async () => {
+    try {
+      setPptLoading(true);
+      const { data: coursesData } = await supabase.from("courses").select("id, course_name, course_slug").order("course_name");
+      if (coursesData && coursesData.length > 0) {
+        setPptCourses(coursesData);
+        const targetCourseId = selectedPptCourseId || coursesData[0].id;
+        setSelectedPptCourseId(targetCourseId);
+        await loadPptChaptersForCourse(targetCourseId);
+      }
+    } catch (e) {
+      console.warn("Load courses for PPT error:", e);
+    } finally {
+      setPptLoading(false);
+    }
+  };
+
+  const loadPptChaptersForCourse = async (courseId) => {
+    if (!courseId) return;
+    try {
+      setPptLoading(true);
+      const { data: chaps, error: chapErr } = await supabase
+        .from("chapters")
+        .select("id, chapter_name, chapter_slug, subject_id, display_order, revision_ppt_url, set_type")
+        .eq("course_id", courseId)
+        .order("display_order");
+
+      if (!chapErr && chaps) {
+        setPptChapters(chaps);
+        const inputs = {};
+        chaps.forEach((c) => {
+          inputs[c.id] = c.revision_ppt_url || "";
+        });
+        setChapterPptUrlInputs(inputs);
+      }
+    } catch (e) {
+      console.warn("Load chapters for PPT error:", e);
+    } finally {
+      setPptLoading(false);
+    }
+  };
+
+  const handleSavePptUrl = async (chapterId) => {
+    try {
+      setPptSavingId(chapterId);
+      const url = (chapterPptUrlInputs[chapterId] || "").trim();
+      const { error: saveErr } = await supabase
+        .from("chapters")
+        .update({ revision_ppt_url: url || null })
+        .eq("id", chapterId);
+
+      if (saveErr) throw saveErr;
+      setSuccess("✅ Revision PPT URL saved successfully for this chapter!");
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (e) {
+      setError(`Failed to save PPT URL: ${e.message}. Note: Ensure you ran the SQL to add 'revision_ppt_url' column.`);
+      setTimeout(() => setError(null), 6000);
+    } finally {
+      setPptSavingId(null);
+    }
+  };
+
   // Helper: Read flagged question local cache
   const getLocalFlags = () => {
     try {
@@ -775,6 +847,9 @@ export default function Admin() {
     if (activeTab === "dailylogs") {
       loadDailyMetrics();
     }
+    if (activeTab === "revision_ppts") {
+      loadPptCourses();
+    }
   }, [activeTab]);
 
   // Flag actions
@@ -1329,6 +1404,13 @@ export default function Admin() {
                   onClick={() => { setActiveTab("broadcast"); setSuccess(null); setError(null); }}
                 >
                   <span>📢 Broadcast Updates</span>
+                </button>
+                <button
+                  type="button"
+                  className={`space-tab-btn ${activeTab === "revision_ppts" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("revision_ppts"); setSuccess(null); setError(null); loadPptCourses(); }}
+                >
+                  <span>📖 Revision PPTs</span>
                 </button>
                 <button
                   type="button"
@@ -2681,6 +2763,264 @@ ALTER TABLE public.registered_users DISABLE ROW LEVEL SECURITY;`}
                     <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
                       Broadcasts are saved into the <code style={{ color: "#f1f5f9" }}>public.user_notifications</code> table in Supabase. Run the script in <code style={{ color: "#f1f5f9" }}>supabase_notifications.sql</code> in your Supabase SQL Editor if you haven't created the table yet.
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── REVISION PPTS & SLIDE DECKS MANAGER TAB ── */}
+            {activeTab === "revision_ppts" && (
+              <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 6px", fontSize: "22px", color: "#f8fafc", fontWeight: 800 }}>
+                      📖 Chapter Revision Slide Decks &amp; PPTs
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "13.5px", color: "#94a3b8" }}>
+                      Attach Google Slides, Canva Presentations, OneDrive embeds, or PDF URLs to each sub-chapter. Students will see these when clicking "📖 Revise Concept".
+                    </p>
+                  </div>
+
+                  {/* 1-Click Copy SQL */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sql = "ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS revision_ppt_url TEXT;";
+                      navigator.clipboard.writeText(sql);
+                      setSuccess("✅ Copied SQL to clipboard! Run it in Supabase SQL Editor if column doesn't exist.");
+                      setTimeout(() => setSuccess(null), 4000);
+                    }}
+                    style={{
+                      background: "rgba(56, 189, 248, 0.15)",
+                      border: "1.5px solid #38bdf8",
+                      color: "#38bdf8",
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      fontSize: "12.5px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    📋 Copy SQL Column Setup
+                  </button>
+                </div>
+
+                {/* Course Filter Dropdown */}
+                <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "16px 20px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                  <label style={{ fontSize: "13px", fontWeight: 700, color: "#cbd5e1" }}>
+                    Select Course / Paper:
+                  </label>
+                  <select
+                    value={selectedPptCourseId || ""}
+                    onChange={(e) => {
+                      const cid = e.target.value;
+                      setSelectedPptCourseId(cid);
+                      loadPptChaptersForCourse(cid);
+                    }}
+                    style={{
+                      padding: "9px 14px",
+                      borderRadius: "8px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      color: "#ffffff",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      minWidth: "260px"
+                    }}
+                  >
+                    {pptCourses.map((c) => (
+                      <option key={c.id} value={c.id} style={{ background: "#0f172a", color: "#fff" }}>
+                        {c.course_name} ({c.course_slug})
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: "12.5px", color: "#94a3b8" }}>
+                    Showing {pptChapters.length} sub-chapters
+                  </span>
+                </div>
+
+                {/* Chapter PPT Rows List */}
+                {pptLoading ? (
+                  <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
+                    Loading chapters...
+                  </div>
+                ) : pptChapters.length === 0 ? (
+                  <div style={{ background: "rgba(15, 23, 42, 0.6)", borderRadius: "12px", padding: "32px", textAlign: "center", color: "#94a3b8" }}>
+                    No chapters found for this course.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {pptChapters.map((chap, idx) => {
+                      const currentUrl = chapterPptUrlInputs[chap.id] ?? (chap.revision_ppt_url || "");
+                      const isAttached = Boolean(chap.revision_ppt_url);
+
+                      return (
+                        <div
+                          key={chap.id}
+                          style={{
+                            background: "rgba(15, 23, 42, 0.75)",
+                            border: isAttached ? "1px solid rgba(52, 211, 153, 0.35)" : "1px solid rgba(255,255,255,0.08)",
+                            borderRadius: "12px",
+                            padding: "18px 22px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "12px",
+                            boxShadow: "0 4px 16px rgba(0,0,0,0.2)"
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                            <div>
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                Chapter #{idx + 1} · ID: {chap.id}
+                              </span>
+                              <h4 style={{ margin: "2px 0 0", fontSize: "16px", color: "#f8fafc", fontWeight: 700 }}>
+                                {chap.chapter_name}
+                              </h4>
+                            </div>
+
+                            {isAttached ? (
+                              <span style={{ background: "rgba(16, 185, 129, 0.2)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.4)", padding: "3px 10px", borderRadius: "14px", fontSize: "11.5px", fontWeight: 700 }}>
+                                ✅ PPT Attached
+                              </span>
+                            ) : (
+                              <span style={{ background: "rgba(148, 163, 184, 0.15)", color: "#94a3b8", border: "1px solid rgba(148, 163, 184, 0.3)", padding: "3px 10px", borderRadius: "14px", fontSize: "11.5px", fontWeight: 600 }}>
+                                ℹ️ Built-in Concept Cards Active
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                            <input
+                              type="text"
+                              value={currentUrl}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setChapterPptUrlInputs((prev) => ({ ...prev, [chap.id]: val }));
+                              }}
+                              placeholder="Paste Google Slides, Canva Embed, OneDrive, or PDF link here..."
+                              style={{
+                                flex: 1,
+                                minWidth: "260px",
+                                padding: "9px 14px",
+                                borderRadius: "8px",
+                                background: "#1e293b",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                color: "#f8fafc",
+                                fontSize: "13px"
+                              }}
+                            />
+
+                            <button
+                              type="button"
+                              disabled={pptSavingId === chap.id}
+                              onClick={() => handleSavePptUrl(chap.id)}
+                              style={{
+                                background: "#0F3D3E",
+                                border: "1px solid #14532d",
+                                color: "#ffffff",
+                                padding: "9px 18px",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                whiteSpace: "nowrap"
+                              }}
+                            >
+                              {pptSavingId === chap.id ? "Saving..." : "💾 Save Link"}
+                            </button>
+
+                            {currentUrl && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPptPreviewModalUrl(currentUrl);
+                                  setPptPreviewModalTitle(chap.chapter_name);
+                                }}
+                                style={{
+                                  background: "rgba(56, 189, 248, 0.15)",
+                                  border: "1px solid #38bdf8",
+                                  color: "#38bdf8",
+                                  padding: "9px 14px",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap"
+                                }}
+                              >
+                                👁️ Test Preview
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Helpful Guide Box */}
+                <div style={{ marginTop: "24px", padding: "20px", background: "rgba(0,0,0,0.35)", borderRadius: "12px", border: "1px dashed rgba(255,255,255,0.15)" }}>
+                  <h4 style={{ margin: "0 0 10px", color: "#38bdf8", fontSize: "14px", fontWeight: 700 }}>
+                    💡 How to Get Embed Links for Your PPTs:
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: "20px", color: "#cbd5e1", fontSize: "13px", lineHeight: "1.7" }}>
+                    <li><strong>Google Slides:</strong> Open your PPT in Google Slides → Click <code>File</code> → <code>Share</code> → <code>Publish to web</code> → Choose <code>Embed</code> and copy the link. (Or paste any share link with "Anyone with link can view").</li>
+                    <li><strong>Canva Presentations:</strong> Click <code>Share</code> → <code>More</code> → <code>Embed</code> → Copy the Embed URL.</li>
+                    <li><strong>PDF Files / Supabase Storage:</strong> Upload your PDF file to your storage bucket and paste the public PDF URL here.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Test Preview Modal for Admin */}
+            {pptPreviewModalUrl && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.8)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  zIndex: 35000,
+                  padding: "20px"
+                }}
+                onClick={() => setPptPreviewModalUrl(null)}
+              >
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "14px",
+                    maxWidth: "850px",
+                    width: "100%",
+                    maxHeight: "90vh",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column"
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ background: "#0F3D3E", color: "#fff", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ margin: 0, fontSize: "16px" }}>👁️ Test Preview: {pptPreviewModalTitle}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setPptPreviewModalUrl(null)}
+                      style={{ background: "transparent", border: "none", color: "#fff", fontSize: "20px", cursor: "pointer" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div style={{ padding: "20px", flex: 1, minHeight: "450px" }}>
+                    <iframe
+                      src={pptPreviewModalUrl}
+                      title="Presentation Test"
+                      width="100%"
+                      height="450px"
+                      style={{ border: "none", borderRadius: "8px" }}
+                    />
                   </div>
                 </div>
               </div>
