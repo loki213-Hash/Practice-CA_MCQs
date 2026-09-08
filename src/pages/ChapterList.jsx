@@ -832,6 +832,8 @@ function ChapterList() {
                         const qCount = questionCounts[c.id] ?? 0;
                         const tCount = topicCounts[c.id] ?? 0;
                         const prog = userProgressMap[String(c.id)];
+                        const resolvedUrl = getResolvedChapterPptUrl(c);
+                        const isAttached = Boolean(resolvedUrl && String(resolvedUrl).trim());
 
                         let countLabel;
                         if (user && prog && prog.score > 0) {
@@ -853,23 +855,9 @@ function ChapterList() {
                             <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                               <button
                                 type="button"
-                                className="btn-revise-concept"
+                                className={`btn-revise-concept ${isAttached ? "attached" : "pending"}`}
                                 onClick={() => handleOpenRevision(c)}
-                                style={{
-                                  padding: "7px 14px",
-                                  fontSize: "13px",
-                                  fontWeight: "700",
-                                  color: "#0F3D3E",
-                                  background: "#e6f4f1",
-                                  border: "1.5px solid #0F3D3E",
-                                  borderRadius: "20px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  whiteSpace: "nowrap",
-                                  transition: "all 0.15s ease"
-                                }}
+                                title={isAttached ? "Revise Concept Notes" : "Concept Notes Coming Soon"}
                               >
                                 📖 Revise Concept
                               </button>
