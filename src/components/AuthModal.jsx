@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase/supabase";
 import RecoveryCodeModal from "./RecoveryCodeModal";
 
-export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login", bannerNotice = null, allowClose = true }) {
+export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login", bannerNotice = null, allowClose = true, zIndex = 60000 }) {
   const { login, register, resetPassword } = useAuth();
   const [isSignUp, setIsSignUp] = useState(initialMode === "register");
   const [username, setUsername] = useState("");
@@ -223,7 +223,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = "l
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          zIndex: 15000,
+          zIndex: zIndex || 60000,
           padding: "16px",
           overflowY: "auto",
         }}

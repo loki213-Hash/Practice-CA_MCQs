@@ -170,6 +170,28 @@ export function formatEmbedUrl(url, options = {}) {
 }
 
 /**
+ * Detects whether revision content is a PDF document/notes or a PPT/presentation slide deck.
+ * Returns "pdf" | "ppt"
+ */
+export function getRevisionContentType(url, chapter) {
+  if (!url && !chapter) return "ppt";
+  const str = String(url || "").toLowerCase().trim();
+  const pdfField = String(chapter?.revision_pdf_url || "").toLowerCase().trim();
+
+  if (
+    str.includes(".pdf") ||
+    str.includes("drive.google.com/file/d/") ||
+    str.includes("docs.google.com/document/") ||
+    str.includes("viewer?url=") ||
+    (pdfField && (pdfField === str || !chapter?.revision_ppt_url))
+  ) {
+    return "pdf";
+  }
+
+  return "ppt";
+}
+
+/**
  * Resolves the presentation URL for a chapter
  */
 export function getResolvedChapterPptUrl(chapter) {

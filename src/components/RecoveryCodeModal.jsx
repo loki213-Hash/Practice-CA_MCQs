@@ -22,7 +22,7 @@ export default function RecoveryCodeModal({ code, onClose, username }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 20000,
+        zIndex: 70000,
         padding: "20px",
       }}
     >
