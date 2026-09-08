@@ -1308,7 +1308,7 @@ function ChapterList() {
                         style={{
                           position: "relative",
                           width: "100%",
-                          height: isPdf ? "540px" : "500px",
+                          height: isPdf ? (isGuest ? "520px" : "620px") : "500px",
                           borderRadius: "12px",
                           overflow: "hidden",
                           border: "1px solid #cbd5e1",
@@ -1322,11 +1322,15 @@ function ChapterList() {
                           title={isPdf ? "Revision PDF Document" : "Revision Presentation"}
                           width="100%"
                           height="100%"
-                          style={{ border: "none" }}
+                          style={{
+                            border: "none",
+                            pointerEvents: isGuest && isPdf ? "none" : "auto",
+                            userSelect: isGuest ? "none" : "auto"
+                          }}
                           allowFullScreen={!isGuest}
                         />
 
-                        {/* PPT Mode: Interactive Click Overlay */}
+                        {/* PPT Mode: Interactive Click Overlay for Guests */}
                         {!isPdf && isGuest && (
                           <div
                             style={{
@@ -1369,60 +1373,84 @@ function ChapterList() {
                           </div>
                         )}
 
-                        {/* PDF Mode: Bottom Sticky Paywall on Page 3 */}
-                        {isPdf && isGuest && revisionSlide >= GUEST_MAX_PAGES && (
+                        {/* PDF Mode: Always Active Paywall Overlay for Guests */}
+                        {isPdf && isGuest && (
                           <div
                             style={{
                               position: "absolute",
                               bottom: 0,
                               left: 0,
                               right: 0,
-                              background: "linear-gradient(to top, rgba(15, 61, 62, 0.98) 60%, rgba(15, 61, 62, 0.75) 85%, transparent)",
-                              padding: "24px 20px 16px",
+                              height: "230px",
+                              background: "linear-gradient(to bottom, rgba(15, 61, 62, 0) 0%, rgba(15, 61, 62, 0.88) 32%, rgba(15, 61, 62, 0.98) 100%)",
+                              backdropFilter: "blur(3px)",
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
-                              justifyContent: "center",
+                              justifyContent: "flex-end",
+                              padding: "20px 24px 22px",
                               textAlign: "center",
                               color: "#ffffff",
                               zIndex: 10,
-                              boxShadow: "0 -4px 20px rgba(0,0,0,0.3)"
+                              boxShadow: "0 -6px 24px rgba(0,0,0,0.25)"
                             }}
                           >
-                            <div style={{ fontSize: "14.5px", fontWeight: "800", marginBottom: "4px", color: "#86efac", display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span>🔒</span> End of 3-Page Free PDF Preview
+                            <div
+                              style={{
+                                background: "#fef3c7",
+                                color: "#92400e",
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                padding: "3px 12px",
+                                borderRadius: "20px",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                                marginBottom: "8px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              <span>🔒</span> Free Preview (Initial Pages)
                             </div>
-                            <p style={{ fontSize: "12.5px", margin: "0 0 10px", color: "#e2e8f0", maxWidth: "480px", lineHeight: "1.4" }}>
-                              You've reached page 3 of this document. Sign in or register to scroll, download, and read the complete study notes.
+                            <h4 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#ffffff" }}>
+                              Login to Scroll & Read Full 30+ Pages
+                            </h4>
+                            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#cbd5e1", maxWidth: "480px", lineHeight: "1.4" }}>
+                              Full document reading, complete frameworks, formulas & solved illustrations are reserved for members.
                             </p>
                             <button
                               type="button"
                               onClick={() => {
                                 setShowRevisionLoginPopup(false);
                                 setAuthModalMode("login");
-                                setAuthModalBanner("🔒 Sign In or Register to unlock the full PDF study notes.");
+                                setAuthModalBanner("🔒 Sign In or Register to unlock complete PDF study notes and full scrolling.");
                                 setShowAuthModal(true);
                               }}
                               style={{
                                 background: "#22c55e",
                                 color: "#0F3D3E",
-                                padding: "8px 24px",
-                                borderRadius: "20px",
-                                fontSize: "13px",
+                                padding: "10px 28px",
+                                borderRadius: "10px",
+                                fontSize: "14px",
                                 fontWeight: "800",
                                 border: "none",
                                 cursor: "pointer",
-                                boxShadow: "0 3px 10px rgba(0,0,0,0.3)"
+                                boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                transition: "all 0.15s ease"
                               }}
                             >
-                              🔑 Sign In to Read Full Document →
+                              🔑 Sign In / Register to Read Full Document →
                             </button>
                           </div>
                         )}
                       </div>
 
-                      {/* Guest Page/Slide Controller Bar */}
-                      {isGuest && (
+                      {/* PPT Mode: Slide Controller Bar */}
+                      {!isPdf && isGuest && (
                         <div
                           style={{
                             display: "flex",
@@ -1451,7 +1479,7 @@ function ChapterList() {
                               cursor: revisionSlide <= 1 ? "not-allowed" : "pointer"
                             }}
                           >
-                            ◀ Previous {isPdf ? "Page" : "Slide"}
+                            ◀ Previous Slide
                           </button>
 
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1476,7 +1504,7 @@ function ChapterList() {
                               </button>
                             ))}
                             <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", marginLeft: "4px" }}>
-                              (Free Preview: 3 {isPdf ? "Pages" : "Slides"})
+                              (Free Preview: 3 Slides)
                             </span>
                           </div>
 
@@ -1496,7 +1524,7 @@ function ChapterList() {
                                 boxShadow: "0 2px 6px rgba(15,61,62,0.2)"
                               }}
                             >
-                              Next {isPdf ? "Page" : "Slide"} ▶
+                              Next Slide ▶
                             </button>
                           ) : (
                             <button
@@ -1517,9 +1545,61 @@ function ChapterList() {
                                 boxShadow: "0 2px 6px rgba(217,119,6,0.3)"
                               }}
                             >
-                              🔒 Unlock Next {isPdf ? "Pages" : "Slides"}
+                              🔒 Unlock Next Slides
                             </button>
                           )}
+                        </div>
+                      )}
+
+                      {/* PDF Mode: Bottom Info & Unlock Bar */}
+                      {isPdf && isGuest && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            background: "#ffffff",
+                            padding: "10px 18px",
+                            borderRadius: "10px",
+                            border: "1px solid #e2e8f0",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                            flexWrap: "wrap",
+                            gap: "10px"
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: "700", color: "#0F3D3E" }}>
+                              📄 PDF Study Notes:
+                            </span>
+                            <span style={{ fontSize: "13px", color: "#64748b" }}>
+                              Free Preview Mode (Pages 1–2 of 30+ pages)
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowRevisionLoginPopup(false);
+                              setAuthModalMode("login");
+                              setAuthModalBanner("🔒 Sign In or Register to unlock the full PDF study notes.");
+                              setShowAuthModal(true);
+                            }}
+                            style={{
+                              padding: "7px 18px",
+                              fontSize: "13px",
+                              fontWeight: "700",
+                              color: "#ffffff",
+                              background: "#0F3D3E",
+                              border: "none",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              boxShadow: "0 2px 6px rgba(15,61,62,0.2)"
+                            }}
+                          >
+                            🔒 Unlock Full Document & Scroll
+                          </button>
                         </div>
                       )}
                     </div>
