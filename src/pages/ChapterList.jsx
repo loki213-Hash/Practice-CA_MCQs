@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { getCourseBySlug } from "../services/courseService";
 import { getSubjects } from "../services/subjectService";
 import { getChapters, getResolvedChapterPptUrl, formatEmbedUrl } from "../services/chapterService";
@@ -41,6 +41,7 @@ function getParagraphsArray(paragraphs) {
 
 function ChapterList() {
   const { courseSlug, setType } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, login, register } = useAuth();
 
   const [course, setCourse] = useState(null);
@@ -70,20 +71,33 @@ function ChapterList() {
   // Concept Revision Modal State
   const [revisionChapter, setRevisionChapter] = useState(null);
   const [revisionSlide, setRevisionSlide] = useState(1);
+  const [showRevisionLoginPopup, setShowRevisionLoginPopup] = useState(false);
 
   const handleOpenRevision = (chap) => {
     const resolvedUrl = getResolvedChapterPptUrl(chap);
     setRevisionChapter({ ...chap, revision_ppt_url: resolvedUrl });
     setRevisionSlide(1);
+    setShowRevisionLoginPopup(false);
+    if (chap?.id) {
+      try {
+        sessionStorage.setItem("pending_revision_chapter_id", String(chap.id));
+      } catch (e) {}
+    }
   };
 
   const handleCloseRevision = () => {
     setRevisionChapter(null);
     setRevisionSlide(1);
+    setShowRevisionLoginPopup(false);
+    try {
+      sessionStorage.removeItem("pending_revision_chapter_id");
+    } catch (e) {}
   };
 
-  // Guest Auth Popup State
+  // Unified Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState("login");
+  const [authModalBanner, setAuthModalBanner] = useState("");
   const [authTab, setAuthTab] = useState("login"); // 'login' | 'register'
   const [authUsername, setAuthUsername] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -237,6 +251,33 @@ function ChapterList() {
       window.removeEventListener("ca_quiz_progress_updated", handleProgressUpdate);
     };
   }, [courseSlug, setType, user]);
+
+  // Auto-open Revision Concept if returning after login or direct ?revise= query param
+  useEffect(() => {
+    if (!chapters || chapters.length === 0) return;
+    try {
+      const reviseParam = searchParams.get("revise") || sessionStorage.getItem("pending_revision_chapter_id");
+      if (reviseParam) {
+        const targetChap = chapters.find((c) => String(c.id) === String(reviseParam) || c.chapter_slug === reviseParam);
+        if (targetChap) {
+          // Expand matching subject card if not currently selected
+          const sIdx = subjects.findIndex((s) => String(s.id) === String(targetChap.subject_id));
+          if (sIdx >= 0 && selectedIndex !== sIdx) {
+            setSelectedIndex(sIdx);
+          }
+          handleOpenRevision(targetChap);
+          // Clean URL query param if present
+          if (searchParams.get("revise")) {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("revise");
+            setSearchParams(newParams, { replace: true });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed auto-opening revision chapter:", e);
+    }
+  }, [chapters, searchParams, subjects]);
 
   const activeCase = casesList[activeCaseIndex] || casesList[0];
   const activeCaseQuestions = activeCase?.questions || [];
@@ -442,6 +483,8 @@ function ChapterList() {
 
       if (!user) {
         // Guest user -> Open Auth Modal to register/login before displaying results
+        setAuthModalMode("register");
+        setAuthModalBanner("🔒 Register or Sign In with your account to unlock your performance score and track your accuracy.");
         setShowAuthModal(true);
       } else {
         // Logged-in user -> Reveal results
@@ -1041,11 +1084,15 @@ function ChapterList() {
             onClose={() => setShowAuthModal(false)}
             onSuccess={() => {
               setShowAuthModal(false);
+              setShowRevisionLoginPopup(false);
               setCaseTestFinished(true);
               loadUserProgress();
+              try {
+                sessionStorage.removeItem("pending_revision_chapter_id");
+              } catch (e) {}
             }}
-            initialMode="register"
-            bannerNotice="🔒 Register or Sign In with your account to unlock your performance score and track your accuracy."
+            initialMode={authModalMode || "register"}
+            bannerNotice={authModalBanner || "🔒 Register or Sign In with your account to unlock your performance score and track your accuracy."}
           />
         )}
 
@@ -1110,190 +1157,567 @@ function ChapterList() {
             </div>
           </div>
         )}
+
         {/* Concept Revision PPT / Slide Viewer Modal */}
-        {revisionChapter && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.75)",
-              backdropFilter: "blur(4px)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 35000,
-              padding: "20px"
-            }}
-            onClick={handleCloseRevision}
-          >
+        {revisionChapter && (() => {
+          const isGuest = !user;
+          const GUEST_MAX_PAGES = 3;
+
+          return (
             <div
               style={{
-                background: "#ffffff",
-                borderRadius: "16px",
-                maxWidth: "850px",
-                width: "100%",
-                maxHeight: "90vh",
+                position: "fixed",
+                inset: 0,
+                background: "rgba(15, 23, 42, 0.75)",
+                backdropFilter: "blur(4px)",
                 display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
-                border: "1px solid #cbd5e1"
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 35000,
+                padding: "20px"
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleCloseRevision}
             >
-              {/* Modal Header */}
-              <div
-                style={{
-                  background: "#0F3D3E",
-                  color: "#ffffff",
-                  padding: "18px 24px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center"
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: "11px", fontWeight: "800", letterSpacing: "1px", textTransform: "uppercase", color: "#86efac", display: "block", marginBottom: "2px" }}>
-                    ⚡ LAST-DAY CONCEPT REVISION DECK
-                  </span>
-                  <h3 style={{ margin: 0, fontSize: "19px", fontWeight: "800", color: "#ffffff" }}>
-                    {(revisionChapter.chapter_name || revisionChapter.title || "Concept Revision").trim()}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCloseRevision}
-                  style={{
-                    background: "rgba(255,255,255,0.15)",
-                    border: "none",
-                    color: "#ffffff",
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    fontSize: "18px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Modal Body: Slide Content Viewer */}
-              <div style={{ flex: 1, padding: "24px", overflowY: "auto", background: "#f8fafc" }}>
-                {revisionChapter.revision_ppt_url ? (
-                  <div style={{ width: "100%", height: "520px", borderRadius: "12px", overflow: "hidden", border: "1px solid #cbd5e1", background: "#000", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}>
-                    <iframe
-                      src={formatEmbedUrl(revisionChapter.revision_ppt_url)}
-                      title="Revision Presentation"
-                      width="100%"
-                      height="100%"
-                      style={{ border: "none" }}
-                      allowFullScreen={true}
-                    />
-                  </div>
-                ) : (
-                  /* Coming Soon Placeholder for Chapters without PPT yet */
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "2px dashed #0F3D3E",
-                      borderRadius: "14px",
-                      padding: "48px 32px",
-                      textAlign: "center",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 4px 16px rgba(15,61,62,0.06)",
-                      minHeight: "320px"
-                    }}
-                  >
-                    <div style={{ fontSize: "44px", marginBottom: "12px" }}>⏳</div>
-                    <span style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", padding: "4px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "14px" }}>
-                      Coming Soon
-                    </span>
-                    <h3 style={{ fontSize: "22px", color: "#0F3D3E", margin: "0 0 10px", fontWeight: "800" }}>
-                      Concept Revision Slides Coming Soon!
-                    </h3>
-                    <p style={{ fontSize: "14.5px", color: "#475569", lineHeight: "1.6", maxWidth: "520px", margin: "0 0 24px" }}>
-                      The Last-Day Concept Revision PPT for <strong>{(revisionChapter.chapter_name || revisionChapter.title || "").trim()}</strong> is currently being prepared and will be available soon.
-                    </p>
-                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 20px", borderRadius: "8px", color: "#166534", fontSize: "13.5px", fontWeight: "600" }}>
-                      💡 You can proceed directly to practice the MCQs for this chapter!
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer Controls */}
               <div
                 style={{
                   background: "#ffffff",
-                  borderTop: "1px solid #e2e8f0",
-                  padding: "16px 24px",
+                  borderRadius: "16px",
+                  maxWidth: "880px",
+                  width: "100%",
+                  maxHeight: "92vh",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap"
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+                  border: "1px solid #cbd5e1"
                 }}
+                onClick={(e) => e.stopPropagation()}
               >
-                <div>
-                  {revisionChapter.revision_ppt_url ? (
-                    <a
-                      href={revisionChapter.revision_ppt_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                {/* Modal Header */}
+                <div
+                  style={{
+                    background: "#0F3D3E",
+                    color: "#ffffff",
+                    padding: "16px 24px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: "11px", fontWeight: "800", letterSpacing: "1px", textTransform: "uppercase", color: isGuest ? "#fde68a" : "#86efac", display: "block", marginBottom: "2px" }}>
+                      {isGuest ? "⚡ LAST-DAY CONCEPT REVISION · 3-PAGE FREE PREVIEW" : "⚡ LAST-DAY CONCEPT REVISION DECK · FULL ACCESS"}
+                    </span>
+                    <h3 style={{ margin: 0, fontSize: "19px", fontWeight: "800", color: "#ffffff" }}>
+                      {(revisionChapter.chapter_name || revisionChapter.title || "Concept Revision").trim()}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseRevision}
+                    style={{
+                      background: "rgba(255,255,255,0.15)",
+                      border: "none",
+                      color: "#ffffff",
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      fontSize: "18px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Guest Preview Notice Header Bar */}
+                {isGuest && (
+                  <div
+                    style={{
+                      background: "#fffbeb",
+                      borderBottom: "1px solid #fde68a",
+                      padding: "10px 24px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      flexWrap: "wrap"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#92400e", fontWeight: "600" }}>
+                      <span>👁️ <strong>Guest Preview:</strong> Showing first 3 pages. Login to access all slides & study materials.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthModalMode("login");
+                        setAuthModalBanner("🔒 Sign In or Register to unlock the full Concept Revision deck and notes.");
+                        setShowAuthModal(true);
+                      }}
                       style={{
-                        padding: "9px 16px",
-                        fontSize: "13px",
+                        background: "#0F3D3E",
+                        color: "#ffffff",
+                        padding: "6px 14px",
+                        borderRadius: "6px",
+                        fontSize: "12.5px",
                         fontWeight: "700",
-                        color: "#0F3D3E",
-                        background: "#e6f4f1",
-                        border: "1px solid #0F3D3E",
-                        borderRadius: "8px",
-                        textDecoration: "none",
+                        border: "none",
+                        cursor: "pointer",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "6px"
+                        gap: "6px",
+                        boxShadow: "0 2px 6px rgba(15,61,62,0.15)"
                       }}
                     >
-                      🔗 Open Presentation in New Tab
-                    </a>
+                      🔒 Login to Access All Pages
+                    </button>
+                  </div>
+                )}
+
+                {/* Modal Body: Slide Content Viewer */}
+                <div style={{ flex: 1, padding: "20px 24px", overflowY: "auto", background: "#f8fafc" }}>
+                  {revisionChapter.revision_ppt_url ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                      {/* Presentation Frame with Guest Click Overlay */}
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          height: "500px",
+                          borderRadius: "12px",
+                          overflow: "hidden",
+                          border: "1px solid #cbd5e1",
+                          background: "#000",
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.12)"
+                        }}
+                      >
+                        <iframe
+                          key={`slide-${revisionSlide}-${isGuest ? "guest" : "user"}`}
+                          src={formatEmbedUrl(revisionChapter.revision_ppt_url, { slide: revisionSlide, isGuest })}
+                          title="Revision Presentation"
+                          width="100%"
+                          height="100%"
+                          style={{ border: "none" }}
+                          allowFullScreen={!isGuest}
+                        />
+
+                        {/* Guest Interactive Click Overlay: captures clicks to prevent bypassing 3-page limit */}
+                        {isGuest && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              cursor: "pointer",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              zIndex: 5
+                            }}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const clickX = e.clientX - rect.left;
+                              if (clickX < rect.width * 0.3) {
+                                if (revisionSlide > 1) {
+                                  setRevisionSlide((prev) => prev - 1);
+                                }
+                              } else {
+                                if (revisionSlide < GUEST_MAX_PAGES) {
+                                  setRevisionSlide((prev) => prev + 1);
+                                } else {
+                                  setShowRevisionLoginPopup(true);
+                                }
+                              }
+                            }}
+                            title={revisionSlide < GUEST_MAX_PAGES ? "Click right to advance, left to go back" : "Login to view all remaining slides"}
+                          >
+                            <div style={{ width: "30%", height: "100%", display: "flex", alignItems: "center", paddingLeft: "14px" }}>
+                              {revisionSlide > 1 && (
+                                <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700" }}>
+                                  ◀ Prev
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ width: "70%", height: "100%", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "14px" }}>
+                              <span style={{ background: revisionSlide < GUEST_MAX_PAGES ? "rgba(15,61,62,0.8)" : "rgba(217,119,6,0.9)", color: "#fff", padding: "7px 16px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>
+                                {revisionSlide < GUEST_MAX_PAGES ? "Next Slide ▶" : "🔒 Login to Unlock All"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Guest Slide Navigator Controller */}
+                      {isGuest && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            background: "#ffffff",
+                            padding: "10px 16px",
+                            borderRadius: "10px",
+                            border: "1px solid #e2e8f0",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                          }}
+                        >
+                          <button
+                            type="button"
+                            disabled={revisionSlide <= 1}
+                            onClick={() => setRevisionSlide((prev) => Math.max(1, prev - 1))}
+                            style={{
+                              padding: "7px 14px",
+                              fontSize: "13px",
+                              fontWeight: "700",
+                              color: revisionSlide <= 1 ? "#94a3b8" : "#0F3D3E",
+                              background: revisionSlide <= 1 ? "#f1f5f9" : "#e6f4f1",
+                              border: "1px solid",
+                              borderColor: revisionSlide <= 1 ? "#cbd5e1" : "#0F3D3E",
+                              borderRadius: "6px",
+                              cursor: revisionSlide <= 1 ? "not-allowed" : "pointer"
+                            }}
+                          >
+                            ◀ Previous
+                          </button>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            {[1, 2, 3].map((page) => (
+                              <button
+                                key={page}
+                                type="button"
+                                onClick={() => setRevisionSlide(page)}
+                                style={{
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "50%",
+                                  border: revisionSlide === page ? "2px solid #0F3D3E" : "1px solid #cbd5e1",
+                                  background: revisionSlide === page ? "#0F3D3E" : "#ffffff",
+                                  color: revisionSlide === page ? "#ffffff" : "#475569",
+                                  fontWeight: "800",
+                                  fontSize: "13px",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                            <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", marginLeft: "4px" }}>
+                              (Free Preview: 3 Pages)
+                            </span>
+                          </div>
+
+                          {revisionSlide < GUEST_MAX_PAGES ? (
+                            <button
+                              type="button"
+                              onClick={() => setRevisionSlide((prev) => prev + 1)}
+                              style={{
+                                padding: "7px 16px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                color: "#ffffff",
+                                background: "#0F3D3E",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                boxShadow: "0 2px 6px rgba(15,61,62,0.2)"
+                              }}
+                            >
+                              Next Page ▶
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowRevisionLoginPopup(true)}
+                              style={{
+                                padding: "7px 16px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                color: "#ffffff",
+                                background: "#d97706",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                boxShadow: "0 2px 6px rgba(217,119,6,0.3)"
+                              }}
+                            >
+                              🔒 Unlock Next Pages
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>
-                      Practice MCQs are fully available below
-                    </span>
+                    /* Coming Soon Placeholder for Chapters without PPT yet */
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "2px dashed #0F3D3E",
+                        borderRadius: "14px",
+                        padding: "48px 32px",
+                        textAlign: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 4px 16px rgba(15,61,62,0.06)",
+                        minHeight: "320px"
+                      }}
+                    >
+                      <div style={{ fontSize: "44px", marginBottom: "12px" }}>⏳</div>
+                      <span style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", padding: "4px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "800", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "14px" }}>
+                        Coming Soon
+                      </span>
+                      <h3 style={{ fontSize: "22px", color: "#0F3D3E", margin: "0 0 10px", fontWeight: "800" }}>
+                        Concept Revision Slides Coming Soon!
+                      </h3>
+                      <p style={{ fontSize: "14.5px", color: "#475569", lineHeight: "1.6", maxWidth: "520px", margin: "0 0 24px" }}>
+                        The Last-Day Concept Revision PPT for <strong>{(revisionChapter.chapter_name || revisionChapter.title || "").trim()}</strong> is currently being prepared and will be available soon.
+                      </p>
+                      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 20px", borderRadius: "8px", color: "#166534", fontSize: "13.5px", fontWeight: "600" }}>
+                        💡 You can proceed directly to practice the MCQs for this chapter!
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                {/* Direct Action Shortcut: Ready! Start Test → */}
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <Link
-                    to={`/quiz/${revisionChapter.id}`}
-                    onClick={handleCloseRevision}
-                    style={{
-                      padding: "10px 22px",
-                      fontSize: "14px",
-                      fontWeight: "800",
-                      color: "#ffffff",
-                      background: "#0F3D3E",
-                      border: "none",
-                      borderRadius: "8px",
-                      textDecoration: "none",
-                      boxShadow: "0 3px 10px rgba(15, 61, 62, 0.25)"
-                    }}
-                  >
-                    🚀 Ready! Start Practice Test →
-                  </Link>
+                {/* Modal Footer Controls */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderTop: "1px solid #e2e8f0",
+                    padding: "16px 24px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  <div>
+                    {revisionChapter.revision_ppt_url ? (
+                      isGuest ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowRevisionLoginPopup(true)}
+                          style={{
+                            padding: "9px 16px",
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            color: "#0F3D3E",
+                            background: "#e6f4f1",
+                            border: "1px solid #0F3D3E",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px"
+                          }}
+                        >
+                          🔒 Open Presentation in New Tab (Login Required)
+                        </button>
+                      ) : (
+                        <a
+                          href={revisionChapter.revision_ppt_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "9px 16px",
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            color: "#0F3D3E",
+                            background: "#e6f4f1",
+                            border: "1px solid #0F3D3E",
+                            borderRadius: "8px",
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px"
+                          }}
+                        >
+                          🔗 Open Presentation in New Tab
+                        </a>
+                      )
+                    ) : (
+                      <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>
+                        Practice MCQs are fully available below
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Direct Action Shortcut: Ready! Start Test → */}
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <Link
+                      to={`/quiz/${revisionChapter.id}`}
+                      onClick={handleCloseRevision}
+                      style={{
+                        padding: "10px 22px",
+                        fontSize: "14px",
+                        fontWeight: "800",
+                        color: "#ffffff",
+                        background: "#0F3D3E",
+                        border: "none",
+                        borderRadius: "8px",
+                        textDecoration: "none",
+                        boxShadow: "0 3px 10px rgba(15, 61, 62, 0.25)"
+                      }}
+                    >
+                      🚀 Ready! Start Practice Test →
+                    </Link>
+                  </div>
                 </div>
               </div>
+
+              {/* Login to Access Popup Modal */}
+              {showRevisionLoginPopup && (
+                <div
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    background: "rgba(15, 23, 42, 0.8)",
+                    backdropFilter: "blur(6px)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 40000,
+                    padding: "20px"
+                  }}
+                  onClick={() => setShowRevisionLoginPopup(false)}
+                >
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: "20px",
+                      maxWidth: "480px",
+                      width: "100%",
+                      overflow: "hidden",
+                      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.45)",
+                      border: "1px solid #cbd5e1",
+                      textAlign: "center",
+                      position: "relative"
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Top Accent Strip */}
+                    <div style={{ height: "6px", background: "linear-gradient(90deg, #0F3D3E, #22c55e, #eab308)" }} />
+
+                    <div style={{ padding: "32px 28px 26px" }}>
+                      <div
+                        style={{
+                          width: "56px",
+                          height: "56px",
+                          borderRadius: "50%",
+                          background: "#e6f4f1",
+                          color: "#0F3D3E",
+                          fontSize: "26px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 16px",
+                          border: "2px solid #bbf7d0"
+                        }}
+                      >
+                        🔒
+                      </div>
+
+                      <span
+                        style={{
+                          background: "#fef3c7",
+                          color: "#92400e",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11.5px",
+                          fontWeight: "800",
+                          letterSpacing: "0.5px",
+                          textTransform: "uppercase",
+                          display: "inline-block",
+                          marginBottom: "10px"
+                        }}
+                      >
+                        Members Only Access
+                      </span>
+
+                      <h3 style={{ margin: "0 0 10px", fontSize: "21px", fontWeight: "800", color: "#0F3D3E" }}>
+                        Login to Access Full Concept Revision
+                      </h3>
+
+                      <p style={{ margin: "0 0 20px", fontSize: "14px", color: "#475569", lineHeight: "1.6" }}>
+                        You have completed the <strong>3-page free preview</strong> for <strong>{(revisionChapter.chapter_name || revisionChapter.title || "this chapter").trim()}</strong>. Log in or create a free account to unlock the full revision deck and study notes.
+                      </p>
+
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          borderRadius: "12px",
+                          padding: "14px 16px",
+                          marginBottom: "24px",
+                          textAlign: "left",
+                          border: "1px solid #e2e8f0"
+                        }}
+                      >
+                        <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F3D3E", marginBottom: "8px" }}>
+                          What you unlock with an account:
+                        </div>
+                        <div style={{ fontSize: "12.5px", color: "#334155", display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <div>✨ Full access to all slides and chapters</div>
+                          <div>🖥️ Open in new tab & full-screen view</div>
+                          <div>📊 Save your MCQ accuracy & exam progress</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowRevisionLoginPopup(false);
+                            setAuthModalMode("login");
+                            setAuthModalBanner("🔒 Sign In or Register to unlock the full Concept Revision deck.");
+                            setShowAuthModal(true);
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 20px",
+                            fontSize: "15px",
+                            fontWeight: "800",
+                            color: "#ffffff",
+                            background: "#0F3D3E",
+                            border: "none",
+                            borderRadius: "10px",
+                            cursor: "pointer",
+                            boxShadow: "0 4px 12px rgba(15,61,62,0.25)"
+                          }}
+                        >
+                          🔑 Sign In / Register to Unlock →
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowRevisionLoginPopup(false)}
+                          style={{
+                            width: "100%",
+                            padding: "10px 20px",
+                            fontSize: "13.5px",
+                            fontWeight: "600",
+                            color: "#64748b",
+                            background: "transparent",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "10px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Back to 3-Page Preview
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

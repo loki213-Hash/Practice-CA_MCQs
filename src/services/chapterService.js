@@ -134,15 +134,21 @@ export const DEFAULT_CHAPTER_PPTS = {
 /**
  * Normalizes any Google Slides, Canva, Drive, or PDF URL to an embeddable format.
  */
-export function formatEmbedUrl(url) {
+export function formatEmbedUrl(url, options = {}) {
   if (!url) return "";
   let formatted = String(url).trim();
+  const slide = typeof options === "object" && options?.slide ? Number(options.slide) : 1;
+  const isGuest = typeof options === "object" ? Boolean(options?.isGuest) : false;
 
   // 1. Google Slides: extract presentation ID and generate clean embed URL
   if (formatted.includes("docs.google.com/presentation/d/")) {
     const match = formatted.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
-      return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
+      const baseEmbed = `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`;
+      if (isGuest) {
+        return `${baseEmbed}&slide=id.p${slide}&rm=minimal`;
+      }
+      return slide > 1 ? `${baseEmbed}&slide=id.p${slide}` : baseEmbed;
     }
   }
 
@@ -150,7 +156,8 @@ export function formatEmbedUrl(url) {
   if (formatted.includes("drive.google.com/file/d/")) {
     const match = formatted.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
+      const base = `https://drive.google.com/file/d/${match[1]}/preview`;
+      return slide > 1 ? `${base}#page=${slide}` : base;
     }
   }
 
