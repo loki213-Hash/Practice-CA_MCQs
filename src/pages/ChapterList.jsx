@@ -853,14 +853,16 @@ function ChapterList() {
                               <p className="subchapter-row-meta">{countLabel}</p>
                             </div>
                             <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                              <button
-                                type="button"
-                                className={`btn-revise-concept ${isAttached ? "attached" : "pending"}`}
-                                onClick={() => handleOpenRevision(c)}
-                                title={isAttached ? "Revise Concept Notes" : "Concept Notes Coming Soon"}
-                              >
-                                📖 Revise Concept
-                              </button>
+                              {isAttached && (
+                                <button
+                                  type="button"
+                                  className="btn-revise-concept attached"
+                                  onClick={() => handleOpenRevision(c)}
+                                  title="Revise Concept Notes"
+                                >
+                                  📖 Revise Concept
+                                </button>
+                              )}
                               <Link className="subchapter-start-btn" to={`/quiz/${c.id}`}>
                                 Start test &rarr;
                               </Link>
